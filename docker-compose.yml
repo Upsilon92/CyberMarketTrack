@@ -1,0 +1,20 @@
+# CyberMarketTrack — production deployment.
+#   1. cp .env.example .env   (then edit the secrets!)
+#   2. docker compose up -d --build
+#   3. sign in at /login with ADMIN_USERNAME / ADMIN_PASSWORD from .env:
+#      on a fresh database the admin account is created automatically.
+# The ./data folder on the host holds the SQLite file: back it up with the
+# strategy described in the README.
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      # Inside the container the database always lives under /app/data
+      - DATABASE_URL=file:./data/cybermarkettrack.db
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped

@@ -1,0 +1,259 @@
+// =============================================================================
+// CyberMarketTrack — Prisma schema
+// =============================================================================
+//
+// CORE ARCHITECTURAL RULE (non-negotiable):
+// Events are the SINGLE source of truth for anything that changes over time.
+// There is NO period table (no CompanyName, CompanyOwnership, SolutionOwnership...).
+// Periods, current name, current owner, current status are all DERIVED at read
+// time by the pure functions in /lib/timeline.ts.
+//
+// SQLite compatibility note: Prisma does not support native enums on SQLite,
+// so every enum-like field is a String. Allowed values are defined once in
+// /lib/constants.ts (TypeScript unions) and enforced by Zod on every input.
+// When migrating to PostgreSQL, these Strings can be converted to native enums
+// without any data reshaping.
+//
+// Variable-precision dates: every date in the app is stored as
+// `year` (Int, required) + `month` (Int 1-12, optional). Never a full Date.
+// =============================================================================
+
+// Prisma 7 "prisma-client" generator: emits TypeScript into lib/generated/prisma
+// (gitignored). The runtime uses the better-sqlite3 driver adapter (see lib/prisma.ts).
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+// Prisma 7: the connection URL is defined in prisma.config.ts (CLI) and in the
+// driver adapter passed to PrismaClient (runtime) — not here.
+datasource db {
+  provider = "sqlite"
+}
+
+// -----------------------------------------------------------------------------
+// Company — only intrinsic, at-creation facts. Nothing that evolves over time.
+// No `name`, no `status`, no `parentCompanyId`: all derived from events.
+// -----------------------------------------------------------------------------
+model Company {
+  id          String  @id @default(cuid())
+  initialName String // name at creation — anchor of the rename chain, never changes
+  foundedYear  Int
+  foundedMonth Int? // 1-12, optional (variable-precision date)
+  country       String // ISO 3166-1 alpha-2 (current HQ country)
+  originCountry String? // ISO code, if different from current country
+  description String? // markdown
+  website     String?
+  logoUrl     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt // drives the data-freshness badge
+
+  // VENDOR | SERVICE_PROVIDER | INVESTMENT_FUND — a company can have several
+  types CompanyTypeAssignment[]
+
+  revenues Revenue[]
+  aliases  Alias[]
+
+  // Events where this company is the subject (its own history)
+  subjectEvents Event[] @relation("EventSubjectCompany")
+  // Events where this company is a target/actor of someone else's event
+  acquisitionsMade   Event[] @relation("EventAcquirer")
+  mergersReceived    Event[] @relation("EventMergedWith")
+  solutionsReceived  Event[] @relation("EventNewOwner")
+
+  // Solutions this company originally created (anchor of the transfer chain)
+  initialSolutions Solution[]
+}
+
+// Company type as a join table (many-to-many between Company and a type value).
+// `type`: VENDOR | SERVICE_PROVIDER | INVESTMENT_FUND (see /lib/constants.ts)
+model CompanyTypeAssignment {
+  id        String  @id @default(cuid())
+  type      String
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, type])
+  @@index([type])
+}
+
+// -----------------------------------------------------------------------------
+// Solution — no current `name` nor current `companyId`: derived from events.
+// -----------------------------------------------------------------------------
+model Solution {
+  id               String  @id @default(cuid())
+  initialName      String // name at launch — anchor of the rename chain
+  initialCompanyId String // original vendor — anchor of the transfer chain
+  initialCompany   Company @relation(fields: [initialCompanyId], references: [id])
+  description String? // markdown
+  features    String? // markdown
+  launchYear  Int?
+  launchMonth Int? // 1-12, optional
+  website     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tags    Tag[] // implicit many-to-many
+  aliases Alias[]
+  events  Event[] @relation("EventSubjectSolution")
+}
+
+// -----------------------------------------------------------------------------
+// Tag — three families: SOLUTION_TYPE | CAPABILITY | SCOPE.
+// SCOPE tags carry an optional `category` used to group columns in comparators
+// (e.g. Local, Directory, Identity provider, Cloud, SaaS).
+// Labels are bilingual (the only bilingual data in the base).
+// -----------------------------------------------------------------------------
+model Tag {
+  id       String  @id @default(cuid())
+  slug     String  @unique
+  family   String // SOLUTION_TYPE | CAPABILITY | SCOPE
+  labelFr  String
+  labelEn  String
+  category String? // grouping label for SCOPE tags (stored as a stable key)
+
+  solutions Solution[]
+
+  @@index([family])
+}
+
+// -----------------------------------------------------------------------------
+// Event — THE single history mechanism. A dated fact, optionally mutating the
+// derived state of a company or a solution. The only thing the user types in.
+//
+// `type` (see /lib/constants.ts):
+//   COMPANY_RENAME        -> newName
+//   ACQUISITION           -> acquirerCompanyId | acquirerNameRaw, outcome
+//   DIVESTMENT            -> note (ownership ends, back to INDEPENDENT)
+//   MERGER                -> withCompanyId
+//   SHUTDOWN              -> (none)
+//   SOLUTION_RENAME       -> newName
+//   SOLUTION_TRANSFER     -> newOwnerCompanyId
+//   SOLUTION_LAUNCH       -> (none)
+//   SOLUTION_DISCONTINUED -> (none)
+//   FUNDING               -> amount, round   (informational, no state effect)
+//   OTHER                 -> (none)          (informational, no state effect)
+//
+// `outcome` (ACQUISITION only): INVESTOR_OWNED | AUTONOMOUS | ABSORBED | UNKNOWN
+// -----------------------------------------------------------------------------
+model Event {
+  id    String @id @default(cuid())
+  type  String
+  year  Int
+  month Int? // 1-12, optional
+  description String? // markdown — the narrative/context of the fact
+
+  // Subject: the entity whose state changes (company and/or solution)
+  subjectCompanyId  String?
+  subjectCompany    Company?  @relation("EventSubjectCompany", fields: [subjectCompanyId], references: [id], onDelete: Cascade)
+  subjectSolutionId String?
+  subjectSolution   Solution? @relation("EventSubjectSolution", fields: [subjectSolutionId], references: [id], onDelete: Cascade)
+
+  // COMPANY_RENAME / SOLUTION_RENAME
+  newName String?
+
+  // ACQUISITION
+  acquirerCompanyId String?
+  acquirerCompany   Company? @relation("EventAcquirer", fields: [acquirerCompanyId], references: [id])
+  acquirerNameRaw   String? // free-text acquirer when not referenced in the base
+  outcome           String? // INVESTOR_OWNED | AUTONOMOUS | ABSORBED | UNKNOWN
+
+  // MERGER
+  withCompanyId String?
+  withCompany   Company? @relation("EventMergedWith", fields: [withCompanyId], references: [id])
+
+  // SOLUTION_TRANSFER
+  newOwnerCompanyId String?
+  newOwnerCompany   Company? @relation("EventNewOwner", fields: [newOwnerCompanyId], references: [id])
+
+  // FUNDING
+  amount Float? // in millions (unit documented in UI)
+  round  String? // e.g. "Series A"
+
+  // DIVESTMENT
+  note String? // e.g. "IPO Nasdaq", "management buy-out"
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([subjectCompanyId])
+  @@index([subjectSolutionId])
+  @@index([type])
+  @@index([year, month])
+}
+
+// -----------------------------------------------------------------------------
+// Revenue — yearly revenue figures (variable-precision date, usually year only)
+// -----------------------------------------------------------------------------
+model Revenue {
+  id        String  @id @default(cuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  year     Int
+  amount   Float // in millions
+  currency String @default("USD") // ISO 4217
+  source   String? // where the figure comes from
+
+  @@unique([companyId, year])
+}
+
+// -----------------------------------------------------------------------------
+// Alias — undated alternative names ONLY (abbreviations, acronyms, common
+// spellings). Historical names are NOT aliases: they are derived from
+// COMPANY_RENAME / SOLUTION_RENAME events by /lib/timeline.ts.
+// Exactly one of companyId / solutionId is set (enforced by Zod).
+// -----------------------------------------------------------------------------
+model Alias {
+  id         String    @id @default(cuid())
+  name       String
+  companyId  String?
+  company    Company?  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  solutionId String?
+  solution   Solution? @relation(fields: [solutionId], references: [id], onDelete: Cascade)
+
+  @@index([name])
+}
+
+// -----------------------------------------------------------------------------
+// User — single admin in v1. `role` exists from day one to allow future RBAC
+// (multi-user, SAML/OIDC) without schema change. ADMIN is the only role used.
+// -----------------------------------------------------------------------------
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String // argon2
+  role         String   @default("ADMIN")
+  createdAt    DateTime @default(now())
+}
+
+// -----------------------------------------------------------------------------
+// Comparator — user-built comparison tables. The full definition (items,
+// categories, criteria, values, default attributes, orientation) is stored as
+// versioned JSON ({ "version": 1, ... }) — documented in ARCHITECTURE.md.
+// -----------------------------------------------------------------------------
+model Comparator {
+  id        String   @id @default(cuid())
+  name      String
+  content   String // JSON, schema versioned
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// -----------------------------------------------------------------------------
+// AuditLog — filled by every mutation route via a single helper (/lib/audit.ts)
+// `action`: CREATE | UPDATE | DELETE | IMPORT | RESTORE
+// -----------------------------------------------------------------------------
+model AuditLog {
+  id         String   @id @default(cuid())
+  timestamp  DateTime @default(now())
+  userId     String?
+  action     String
+  entityType String // table name, e.g. "Company", "Event"
+  entityId   String
+  summary    String // short human-readable description of the change
+
+  @@index([entityType, entityId])
+  @@index([timestamp])
+}
