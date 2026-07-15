@@ -25,6 +25,7 @@ export default async function CompanyHistoryPage({ params }: { params: Promise<{
     outcome: e.outcome,
     withCompanyId: e.withCompanyId,
     newOwnerCompanyId: e.newOwnerCompanyId,
+    intoSolutionId: e.intoSolutionId,
     amount: e.amount,
     round: e.round,
     note: e.note,

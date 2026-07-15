@@ -97,7 +97,19 @@ s'affiche « période inconnue » sans bloquer.
 | `SOLUTION_TRANSFER` | éditeur de la solution | `newOwnerCompanyId` |
 | `SOLUTION_LAUNCH` | solution active | — |
 | `SOLUTION_DISCONTINUED` | solution arrêtée | — |
+| `SOLUTION_INTEGRATED` | solution absorbée dans une autre (statut `INTEGRATED`) | `intoSolutionId` |
 | `FUNDING`, `OTHER` | aucun (informatif) | `amount`, `round` |
+
+**Intégration solution-dans-solution (`SOLUTION_INTEGRATED`).** Symétrique du
+`MERGER` des sociétés : une solution cesse d'exister de façon autonome parce
+qu'elle est absorbée dans une autre (ex : *ITDR Spotlight* et *ITDR Shadow*
+intégrées dans *SIPM* chez Proofpoint). La solution absorbée passe au statut
+dérivé `INTEGRATED` (distinct de `DISCONTINUED`) avec un lien vers la solution
+hôte ; la fiche hôte affiche une section **« Intègre : … »** dérivée
+(`solutionsIntegratedInto` dans `lib/queries.ts`). Un `SOLUTION_LAUNCH`
+ultérieur ré-extrait la solution (retour à `ACTIVE`). À ne PAS utiliser quand
+les modules restent vendables séparément : dans ce cas on garde deux solutions
+actives.
 
 ### Validation à la saisie
 
@@ -108,10 +120,21 @@ la suite d'événements** (`validateCompanyEvents` / `validateSolutionEvents`) :
 - deux événements de même dimension à exactement la même date → **erreur**
   (ordre ambigu) ;
 - `DIVESTMENT` sans détention en cours → **erreur** ;
+- `SOLUTION_INTEGRATED` d'une solution dans elle-même → **erreur** ;
 - événement postérieur à un `SHUTDOWN` → **avertissement** (non bloquant).
 
 L'éditeur d'historique de l'admin appelle `/api/events/preview` à chaque
 saisie : l'utilisateur voit la frise recalculée **avant** d'enregistrer.
+
+### Ingérer un historique antérieur (ancre reculée)
+
+Les champs « à la création » d'une entité (`initialName`, `initialCompanyId`,
+date de lancement) sont l'**ancre** des chaînes dérivées. Découvrir un passé
+plus ancien = reculer l'ancre + insérer les événements correspondants.
+L'assistant **« Ajouter un historique antérieur »** (`PrependHistoryForm` +
+`POST /api/solutions/[id]/prepend-history`) automatise ce geste pour les
+solutions : il déplace l'ancre vers les anciennes valeurs et crée les
+`SOLUTION_RENAME` / `SOLUTION_TRANSFER` datés, le tout dans une transaction.
 
 ### Dates à précision variable
 
@@ -211,7 +234,7 @@ Un modèle téléchargeable par type dans `/admin/import` (`lib/csv.ts`) :
 - `companies` : `initialName,types,foundedYear,foundedMonth,country,originCountry,description,website` (types séparés par `|`)
 - `solutions` : `initialName,initialCompany,launchYear,launchMonth,description,website,tags` (tags = slugs séparés par `|`)
 - `tags` : `slug,family,labelFr,labelEn,category`
-- `events` : `type,subjectCompany,subjectSolution,year,month,newName,acquirer,outcome,withCompany,newOwner,amount,round,note,description`
+- `events` : `type,subjectCompany,subjectSolution,year,month,newName,acquirer,outcome,withCompany,newOwner,intoSolution,amount,round,note,description` (`intoSolution` = solution hôte pour `SOLUTION_INTEGRATED`, référencée par son nom)
 
 Les entités sont référencées **par nom** (nom courant, nom historique dérivé
 ou alias). Les lignes peuvent être dans n'importe quel ordre. Délimiteur `,`

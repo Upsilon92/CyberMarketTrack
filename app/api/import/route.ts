@@ -14,13 +14,19 @@ import { parseCsv } from "@/lib/csv";
 import { logAudit } from "@/lib/audit";
 import { loadMarket, type Market } from "@/lib/queries";
 import { allNames } from "@/lib/timeline";
-import { companySchema, solutionSchema, tagSchema, eventSchema } from "@/lib/validation";
+import {
+  companySchema,
+  solutionSchema,
+  tagSchema,
+  eventSchema,
+  revenueSchema,
+} from "@/lib/validation";
 import { requireAdmin, unauthorized, serverError } from "@/lib/api-utils";
 
 const MAX_SIZE = 1024 * 1024; // 1 MB
 
 const importRequestSchema = z.object({
-  type: z.enum(["companies", "solutions", "tags", "events"]),
+  type: z.enum(["companies", "solutions", "tags", "events", "revenues"]),
   csv: z.string().min(1).max(MAX_SIZE),
   dryRun: z.boolean().optional().default(false),
 });
@@ -185,6 +191,34 @@ export async function POST(req: NextRequest) {
           }
           created++;
           results.push({ line, status: "created", label });
+        } else if (type === "revenues") {
+          const label = `${row.company ?? "?"} ${row.year ?? ""}`.trim();
+          const companyId = companyIndex.get((row.company ?? "").toLowerCase());
+          if (!companyId || companyId === "__pending__") {
+            results.push({ line, status: "error", label, reason: `company introuvable : ${row.company}` });
+            continue;
+          }
+          const parsed = revenueSchema.safeParse({
+            companyId,
+            year: row.year,
+            amount: row.amount,
+            currency: row.currency || "USD",
+            source: orNull(row.source),
+          });
+          if (!parsed.success) {
+            results.push({ line, status: "error", label, reason: parsed.error.issues[0]?.path.join(".") ?? "invalid" });
+            continue;
+          }
+          if (!dryRun) {
+            // Same-year figures are updated, not duplicated
+            await prisma.revenue.upsert({
+              where: { companyId_year: { companyId, year: parsed.data.year } },
+              create: parsed.data,
+              update: parsed.data,
+            });
+          }
+          created++;
+          results.push({ line, status: "created", label });
         } else {
           // events — rows can be in ANY order: sorting happens at read time
           const label = `${row.type ?? "?"} ${row.year ?? ""} ${row.subjectCompany || row.subjectSolution || ""}`.trim();
@@ -210,6 +244,14 @@ export async function POST(req: NextRequest) {
             continue;
           }
           const withId = row.withCompany ? companyIndex.get(row.withCompany.toLowerCase()) : null;
+          // Host solution for SOLUTION_INTEGRATED (referenced by name)
+          const intoSolutionId = row.intoSolution
+            ? solutionIndex.get(row.intoSolution.toLowerCase())
+            : null;
+          if (row.intoSolution && (!intoSolutionId || intoSolutionId === "__pending__")) {
+            results.push({ line, status: "error", label, reason: `intoSolution introuvable : ${row.intoSolution}` });
+            continue;
+          }
 
           const parsed = eventSchema.safeParse({
             type: row.type,
@@ -224,6 +266,7 @@ export async function POST(req: NextRequest) {
             outcome: orNull(row.outcome),
             withCompanyId: withId && withId !== "__pending__" ? withId : null,
             newOwnerCompanyId: newOwnerId && newOwnerId !== "__pending__" ? newOwnerId : null,
+            intoSolutionId: intoSolutionId ?? null,
             amount: orNull(row.amount),
             round: orNull(row.round),
             note: orNull(row.note),

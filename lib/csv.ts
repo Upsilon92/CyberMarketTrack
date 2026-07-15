@@ -128,11 +128,16 @@ export const CSV_TEMPLATES: Record<string, { headers: string[]; example: string[
       "outcome",
       "withCompany",
       "newOwner",
+      "intoSolution",
       "amount",
       "round",
       "note",
       "description",
     ],
-    example: ["ACQUISITION", "Acme Security", "", "2021", "3", "", "BigCorp", "AUTONOMOUS", "", "", "", "", "", "Rachat industriel"],
+    example: ["ACQUISITION", "Acme Security", "", "2021", "3", "", "BigCorp", "AUTONOMOUS", "", "", "", "", "", "", "Rachat industriel"],
+  },
+  revenues: {
+    headers: ["company", "year", "amount", "currency", "source"],
+    example: ["Acme Security", "2024", "120", "USD", "Rapport annuel"],
   },
 };

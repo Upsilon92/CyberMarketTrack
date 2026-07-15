@@ -221,6 +221,49 @@ describe("buildSolutionTimeline — unknown launch date (allowed gap)", () => {
 });
 
 // =============================================================================
+// SOLUTION_INTEGRATED — Illusive/SIPM case: a solution absorbed into another
+// =============================================================================
+describe("buildSolutionTimeline — SOLUTION_INTEGRATED (Illusive/SIPM)", () => {
+  // "Spotlight" (Illusive) -> renamed "ITDR Spotlight" (2022) -> integrated
+  // into "SIPM" (2024)
+  const spotlight = { id: "spot", initialName: "Spotlight", initialCompanyId: "illusive", launchYear: 2018 };
+  const tl = buildSolutionTimeline(spotlight, [
+    ev({ type: "SOLUTION_INTEGRATED", year: 2024, intoSolutionId: "sipm" }),
+    ev({ type: "SOLUTION_TRANSFER", year: 2022, month: 12, newOwnerCompanyId: "proofpoint" }),
+    ev({ type: "SOLUTION_RENAME", year: 2022, newName: "ITDR Spotlight" }),
+  ]);
+
+  it("derives status INTEGRATED with a link to the host solution", () => {
+    expect(tl.currentStatus).toBe("INTEGRATED");
+    expect(tl.integratedIntoSolutionId).toBe("sipm");
+    expect(tl.statusPeriods).toEqual([
+      { status: "ACTIVE", start: { year: 2018, month: null }, end: { year: 2024, month: null } },
+      { status: "INTEGRATED", start: { year: 2024, month: null }, end: null },
+    ]);
+  });
+
+  it("still derives the name and vendor history alongside the integration", () => {
+    expect(tl.currentName).toBe("ITDR Spotlight");
+    expect(tl.currentOwnerCompanyId).toBe("proofpoint");
+  });
+
+  it("a later SOLUTION_LAUNCH re-extracts the solution (back to ACTIVE)", () => {
+    const relaunched = buildSolutionTimeline(spotlight, [
+      ev({ type: "SOLUTION_INTEGRATED", year: 2024, intoSolutionId: "sipm" }),
+      ev({ type: "SOLUTION_LAUNCH", year: 2026 }),
+    ]);
+    expect(relaunched.currentStatus).toBe("ACTIVE");
+    expect(relaunched.integratedIntoSolutionId).toBeNull();
+  });
+
+  it("ignores a malformed SOLUTION_INTEGRATED without a host (read-time tolerance)", () => {
+    const tl2 = buildSolutionTimeline(spotlight, [ev({ type: "SOLUTION_INTEGRATED", year: 2024 })]);
+    expect(tl2.currentStatus).toBe("ACTIVE");
+    expect(tl2.integratedIntoSolutionId).toBeNull();
+  });
+});
+
+// =============================================================================
 // Sequence validation (admin input checks)
 // =============================================================================
 describe("validateCompanyEvents", () => {

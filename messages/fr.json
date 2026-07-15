@@ -73,7 +73,8 @@
   },
   "solutionStatuses": {
     "ACTIVE": "Active",
-    "DISCONTINUED": "Arrêtée"
+    "DISCONTINUED": "Arrêtée",
+    "INTEGRATED": "Intégrée"
   },
   "ownership": {
     "INVESTOR_OWNED": "Détenue par {owner} ({range})",
@@ -120,7 +121,10 @@
     "similarSolutions": "Solutions similaires",
     "sharedTags": "{count, plural, one {# tag partagé} other {# tags partagés}}",
     "compareThese": "Comparer ces solutions",
-    "tags": "Tags"
+    "tags": "Tags",
+    "integratedInto": "Intégrée dans {name}",
+    "integrates": "Intègre",
+    "sinceYear": "depuis {year}"
   },
   "tagFamilies": {
     "SOLUTION_TYPE": "Types de solutions",
@@ -157,6 +161,7 @@
     "SOLUTION_TRANSFER": "Transfert de solution",
     "SOLUTION_LAUNCH": "Lancement de solution",
     "SOLUTION_DISCONTINUED": "Arrêt de solution",
+    "SOLUTION_INTEGRATED": "Intégration de solution",
     "FUNDING": "Levée de fonds",
     "OTHER": "Autre"
   },
@@ -170,6 +175,7 @@
     "SOLUTION_TRANSFER": "<subject></subject> passe chez <actor></actor>",
     "SOLUTION_LAUNCH": "Lancement de <subject></subject>",
     "SOLUTION_DISCONTINUED": "Arrêt de <subject></subject>",
+    "SOLUTION_INTEGRATED": "<subject></subject> est intégrée dans <actor></actor>",
     "FUNDING": "<subject></subject> lève {amount} M ({round})",
     "FUNDING_NO_ROUND": "<subject></subject> lève {amount} M",
     "OTHER": "<subject></subject>"
@@ -290,6 +296,21 @@
     "history": "Éditeur d'historique",
     "historyOf": "Historique de {name}",
     "addEvent": "Ajouter un événement",
+    "prepend": {
+      "title": "Ajouter un historique antérieur",
+      "hint": "Si cette solution existait AVANT sa création actuelle sous un autre nom ou chez un autre éditeur, renseignez-le ici : l'ancre sera reculée et les événements de renommage/transfert créés automatiquement.",
+      "previousName": "Nom précédent (avant « {current} »)",
+      "previousVendor": "Éditeur précédent (avant « {current} »)",
+      "changeDate": "Date du changement (passage aux valeurs actuelles)",
+      "changeYear": "Année du changement",
+      "changeMonth": "Mois (optionnel)",
+      "newLaunchYear": "Nouvelle année de lancement (optionnel, plus ancienne)",
+      "keep": "Inchangé",
+      "apply": "Appliquer",
+      "applied": "Historique antérieur ajouté.",
+      "atLeastOne": "Renseignez au moins le nom précédent ou l'éditeur précédent.",
+      "nothing": "Rien à ajouter (valeurs identiques aux actuelles)."
+    },
     "editEvent": "Modifier l'événement",
     "livePreview": "Aperçu : voici comment l'historique sera recalculé",
     "previewNames": "Noms",
@@ -337,6 +358,7 @@
       "outcome": "Issue du rachat",
       "withCompany": "Fusion avec",
       "newOwner": "Nouvel éditeur",
+      "intoSolution": "Intégrée dans la solution",
       "amount": "Montant (M)",
       "round": "Tour (ex : Series A)",
       "note": "Note (ex : IPO Nasdaq)",

@@ -73,7 +73,8 @@
   },
   "solutionStatuses": {
     "ACTIVE": "Active",
-    "DISCONTINUED": "Discontinued"
+    "DISCONTINUED": "Discontinued",
+    "INTEGRATED": "Integrated"
   },
   "ownership": {
     "INVESTOR_OWNED": "Owned by {owner} ({range})",
@@ -120,7 +121,10 @@
     "similarSolutions": "Similar solutions",
     "sharedTags": "{count, plural, one {# shared tag} other {# shared tags}}",
     "compareThese": "Compare these solutions",
-    "tags": "Tags"
+    "tags": "Tags",
+    "integratedInto": "Integrated into {name}",
+    "integrates": "Integrates",
+    "sinceYear": "since {year}"
   },
   "tagFamilies": {
     "SOLUTION_TYPE": "Solution types",
@@ -157,6 +161,7 @@
     "SOLUTION_TRANSFER": "Solution transfer",
     "SOLUTION_LAUNCH": "Solution launch",
     "SOLUTION_DISCONTINUED": "Solution discontinued",
+    "SOLUTION_INTEGRATED": "Solution integration",
     "FUNDING": "Funding round",
     "OTHER": "Other"
   },
@@ -170,6 +175,7 @@
     "SOLUTION_TRANSFER": "<subject></subject> moves to <actor></actor>",
     "SOLUTION_LAUNCH": "Launch of <subject></subject>",
     "SOLUTION_DISCONTINUED": "End of <subject></subject>",
+    "SOLUTION_INTEGRATED": "<subject></subject> is integrated into <actor></actor>",
     "FUNDING": "<subject></subject> raises {amount}M ({round})",
     "FUNDING_NO_ROUND": "<subject></subject> raises {amount}M",
     "OTHER": "<subject></subject>"
@@ -290,6 +296,21 @@
     "history": "History editor",
     "historyOf": "History of {name}",
     "addEvent": "Add an event",
+    "prepend": {
+      "title": "Add an earlier past",
+      "hint": "If this solution existed BEFORE its current creation under another name or another vendor, enter it here: the anchor is moved back and the rename/transfer events are created automatically.",
+      "previousName": "Previous name (before \"{current}\")",
+      "previousVendor": "Previous vendor (before \"{current}\")",
+      "changeDate": "Change date (switch to the current values)",
+      "changeYear": "Change year",
+      "changeMonth": "Month (optional)",
+      "newLaunchYear": "New launch year (optional, earlier)",
+      "keep": "Unchanged",
+      "apply": "Apply",
+      "applied": "Earlier past added.",
+      "atLeastOne": "Provide at least the previous name or the previous vendor.",
+      "nothing": "Nothing to add (values identical to current)."
+    },
     "editEvent": "Edit event",
     "livePreview": "Preview: here is how the history will be recalculated",
     "previewNames": "Names",
@@ -337,6 +358,7 @@
       "outcome": "Acquisition outcome",
       "withCompany": "Merged with",
       "newOwner": "New vendor",
+      "intoSolution": "Integrated into solution",
       "amount": "Amount (M)",
       "round": "Round (e.g. Series A)",
       "note": "Note (e.g. Nasdaq IPO)",

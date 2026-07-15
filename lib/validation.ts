@@ -111,6 +111,7 @@ const eventBase = z.object({
   outcome: z.enum(ACQUISITION_OUTCOMES).nullable().optional().or(z.literal("").transform(() => null)),
   withCompanyId: z.string().nullable().optional().or(z.literal("").transform(() => null)),
   newOwnerCompanyId: z.string().nullable().optional().or(z.literal("").transform(() => null)),
+  intoSolutionId: z.string().nullable().optional().or(z.literal("").transform(() => null)),
   amount: z.coerce.number().positive().nullable().optional(),
   round: optionalTrimmed(80),
   note: optionalTrimmed(500),
@@ -129,6 +130,7 @@ const SOLUTION_SUBJECT_TYPES = new Set([
   "SOLUTION_TRANSFER",
   "SOLUTION_LAUNCH",
   "SOLUTION_DISCONTINUED",
+  "SOLUTION_INTEGRATED",
 ]);
 
 export const eventSchema = eventBase.superRefine((e, ctx) => {
@@ -159,6 +161,12 @@ export const eventSchema = eventBase.superRefine((e, ctx) => {
       break;
     case "SOLUTION_TRANSFER":
       if (!e.newOwnerCompanyId) fail("newOwnerCompanyId", "newOwnerRequired");
+      break;
+    case "SOLUTION_INTEGRATED":
+      if (!e.intoSolutionId) fail("intoSolutionId", "intoSolutionRequired");
+      // A solution cannot be integrated into itself
+      if (e.intoSolutionId && e.intoSolutionId === e.subjectSolutionId)
+        fail("intoSolutionId", "intoSolutionSelf");
       break;
   }
 });

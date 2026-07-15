@@ -2,7 +2,8 @@
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { HistoryEditor, type EditorEvent } from "@/components/admin/history-editor";
-import { loadMarket } from "@/lib/queries";
+import { PrependHistoryForm } from "@/components/admin/prepend-history-form";
+import { loadMarket, ownerDisplayName } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,7 @@ export default async function SolutionHistoryPage({ params }: { params: Promise<
     outcome: e.outcome,
     withCompanyId: e.withCompanyId,
     newOwnerCompanyId: e.newOwnerCompanyId,
+    intoSolutionId: e.intoSolutionId,
     amount: e.amount,
     round: e.round,
     note: e.note,
@@ -38,11 +40,23 @@ export default async function SolutionHistoryPage({ params }: { params: Promise<
     .filter((c) => c.types.some((ct) => ct.type === "INVESTMENT_FUND"))
     .map((c) => c.id);
 
+  // Other solutions = potential hosts for a SOLUTION_INTEGRATED event
+  const otherSolutions = [...market.solutions]
+    .filter((s) => s.id !== id)
+    .map((s) => ({ id: s.id, label: s.timeline.currentName }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-bold">
         {t("historyOf", { name: solution.timeline.currentName })}
       </h1>
+      <PrependHistoryForm
+        solutionId={id}
+        currentName={solution.initialName}
+        currentVendorLabel={ownerDisplayName(market, solution.initialCompanyId)}
+        companies={companies}
+      />
       <HistoryEditor
         kind="solution"
         entityId={id}
@@ -51,6 +65,7 @@ export default async function SolutionHistoryPage({ params }: { params: Promise<
         companies={companies}
         fundIds={fundIds}
         ownedSolutions={[]}
+        otherSolutions={otherSolutions}
       />
     </div>
   );

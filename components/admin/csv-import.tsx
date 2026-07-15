@@ -25,7 +25,7 @@ interface Report {
   results: RowResult[];
 }
 
-const TYPES = ["companies", "solutions", "tags", "events"] as const;
+const TYPES = ["companies", "solutions", "tags", "events", "revenues"] as const;
 
 export function CsvImport() {
   const router = useRouter();

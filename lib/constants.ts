@@ -21,6 +21,7 @@ export const EVENT_TYPES = [
   "SOLUTION_TRANSFER", // changes solution vendor        -> newOwnerCompanyId
   "SOLUTION_LAUNCH", // solution becomes active
   "SOLUTION_DISCONTINUED", // solution is discontinued
+  "SOLUTION_INTEGRATED", // absorbed into another solution -> intoSolutionId
   "FUNDING", // informational only             -> amount, round
   "OTHER", // informational only
 ] as const;
@@ -41,6 +42,7 @@ export const SOLUTION_EVENT_TYPES: EventType[] = [
   "SOLUTION_TRANSFER",
   "SOLUTION_LAUNCH",
   "SOLUTION_DISCONTINUED",
+  "SOLUTION_INTEGRATED",
 ];
 
 // Purely informational event types (displayed, no state effect)
@@ -67,7 +69,9 @@ export const COMPANY_STATUSES = [
 export type CompanyStatus = (typeof COMPANY_STATUSES)[number];
 
 // --- Derived solution statuses --------------------------------------------------
-export const SOLUTION_STATUSES = ["ACTIVE", "DISCONTINUED"] as const;
+// INTEGRATED = absorbed into another solution (end of autonomous life), distinct
+// from DISCONTINUED (simply stopped). Carries a link to the host solution.
+export const SOLUTION_STATUSES = ["ACTIVE", "DISCONTINUED", "INTEGRATED"] as const;
 export type SolutionStatus = (typeof SOLUTION_STATUSES)[number];
 
 // --- Tag families ----------------------------------------------------------------

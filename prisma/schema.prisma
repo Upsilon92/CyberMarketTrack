@@ -98,6 +98,8 @@ model Solution {
   tags    Tag[] // implicit many-to-many
   aliases Alias[]
   events  Event[] @relation("EventSubjectSolution")
+  // SOLUTION_INTEGRATED events where this solution is the host (absorbs another)
+  integrationsReceived Event[] @relation("EventIntoSolution")
 }
 
 // -----------------------------------------------------------------------------
@@ -168,6 +170,10 @@ model Event {
   newOwnerCompanyId String?
   newOwnerCompany   Company? @relation("EventNewOwner", fields: [newOwnerCompanyId], references: [id])
 
+  // SOLUTION_INTEGRATED — the host solution that absorbs the subject solution
+  intoSolutionId String?
+  intoSolution   Solution? @relation("EventIntoSolution", fields: [intoSolutionId], references: [id])
+
   // FUNDING
   amount Float? // in millions (unit documented in UI)
   round  String? // e.g. "Series A"
@@ -180,6 +186,7 @@ model Event {
 
   @@index([subjectCompanyId])
   @@index([subjectSolutionId])
+  @@index([intoSolutionId])
   @@index([type])
   @@index([year, month])
 }

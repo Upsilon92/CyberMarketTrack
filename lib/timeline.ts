@@ -42,6 +42,8 @@ export interface TimelineEventInput {
   withCompanyId?: string | null;
   // SOLUTION_TRANSFER
   newOwnerCompanyId?: string | null;
+  // SOLUTION_INTEGRATED
+  intoSolutionId?: string | null;
   // FUNDING
   amount?: number | null;
   round?: string | null;
@@ -117,6 +119,8 @@ export interface SolutionTimeline {
   currentName: string;
   currentOwnerCompanyId: string;
   currentStatus: SolutionStatus;
+  /** Host solution id when the current status is INTEGRATED (else null) */
+  integratedIntoSolutionId: string | null;
   informationalEvents: TimelineEventInput[];
   stateEvents: TimelineEventInput[];
 }
@@ -258,6 +262,7 @@ const SOLUTION_STATE_TYPES = new Set([
   "SOLUTION_TRANSFER",
   "SOLUTION_LAUNCH",
   "SOLUTION_DISCONTINUED",
+  "SOLUTION_INTEGRATED",
 ]);
 
 export function buildSolutionTimeline(
@@ -284,6 +289,9 @@ export function buildSolutionTimeline(
   const openOwnership = () => ownershipPeriods[ownershipPeriods.length - 1];
   const openStatus = () => statusPeriods[statusPeriods.length - 1];
 
+  // Host solution when integrated (last SOLUTION_INTEGRATED not undone by a relaunch)
+  let integratedIntoSolutionId: string | null = null;
+
   for (const e of stateEvents) {
     const at = eventDate(e);
     switch (e.type) {
@@ -304,10 +312,11 @@ export function buildSolutionTimeline(
         if (st.status === "ACTIVE" && st.start === null) {
           // Launch date was unknown: the event provides it.
           st.start = at;
-        } else if (st.status === "DISCONTINUED") {
-          // Relaunch after a discontinuation.
+        } else if (st.status === "DISCONTINUED" || st.status === "INTEGRATED") {
+          // Relaunch after a discontinuation or a re-extraction from a host.
           st.end = at;
           statusPeriods.push({ status: "ACTIVE", start: at, end: null });
+          integratedIntoSolutionId = null;
         }
         break;
       }
@@ -316,7 +325,18 @@ export function buildSolutionTimeline(
         if (st.status !== "DISCONTINUED") {
           st.end = at;
           statusPeriods.push({ status: "DISCONTINUED", start: at, end: null });
+          integratedIntoSolutionId = null;
         }
+        break;
+      }
+      case "SOLUTION_INTEGRATED": {
+        if (!e.intoSolutionId) break; // malformed: ignored at read time
+        const st = openStatus();
+        if (st.status !== "INTEGRATED") {
+          st.end = at;
+          statusPeriods.push({ status: "INTEGRATED", start: at, end: null });
+        }
+        integratedIntoSolutionId = e.intoSolutionId;
         break;
       }
     }
@@ -329,6 +349,7 @@ export function buildSolutionTimeline(
     currentName: openName().name,
     currentOwnerCompanyId: openOwnership().ownerCompanyId,
     currentStatus: openStatus().status,
+    integratedIntoSolutionId,
     informationalEvents,
     stateEvents,
   };
@@ -410,6 +431,7 @@ function solutionDimension(type: string): "name" | "ownership" | "status" | null
       return "ownership";
     case "SOLUTION_LAUNCH":
     case "SOLUTION_DISCONTINUED":
+    case "SOLUTION_INTEGRATED":
       return "status";
     default:
       return null;

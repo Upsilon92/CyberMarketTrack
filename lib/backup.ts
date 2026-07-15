@@ -130,6 +130,7 @@ const eventSchema = z.object({
   outcome: z.string().max(50).nullable(),
   withCompanyId: id.nullable(),
   newOwnerCompanyId: id.nullable(),
+  intoSolutionId: id.nullable(),
   amount: z.number().nullable(),
   round: z.string().max(100).nullable(),
   note: z.string().max(1000).nullable(),

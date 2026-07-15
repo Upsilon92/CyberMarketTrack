@@ -106,6 +106,13 @@ export function solutionsOfCompany(market: Market, companyId: string) {
   return { current, former };
 }
 
+/** Solutions currently integrated INTO the given host solution (derived). */
+export function solutionsIntegratedInto(market: Market, hostSolutionId: string) {
+  return market.solutions.filter(
+    (s) => s.timeline.integratedIntoSolutionId === hostSolutionId
+  );
+}
+
 /**
  * Portfolio of an investment fund: companies whose ownership periods reference
  * it. Open periods = current holdings, closed ones = past holdings.
@@ -203,6 +210,7 @@ export type EventWithRelations = Event & {
   acquirerCompany: Company | null;
   withCompany: Company | null;
   newOwnerCompany: Company | null;
+  intoSolution: Solution | null;
 };
 
 export const loadAllEvents = cache(async (): Promise<EventWithRelations[]> => {
@@ -213,6 +221,7 @@ export const loadAllEvents = cache(async (): Promise<EventWithRelations[]> => {
       acquirerCompany: true,
       withCompany: true,
       newOwnerCompany: true,
+      intoSolution: true,
     },
     // Most recent first; a missing month sorts last within its year (SQLite
     // sorts NULLs first on DESC, which is what we want for "recent first").

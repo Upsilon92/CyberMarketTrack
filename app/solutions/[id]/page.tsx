@@ -12,7 +12,13 @@ import { Markdown } from "@/components/markdown";
 import { TagBadge } from "@/components/tag-badge";
 import { EventLine } from "@/components/event-line";
 import { PeriodBands, toSegments, type BandRow } from "@/components/period-bands";
-import { loadMarket, loadAllEvents, ownerDisplayName, isStale } from "@/lib/queries";
+import {
+  loadMarket,
+  loadAllEvents,
+  ownerDisplayName,
+  isStale,
+  solutionsIntegratedInto,
+} from "@/lib/queries";
 import { formerNamePeriods } from "@/lib/timeline";
 import { formatDate, formatRange, type Locale } from "@/lib/date";
 
@@ -32,6 +38,12 @@ export default async function SolutionPage({ params }: { params: Promise<{ id: s
   const tl = solution.timeline;
   const formers = formerNamePeriods(tl);
   const vendorName = ownerDisplayName(market, tl.currentOwnerCompanyId);
+
+  // Integration relationships (derived from SOLUTION_INTEGRATED events)
+  const hostSolution = tl.integratedIntoSolutionId
+    ? market.solutions.find((s) => s.id === tl.integratedIntoSolutionId)
+    : null;
+  const integratedSolutions = solutionsIntegratedInto(market, id);
 
   const allEvents = await loadAllEvents();
   const solutionEvents = allEvents.filter((e) => e.subjectSolutionId === id);
@@ -76,6 +88,15 @@ export default async function SolutionPage({ params }: { params: Promise<{ id: s
           <Badge variant={tl.currentStatus === "ACTIVE" ? "default" : "secondary"}>
             {tSolStatuses(tl.currentStatus)}
           </Badge>
+          {/* When integrated, link to the host solution */}
+          {hostSolution && (
+            <Badge variant="outline" className="gap-1">
+              →
+              <Link href={`/solutions/${hostSolution.id}`} className="text-primary hover:underline">
+                {t("integratedInto", { name: hostSolution.timeline.currentName })}
+              </Link>
+            </Badge>
+          )}
           {isStale(solution.updatedAt) && <Badge variant="destructive">{tCommon("toRecheck")}</Badge>}
         </div>
         <p className="text-sm text-muted-foreground">
@@ -159,6 +180,35 @@ export default async function SolutionPage({ params }: { params: Promise<{ id: s
           </ul>
         </CardContent>
       </Card>
+
+      {/* Integrated solutions (this solution is a host) — derived */}
+      {integratedSolutions.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("integrates")}</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm">
+            <ul className="space-y-1">
+              {integratedSolutions.map((s) => {
+                const since = s.timeline.statusPeriods.find((p) => p.status === "INTEGRATED")?.start
+                  ?.year;
+                return (
+                  <li key={s.id}>
+                    <Link href={`/solutions/${s.id}`} className="text-primary hover:underline">
+                      {s.timeline.currentName}
+                    </Link>{" "}
+                    {since && (
+                      <span className="text-muted-foreground">
+                        ({t("sinceYear", { year: since })})
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Timeline */}
       <Card>

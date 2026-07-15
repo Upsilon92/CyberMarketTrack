@@ -70,14 +70,21 @@ export async function EventLine({
 
   // Actor: acquirer / merge partner / new solution owner
   const actorCompany = event.acquirerCompany ?? event.withCompany ?? event.newOwnerCompany;
-  const actor = actorCompany
+  // SOLUTION_INTEGRATED: the actor is a solution (the host), not a company
+  const actor = event.intoSolution
     ? {
-        name: market.companyNameById.get(actorCompany.id) ?? actorCompany.initialName,
-        href: `/companies/${actorCompany.id}`,
+        name:
+          market.solutionNameById.get(event.intoSolution.id) ?? event.intoSolution.initialName,
+        href: `/solutions/${event.intoSolution.id}`,
       }
-    : event.acquirerNameRaw
-      ? { name: event.acquirerNameRaw, href: null }
-      : null;
+    : actorCompany
+      ? {
+          name: market.companyNameById.get(actorCompany.id) ?? actorCompany.initialName,
+          href: `/companies/${actorCompany.id}`,
+        }
+      : event.acquirerNameRaw
+        ? { name: event.acquirerNameRaw, href: null }
+        : null;
 
   const subjectNode = <EntityLink href={subject.href} name={subject.name} />;
   const actorNode = actor ? <EntityLink href={actor.href} name={actor.name} /> : <span>?</span>;

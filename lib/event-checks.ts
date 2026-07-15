@@ -99,6 +99,8 @@ export function eventSummary(e: EventInput, subjectName: string): string {
       return `Lancement de ${subjectName} (${e.year})`;
     case "SOLUTION_DISCONTINUED":
       return `Arrêt de ${subjectName} (${e.year})`;
+    case "SOLUTION_INTEGRATED":
+      return `Intégration de ${subjectName} dans une autre solution (${e.year})`;
     case "FUNDING":
       return `Levée de fonds de ${subjectName} (${e.year})`;
     default:

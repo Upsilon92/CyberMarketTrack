@@ -39,6 +39,7 @@ export interface EditorEvent {
   outcome: string | null;
   withCompanyId: string | null;
   newOwnerCompanyId: string | null;
+  intoSolutionId: string | null;
   amount: number | null;
   round: string | null;
   note: string | null;
@@ -81,6 +82,7 @@ const SOLUTION_EVENT_CHOICES = [
   "SOLUTION_TRANSFER",
   "SOLUTION_LAUNCH",
   "SOLUTION_DISCONTINUED",
+  "SOLUTION_INTEGRATED",
   "OTHER",
 ];
 const OUTCOMES = ["INVESTOR_OWNED", "AUTONOMOUS", "ABSORBED", "UNKNOWN"];
@@ -96,6 +98,7 @@ interface FormState {
   outcome: string;
   withCompanyId: string;
   newOwnerCompanyId: string;
+  intoSolutionId: string;
   amount: string;
   round: string;
   note: string;
@@ -112,6 +115,7 @@ const EMPTY_FORM: FormState = {
   outcome: "",
   withCompanyId: "",
   newOwnerCompanyId: "",
+  intoSolutionId: "",
   amount: "",
   round: "",
   note: "",
@@ -125,6 +129,7 @@ export function HistoryEditor({
   companies,
   fundIds,
   ownedSolutions,
+  otherSolutions = [],
 }: {
   kind: "company" | "solution";
   entityId: string;
@@ -136,6 +141,8 @@ export function HistoryEditor({
   fundIds: string[];
   /** For companies: solutions currently owned (ABSORBED proposal) */
   ownedSolutions: { id: string; label: string }[];
+  /** For solutions: other solutions (host targets for SOLUTION_INTEGRATED) */
+  otherSolutions?: { id: string; label: string }[];
 }) {
   const router = useRouter();
   const locale = useLocale() as Locale;
@@ -183,6 +190,7 @@ export function HistoryEditor({
       outcome: form.outcome || null,
       withCompanyId: form.withCompanyId || null,
       newOwnerCompanyId: form.newOwnerCompanyId || null,
+      intoSolutionId: form.intoSolutionId || null,
       amount: form.amount === "" ? null : form.amount,
       round: form.round,
       note: form.note,
@@ -242,6 +250,7 @@ export function HistoryEditor({
       outcome: e.outcome ?? "",
       withCompanyId: e.withCompanyId ?? "",
       newOwnerCompanyId: e.newOwnerCompanyId ?? "",
+      intoSolutionId: e.intoSolutionId ?? "",
       amount: e.amount == null ? "" : String(e.amount),
       round: e.round ?? "",
       note: e.note ?? "",
@@ -327,6 +336,8 @@ export function HistoryEditor({
         return `→ ${companyLabel(e.withCompanyId)}`;
       case "SOLUTION_TRANSFER":
         return `→ ${companyLabel(e.newOwnerCompanyId)}`;
+      case "SOLUTION_INTEGRATED":
+        return `→ ${otherSolutions.find((s) => s.id === e.intoSolutionId)?.label ?? "?"}`;
       case "FUNDING":
         return `${e.amount ?? "?"} M ${e.round ?? ""}`;
       case "DIVESTMENT":
@@ -564,6 +575,24 @@ export function HistoryEditor({
                   {companies.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {form.type === "SOLUTION_INTEGRATED" && (
+              <div className="space-y-1.5">
+                <Label>{t("fields.intoSolution")} *</Label>
+                <select
+                  className="border rounded-md bg-background text-foreground px-2 py-2 text-sm w-full"
+                  value={form.intoSolutionId}
+                  onChange={(e) => set("intoSolutionId", e.target.value)}
+                >
+                  <option value="">{t("fields.none")}</option>
+                  {otherSolutions.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.label}
                     </option>
                   ))}
                 </select>
