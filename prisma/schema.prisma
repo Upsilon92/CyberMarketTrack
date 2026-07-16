@@ -114,6 +114,8 @@ model Tag {
   family   String // SOLUTION_TYPE | CAPABILITY | SCOPE
   labelFr  String
   labelEn  String
+  descriptionFr String? // explains the abbreviation/meaning (e.g. "ITDR = Identity Threat Detection & Response")
+  descriptionEn String?
   category String? // grouping label for SCOPE tags (stored as a stable key)
 
   solutions Solution[]
@@ -145,6 +147,7 @@ model Event {
   type  String
   year  Int
   month Int? // 1-12, optional
+  importance String @default("MEDIUM") // MAJOR | MEDIUM | MINOR (news prioritization)
   description String? // markdown — the narrative/context of the fact
 
   // Subject: the entity whose state changes (company and/or solution)

@@ -10,9 +10,14 @@ export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const t = await getTranslations("home");
-  const tCommon = await getTranslations("common");
   const [stats, events] = await Promise.all([getStats(), loadAllEvents()]);
-  const latest = events.slice(0, 8);
+
+  // Latest events split into 3 columns by importance (most recent first).
+  const columns = [
+    { key: "MAJOR", title: t("colMajor"), items: events.filter((e) => e.importance === "MAJOR").slice(0, 8) },
+    { key: "MEDIUM", title: t("colMedium"), items: events.filter((e) => e.importance === "MEDIUM").slice(0, 8) },
+    { key: "MINOR", title: t("colMinor"), items: events.filter((e) => e.importance === "MINOR").slice(0, 8) },
+  ];
 
   const statCards = [
     { href: "/companies", value: stats.companies, label: t("statCompaniesLabel"), icon: "building" },
@@ -59,7 +64,7 @@ export default async function HomePage() {
         ))}
       </section>
 
-      {/* Latest events */}
+      {/* Latest events, 3 columns by importance */}
       <section className="space-y-3">
         <div className="flex items-baseline justify-between">
           <h2 className="text-lg font-semibold">{t("latestEvents")}</h2>
@@ -67,16 +72,36 @@ export default async function HomePage() {
             {t("seeAllNews")} →
           </Link>
         </div>
-        <Card>
-          <CardContent className="divide-y [&>*]:py-2.5">
-            {latest.length === 0 && (
-              <p className="text-sm text-muted-foreground py-4">{tCommon("noResults")}</p>
-            )}
-            {latest.map((e) => (
-              <EventLine key={e.id} event={e} />
-            ))}
-          </CardContent>
-        </Card>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {columns.map((col) => (
+            <Card key={col.key} className="overflow-hidden">
+              <div
+                className={`px-4 py-2.5 border-b text-sm font-semibold flex items-center gap-2 ${
+                  col.key === "MAJOR"
+                    ? "text-rose-700 dark:text-rose-300"
+                    : col.key === "MEDIUM"
+                      ? "text-amber-700 dark:text-amber-300"
+                      : "text-muted-foreground"
+                }`}
+              >
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    col.key === "MAJOR" ? "bg-rose-500" : col.key === "MEDIUM" ? "bg-amber-500" : "bg-muted-foreground/50"
+                  }`}
+                />
+                {col.title}
+              </div>
+              <CardContent className="divide-y [&>*]:py-2.5">
+                {col.items.length === 0 && (
+                  <p className="text-sm text-muted-foreground py-4">{t("colEmpty")}</p>
+                )}
+                {col.items.map((e) => (
+                  <EventLine key={e.id} event={e} compact />
+                ))}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </section>
     </div>
   );

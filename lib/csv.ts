@@ -113,8 +113,8 @@ export const CSV_TEMPLATES: Record<string, { headers: string[]; example: string[
     example: ["Acme Shield", "Acme Security", "2018", "", "EDR nouvelle génération", "", "edr|active-directory"],
   },
   tags: {
-    headers: ["slug", "family", "labelFr", "labelEn", "category"],
-    example: ["dlp", "SOLUTION_TYPE", "DLP", "DLP", ""],
+    headers: ["slug", "family", "labelFr", "labelEn", "descriptionFr", "descriptionEn", "category"],
+    example: ["itdr", "SOLUTION_TYPE", "ITDR", "ITDR", "Identity Threat Detection & Response", "Identity Threat Detection & Response", ""],
   },
   events: {
     headers: [
@@ -123,6 +123,7 @@ export const CSV_TEMPLATES: Record<string, { headers: string[]; example: string[
       "subjectSolution",
       "year",
       "month",
+      "importance",
       "newName",
       "acquirer",
       "outcome",
@@ -134,7 +135,7 @@ export const CSV_TEMPLATES: Record<string, { headers: string[]; example: string[
       "note",
       "description",
     ],
-    example: ["ACQUISITION", "Acme Security", "", "2021", "3", "", "BigCorp", "AUTONOMOUS", "", "", "", "", "", "", "Rachat industriel"],
+    example: ["ACQUISITION", "Acme Security", "", "2021", "3", "MAJOR", "", "BigCorp", "AUTONOMOUS", "", "", "", "", "", "", "Rachat industriel"],
   },
   revenues: {
     headers: ["company", "year", "amount", "currency", "source"],

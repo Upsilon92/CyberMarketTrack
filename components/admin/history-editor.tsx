@@ -32,6 +32,7 @@ export interface EditorEvent {
   type: string;
   year: number;
   month: number | null;
+  importance: string;
   description: string | null;
   newName: string | null;
   acquirerCompanyId: string | null;
@@ -71,6 +72,7 @@ interface PreviewResponse {
 const COMPANY_EVENT_CHOICES = [
   "COMPANY_RENAME",
   "ACQUISITION",
+  "CO_INVESTMENT",
   "ABSORPTION",
   "DIVESTMENT",
   "MERGER",
@@ -78,6 +80,7 @@ const COMPANY_EVENT_CHOICES = [
   "FUNDING",
   "OTHER",
 ];
+const IMPORTANCES = ["MAJOR", "MEDIUM", "MINOR"];
 const SOLUTION_EVENT_CHOICES = [
   "SOLUTION_RENAME",
   "SOLUTION_TRANSFER",
@@ -92,6 +95,7 @@ interface FormState {
   type: string;
   year: string;
   month: string;
+  importance: string;
   description: string;
   newName: string;
   acquirerCompanyId: string;
@@ -109,6 +113,7 @@ const EMPTY_FORM: FormState = {
   type: "",
   year: "",
   month: "",
+  importance: "MEDIUM",
   description: "",
   newName: "",
   acquirerCompanyId: "",
@@ -151,6 +156,7 @@ export function HistoryEditor({
   const tTypes = useTranslations("eventTypes");
   const tOutcomes = useTranslations("outcomes");
   const tStatuses = useTranslations("statuses");
+  const tImportances = useTranslations("importances");
 
   const [editing, setEditing] = useState<string | null>(null); // event id or "new"
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
@@ -182,6 +188,7 @@ export function HistoryEditor({
       type: form.type,
       year: form.year,
       month: form.month === "" ? null : form.month,
+      importance: form.importance || "MEDIUM",
       description: form.description,
       subjectCompanyId: kind === "company" ? entityId : null,
       subjectSolutionId: kind === "solution" ? entityId : null,
@@ -244,6 +251,7 @@ export function HistoryEditor({
       type: e.type,
       year: String(e.year),
       month: e.month == null ? "" : String(e.month),
+      importance: e.importance || "MEDIUM",
       description: e.description ?? "",
       newName: e.newName ?? "",
       acquirerCompanyId: e.acquirerCompanyId ?? "",
@@ -333,6 +341,8 @@ export function HistoryEditor({
         return `→ ${e.newName}`;
       case "ACQUISITION":
         return `→ ${e.acquirerCompanyId ? companyLabel(e.acquirerCompanyId) : e.acquirerNameRaw} (${e.outcome})`;
+      case "CO_INVESTMENT":
+        return `+ ${e.acquirerCompanyId ? companyLabel(e.acquirerCompanyId) : e.acquirerNameRaw}`;
       case "ABSORPTION":
         return e.acquirerCompanyId ? `→ ${companyLabel(e.acquirerCompanyId)}` : "";
       case "MERGER":
@@ -492,6 +502,20 @@ export function HistoryEditor({
                   onChange={(e) => set("month", e.target.value)}
                 />
               </div>
+              <div className="space-y-1.5">
+                <Label>{t("fields.importance")}</Label>
+                <select
+                  className="border rounded-md bg-background text-foreground px-2 py-2 text-sm w-full"
+                  value={form.importance}
+                  onChange={(e) => set("importance", e.target.value)}
+                >
+                  {IMPORTANCES.map((imp) => (
+                    <option key={imp} value={imp}>
+                      {tImportances(imp as Parameters<typeof tImportances>[0])}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {/* Type-specific fields */}
@@ -542,6 +566,35 @@ export function HistoryEditor({
                       </option>
                     ))}
                   </select>
+                </div>
+              </div>
+            )}
+
+            {form.type === "CO_INVESTMENT" && (
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label>{t("fields.coInvestor")}</Label>
+                  <select
+                    className="border rounded-md bg-background text-foreground px-2 py-2 text-sm w-full"
+                    value={form.acquirerCompanyId}
+                    onChange={(e) => set("acquirerCompanyId", e.target.value)}
+                  >
+                    <option value="">{t("fields.none")}</option>
+                    {companies
+                      .filter((c) => c.id !== entityId)
+                      .map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.label}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>{t("fields.acquirerNameRaw")}</Label>
+                  <Input
+                    value={form.acquirerNameRaw}
+                    onChange={(e) => set("acquirerNameRaw", e.target.value)}
+                  />
                 </div>
               </div>
             )}

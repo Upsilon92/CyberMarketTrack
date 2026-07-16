@@ -82,6 +82,8 @@ const tagSchema = z.object({
   family: z.string().max(50),
   labelFr: z.string().max(200),
   labelEn: z.string().max(200),
+  descriptionFr: z.string().max(1000).nullable().optional(),
+  descriptionEn: z.string().max(1000).nullable().optional(),
   category: z.string().max(50).nullable(),
 });
 
@@ -121,6 +123,7 @@ const eventSchema = z.object({
   type: z.string().max(50),
   year: z.number().int(),
   month: z.number().int().nullable(),
+  importance: z.string().max(20).optional().default("MEDIUM"),
   description: z.string().max(50_000).nullable(),
   subjectCompanyId: id.nullable(),
   subjectSolutionId: id.nullable(),

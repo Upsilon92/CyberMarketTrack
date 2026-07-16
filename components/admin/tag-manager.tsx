@@ -16,6 +16,8 @@ export interface TagRow {
   family: string;
   labelFr: string;
   labelEn: string;
+  descriptionFr: string | null;
+  descriptionEn: string | null;
   category: string | null;
 }
 
@@ -24,10 +26,20 @@ interface TagForm {
   family: string;
   labelFr: string;
   labelEn: string;
+  descriptionFr: string;
+  descriptionEn: string;
   category: string;
 }
 
-const EMPTY: TagForm = { slug: "", family: "SOLUTION_TYPE", labelFr: "", labelEn: "", category: "" };
+const EMPTY: TagForm = {
+  slug: "",
+  family: "SOLUTION_TYPE",
+  labelFr: "",
+  labelEn: "",
+  descriptionFr: "",
+  descriptionEn: "",
+  category: "",
+};
 
 export function TagManager({ tags }: { tags: TagRow[] }) {
   const router = useRouter();
@@ -56,6 +68,8 @@ export function TagManager({ tags }: { tags: TagRow[] }) {
       family: tag.family,
       labelFr: tag.labelFr,
       labelEn: tag.labelEn,
+      descriptionFr: tag.descriptionFr ?? "",
+      descriptionEn: tag.descriptionEn ?? "",
       category: tag.category ?? "",
     });
   }
@@ -147,6 +161,21 @@ export function TagManager({ tags }: { tags: TagRow[] }) {
             <label className="text-xs text-muted-foreground flex flex-col gap-1">
               {t("fields.labelEn")} *
               <Input value={form.labelEn} onChange={(e) => set("labelEn", e.target.value)} required />
+            </label>
+            <label className="text-xs text-muted-foreground flex flex-col gap-1 sm:col-span-2">
+              {t("fields.descriptionFr")}
+              <Input
+                value={form.descriptionFr}
+                onChange={(e) => set("descriptionFr", e.target.value)}
+                placeholder="ITDR = Identity Threat Detection & Response"
+              />
+            </label>
+            <label className="text-xs text-muted-foreground flex flex-col gap-1 sm:col-span-2">
+              {t("fields.descriptionEn")}
+              <Input
+                value={form.descriptionEn}
+                onChange={(e) => set("descriptionEn", e.target.value)}
+              />
             </label>
             {form.family === "SCOPE" && (
               <label className="text-xs text-muted-foreground flex flex-col gap-1">

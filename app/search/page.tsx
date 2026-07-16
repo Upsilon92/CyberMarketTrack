@@ -4,6 +4,7 @@ import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 import { SearchBar } from "@/components/search-bar";
 import { StatusBadge } from "@/components/status-badge";
+import { CompanyLogo } from "@/components/company-logo";
 import { Card, CardContent } from "@/components/ui/card";
 import { searchAll, ownerDisplayName, loadMarket } from "@/lib/queries";
 import { formerNamePeriods } from "@/lib/timeline";
@@ -43,6 +44,7 @@ export default async function SearchPage({
                 <Link key={c.id} href={`/companies/${c.id}`}>
                   <Card className="card-hover">
                     <CardContent className="py-3 flex flex-wrap items-center gap-2">
+                      <CompanyLogo name={c.timeline.currentName} logoUrl={c.logoUrl} size={24} />
                       <span className="font-medium">
                         {countryFlag(c.country)} {c.timeline.currentName}
                       </span>

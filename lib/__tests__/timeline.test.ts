@@ -214,6 +214,43 @@ describe("buildCompanyTimeline — ABSORPTION (Subsidiary → Absorbed later)", 
 });
 
 // =============================================================================
+// CO_INVESTMENT — several owners open in parallel
+// =============================================================================
+describe("buildCompanyTimeline — CO_INVESTMENT (parallel owners)", () => {
+  const co = { id: "co", initialName: "Co", foundedYear: 2010 };
+  // Fund A buys in 2018, Fund B co-invests in 2020 (both still in).
+  const tl = buildCompanyTimeline(co, [
+    ev({ type: "ACQUISITION", year: 2018, acquirerCompanyId: "fundA", outcome: "INVESTOR_OWNED" }),
+    ev({ type: "CO_INVESTMENT", year: 2020, acquirerCompanyId: "fundB" }),
+  ]);
+
+  it("keeps BOTH owners open at once", () => {
+    expect(tl.currentOwners.map((o) => o.ownerCompanyId).sort()).toEqual(["fundA", "fundB"]);
+    expect(tl.currentStatus).toBe("INVESTOR_OWNED");
+  });
+
+  it("a full ACQUISITION later closes all co-investors", () => {
+    const tl2 = buildCompanyTimeline(co, [
+      ev({ type: "ACQUISITION", year: 2018, acquirerCompanyId: "fundA", outcome: "INVESTOR_OWNED" }),
+      ev({ type: "CO_INVESTMENT", year: 2020, acquirerCompanyId: "fundB" }),
+      ev({ type: "ACQUISITION", year: 2023, acquirerCompanyId: "bigCorp", outcome: "AUTONOMOUS" }),
+    ]);
+    expect(tl2.currentOwners.map((o) => o.ownerCompanyId)).toEqual(["bigCorp"]);
+    expect(tl2.currentStatus).toBe("SUBSIDIARY");
+  });
+
+  it("a DIVESTMENT closes all parallel owners (back to independent)", () => {
+    const tl3 = buildCompanyTimeline(co, [
+      ev({ type: "CO_INVESTMENT", year: 2018, acquirerCompanyId: "fundA" }),
+      ev({ type: "CO_INVESTMENT", year: 2019, acquirerCompanyId: "fundB" }),
+      ev({ type: "DIVESTMENT", year: 2024, note: "IPO" }),
+    ]);
+    expect(tl3.currentOwners).toEqual([]);
+    expect(tl3.currentStatus).toBe("INDEPENDENT");
+  });
+});
+
+// =============================================================================
 // INVESTOR_UNKNOWN — acquisition of unknown nature is NOT forced to SUBSIDIARY
 // =============================================================================
 describe("buildCompanyTimeline — outcome UNKNOWN → INVESTOR_UNKNOWN status", () => {

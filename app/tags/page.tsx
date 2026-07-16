@@ -35,6 +35,11 @@ export default async function TagsPage() {
             {t("solutionsTagged", { count: sols.length })}
           </span>
         </div>
+        {(locale === "fr" ? tag.descriptionFr : tag.descriptionEn) && (
+          <p className="text-xs text-muted-foreground pl-1">
+            {locale === "fr" ? tag.descriptionFr : tag.descriptionEn}
+          </p>
+        )}
         {sols.length > 0 && (
           <ul className="text-sm pl-1 space-y-0.5">
             {sols.map((s) => (

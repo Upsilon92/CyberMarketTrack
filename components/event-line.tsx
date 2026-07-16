@@ -30,9 +30,12 @@ function EntityLink({ href, name }: { href: string | null; name: string }) {
 export async function EventLine({
   event,
   showTypeBadge = true,
+  compact = false,
 }: {
   event: EventWithRelations;
   showTypeBadge?: boolean;
+  /** Compact = date+badge on their own line above the text (narrow columns) */
+  compact?: boolean;
 }) {
   const locale = (await getLocale()) as Locale;
   const t = await getTranslations("eventText");
@@ -101,6 +104,24 @@ export async function EventLine({
     amount: event.amount ?? 0,
     round: event.round ?? "",
   });
+
+  if (compact) {
+    return (
+      <div className="text-sm space-y-1">
+        <div className="flex items-center gap-2">
+          <span className="text-muted-foreground tabular-nums text-xs">
+            {formatDate({ year: event.year, month: event.month }, locale)}
+          </span>
+          {showTypeBadge && (
+            <Badge variant="outline" className="text-[10px]">
+              {tTypes(event.type)}
+            </Badge>
+          )}
+        </div>
+        <div className="leading-snug">{text}</div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm">

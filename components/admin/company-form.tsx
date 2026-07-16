@@ -213,6 +213,10 @@ export function CompanyForm({
         </div>
       </div>
 
+      {/* Logo upload — only after the company exists (needs an id). Stores a
+          data URI in logoUrl, overriding the URL field above. */}
+      {companyId && <LogoUploader companyId={companyId} current={values.logoUrl} />}
+
       <div className="flex gap-2">
         <Button type="submit" disabled={busy}>
           {busy ? t("saving") : t("save")}
@@ -222,5 +226,58 @@ export function CompanyForm({
         </Button>
       </div>
     </form>
+  );
+}
+
+// Uploads a logo file to /api/companies/[id]/logo (stored as data URI).
+function LogoUploader({ companyId, current }: { companyId: string; current: string }) {
+  const router = useRouter();
+  const tf = useTranslations("admin.fields");
+  const t = useTranslations("admin");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [preview, setPreview] = useState(current);
+
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch(`/api/companies/${companyId}/logo`, { method: "POST", body: fd });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.code ?? "error");
+      setPreview(data.logoUrl);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error && err.message === "tooBig" ? tf("logoTooBig") : t("genericError"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-3">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      {preview ? (
+        <img
+          src={preview}
+          alt="logo"
+          className="w-12 h-12 object-contain rounded-md ring-1 ring-border bg-white/70 dark:bg-white/10 p-1"
+        />
+      ) : (
+        <span className="w-12 h-12 rounded-md ring-1 ring-border grid place-items-center text-xs text-muted-foreground">
+          —
+        </span>
+      )}
+      <label className="text-sm">
+        <span className="text-xs text-muted-foreground block mb-1">{tf("logoUpload")}</span>
+        <input type="file" accept="image/*" onChange={onFile} disabled={busy} className="text-sm" />
+      </label>
+      {error && <span className="text-xs text-destructive">{error}</span>}
+    </div>
   );
 }

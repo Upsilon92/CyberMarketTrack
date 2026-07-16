@@ -50,7 +50,16 @@
     "statSolutionsLabel": "Solutions",
     "statEventsLabel": "Événements de marché",
     "latestEvents": "Derniers événements",
-    "seeAllNews": "Toute l'actualité"
+    "seeAllNews": "Toute l'actualité",
+    "colMajor": "Événements majeurs",
+    "colMedium": "Événements notables",
+    "colMinor": "Événements mineurs",
+    "colEmpty": "Aucun événement"
+  },
+  "importances": {
+    "MAJOR": "Majeur",
+    "MEDIUM": "Notable",
+    "MINOR": "Mineur"
   },
   "companies": {
     "title": "Entreprises",
@@ -159,6 +168,7 @@
   "eventTypes": {
     "COMPANY_RENAME": "Renommage",
     "ACQUISITION": "Rachat",
+    "CO_INVESTMENT": "Co-investissement",
     "ABSORPTION": "Absorption totale",
     "DIVESTMENT": "Reprise d'indépendance",
     "MERGER": "Fusion",
@@ -174,6 +184,7 @@
   "eventText": {
     "COMPANY_RENAME": "<subject></subject> devient {newName}",
     "ACQUISITION": "<subject></subject> est rachetée par <actor></actor>",
+    "CO_INVESTMENT": "<actor></actor> co-investit dans <subject></subject>",
     "ABSORPTION": "<subject></subject> est totalement absorbée par <actor></actor>",
     "ABSORPTION_NO_ACTOR": "<subject></subject> est totalement absorbée",
     "DIVESTMENT": "<subject></subject> redevient indépendante",
@@ -347,6 +358,8 @@
       "description": "Description (markdown)",
       "website": "Site web",
       "logoUrl": "URL du logo",
+      "logoUpload": "…ou téléverser un fichier (PNG/SVG transparent, max 256 Ko)",
+      "logoTooBig": "Fichier trop volumineux (max 256 Ko).",
       "initialCompany": "Éditeur d'origine",
       "initialCompanyHint": "La société qui a créé la solution. L'éditeur courant est calculé depuis les transferts.",
       "features": "Fonctionnalités (markdown)",
@@ -357,8 +370,12 @@
       "family": "Famille",
       "labelFr": "Libellé FR",
       "labelEn": "Libellé EN",
+      "descriptionFr": "Description FR (explicite l'abréviation)",
+      "descriptionEn": "Description EN",
       "category": "Catégorie (périmètres)",
       "eventType": "Type d'événement",
+      "importance": "Importance",
+      "coInvestor": "Co-investisseur (référencé)",
       "year": "Année",
       "month": "Mois (optionnel)",
       "newName": "Nouveau nom",

@@ -6,6 +6,7 @@ import { z } from "zod";
 import {
   COMPANY_TYPES,
   EVENT_TYPES,
+  EVENT_IMPORTANCES,
   ACQUISITION_OUTCOMES,
   TAG_FAMILIES,
   SCOPE_CATEGORIES,
@@ -90,6 +91,8 @@ export const tagSchema = z.object({
   family: z.enum(TAG_FAMILIES),
   labelFr: trimmed(120),
   labelEn: trimmed(120),
+  descriptionFr: optionalTrimmed(500),
+  descriptionEn: optionalTrimmed(500),
   category: z.enum(SCOPE_CATEGORIES).nullable().optional().or(z.literal("").transform(() => null)),
 });
 export type TagInput = z.infer<typeof tagSchema>;
@@ -102,6 +105,7 @@ const eventBase = z.object({
   type: z.enum(EVENT_TYPES),
   year: yearSchema,
   month: monthSchema,
+  importance: z.enum(EVENT_IMPORTANCES).optional().default("MEDIUM").or(z.literal("").transform(() => "MEDIUM" as const)),
   description: optionalTrimmed(10_000),
   subjectCompanyId: z.string().nullable().optional(),
   subjectSolutionId: z.string().nullable().optional(),
@@ -120,6 +124,7 @@ const eventBase = z.object({
 const COMPANY_SUBJECT_TYPES = new Set([
   "COMPANY_RENAME",
   "ACQUISITION",
+  "CO_INVESTMENT",
   "ABSORPTION",
   "DIVESTMENT",
   "MERGER",
@@ -156,6 +161,10 @@ export const eventSchema = eventBase.superRefine((e, ctx) => {
       if (!e.acquirerCompanyId && !e.acquirerNameRaw)
         fail("acquirerCompanyId", "acquirerRequired");
       if (!e.outcome) fail("outcome", "outcomeRequired");
+      break;
+    case "CO_INVESTMENT":
+      if (!e.acquirerCompanyId && !e.acquirerNameRaw)
+        fail("acquirerCompanyId", "acquirerRequired");
       break;
     case "MERGER":
       if (!e.withCompanyId) fail("withCompanyId", "withCompanyRequired");

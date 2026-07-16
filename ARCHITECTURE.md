@@ -89,8 +89,10 @@ s'affiche « période inconnue » sans bloquer.
 | Type | Effet sur l'état | Champs spécifiques |
 |---|---|---|
 | `COMPANY_RENAME` | nom de la société | `newName` |
-| `ACQUISITION` | propriétaire | `acquirerCompanyId`/`acquirerNameRaw`, `outcome` |
-| `DIVESTMENT` | fin de détention → `INDEPENDENT` | `note` |
+| `ACQUISITION` | rachat total : ferme TOUS les propriétaires ouverts, en ouvre un seul | `acquirerCompanyId`/`acquirerNameRaw`, `outcome` |
+| `CO_INVESTMENT` | ajoute un propriétaire EN PARALLÈLE sans fermer les autres (consortium) | `acquirerCompanyId`/`acquirerNameRaw` |
+| `ABSORPTION` | filiale déjà détenue → absorption totale (même propriétaire, statut `ABSORBED`) | `acquirerCompanyId` (déf. propriétaire courant) |
+| `DIVESTMENT` | ferme TOUTES les détentions → `INDEPENDENT` | `note` |
 | `MERGER` | statut `MERGED` | `withCompanyId` |
 | `SHUTDOWN` | statut `DEFUNCT` | — |
 | `SOLUTION_RENAME` | nom de la solution | `newName` |
@@ -99,6 +101,17 @@ s'affiche « période inconnue » sans bloquer.
 | `SOLUTION_DISCONTINUED` | solution arrêtée | — |
 | `SOLUTION_INTEGRATED` | solution absorbée dans une autre (statut `INTEGRATED`) | `intoSolutionId` |
 | `FUNDING`, `OTHER` | aucun (informatif) | `amount`, `round` |
+
+Chaque événement porte aussi une **`importance`** (`MAJOR` / `MEDIUM` / `MINOR`)
+utilisée pour prioriser l'affichage (l'accueil range les derniers événements en
+3 colonnes par importance). Un `CompanyTimeline` expose `currentOwners[]` (tous
+les propriétaires ouverts, > 1 en cas de co-investissement) en plus de
+`currentOwner` (dernier ouvert, pour l'affichage simple). Le statut dérivé
+`INVESTOR_UNKNOWN` distingue une acquisition d'issue inconnue (au lieu de la
+forcer en `SUBSIDIARY`). Les logos d'entreprise sont stockés en **data URI**
+dans `logoUrl` (upload via `/api/companies/[id]/logo`), donc inclus dans les
+sauvegardes JSON. Les `Tag` portent `descriptionFr/En` (explicitent les
+abréviations : tooltip sur les badges + annuaire).
 
 **Intégration solution-dans-solution (`SOLUTION_INTEGRATED`).** Symétrique du
 `MERGER` des sociétés : une solution cesse d'exister de façon autonome parce

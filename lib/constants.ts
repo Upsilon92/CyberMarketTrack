@@ -14,6 +14,7 @@ export type CompanyType = (typeof COMPANY_TYPES)[number];
 export const EVENT_TYPES = [
   "COMPANY_RENAME", // changes company name           -> newName
   "ACQUISITION", // changes company owner          -> acquirerCompanyId/acquirerNameRaw, outcome
+  "CO_INVESTMENT", // adds a PARALLEL owner without closing existing ones -> acquirerCompanyId/acquirerNameRaw, outcome
   "ABSORPTION", // an already-owned subsidiary is fully absorbed (brand disappears) -> acquirerCompanyId (defaults to current owner)
   "DIVESTMENT", // ends ownership (back to INDEPENDENT) -> note
   "MERGER", // company becomes MERGED         -> withCompanyId
@@ -32,6 +33,7 @@ export type EventType = (typeof EVENT_TYPES)[number];
 export const COMPANY_EVENT_TYPES: EventType[] = [
   "COMPANY_RENAME",
   "ACQUISITION",
+  "CO_INVESTMENT",
   "ABSORPTION",
   "DIVESTMENT",
   "MERGER",
@@ -49,6 +51,10 @@ export const SOLUTION_EVENT_TYPES: EventType[] = [
 
 // Purely informational event types (displayed, no state effect)
 export const INFORMATIONAL_EVENT_TYPES: EventType[] = ["FUNDING", "OTHER"];
+
+// --- Event importance (news prioritization) ------------------------------------
+export const EVENT_IMPORTANCES = ["MAJOR", "MEDIUM", "MINOR"] as const;
+export type EventImportance = (typeof EVENT_IMPORTANCES)[number];
 
 // --- Acquisition outcomes ------------------------------------------------------
 export const ACQUISITION_OUTCOMES = [

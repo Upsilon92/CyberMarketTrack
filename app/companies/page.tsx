@@ -4,6 +4,7 @@ import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status-badge";
+import { CompanyLogo } from "@/components/company-logo";
 import { MultiFilterBar, type MultiFilterGroup } from "@/components/multi-filter-bar";
 import { loadMarket, ownerDisplayName, isStale } from "@/lib/queries";
 import { formerNamePeriods } from "@/lib/timeline";
@@ -32,7 +33,11 @@ export default async function CompaniesPage({
   // AND across groups.
   const selType = sp.type?.split(",").filter(Boolean) ?? [];
   const selCountry = sp.country?.split(",").filter(Boolean) ?? [];
-  const selStatus = sp.status?.split(",").filter(Boolean) ?? [];
+  // Status defaults to "active-ish" companies (hides absorbed/merged/defunct)
+  // when the param is absent from the URL. Fully modifiable by the user.
+  const DEFAULT_STATUS = ["INDEPENDENT", "INVESTOR_OWNED", "INVESTOR_UNKNOWN", "SUBSIDIARY"];
+  const selStatus =
+    sp.status === undefined ? DEFAULT_STATUS : sp.status.split(",").filter(Boolean);
 
   let list = market.companies;
   if (selType.length) list = list.filter((c) => c.types.some((ct) => selType.includes(ct.type)));
@@ -90,12 +95,13 @@ export default async function CompaniesPage({
       <div className="grid gap-2">
         {list.map((c) => {
           const formers = formerNamePeriods(c.timeline);
-          const owner = c.timeline.currentOwner;
+          const owners = c.timeline.currentOwners;
           return (
             <Link key={c.id} href={`/companies/${c.id}`}>
               <Card className="card-hover">
                 <CardContent className="py-3">
                   <div className="flex flex-wrap items-center gap-2">
+                    <CompanyLogo name={c.timeline.currentName} logoUrl={c.logoUrl} size={24} />
                     <span className="font-medium">
                       {countryFlag(c.country)} {c.timeline.currentName}
                     </span>
@@ -116,7 +122,7 @@ export default async function CompaniesPage({
                       })}
                     </span>
                   </div>
-                  {(formers.length > 0 || owner) && (
+                  {(formers.length > 0 || owners.length > 0) && (
                     <div className="mt-1 text-xs text-muted-foreground flex flex-wrap gap-x-4">
                       {formers.length > 0 && (
                         <span>
@@ -127,9 +133,12 @@ export default async function CompaniesPage({
                           })}
                         </span>
                       )}
-                      {owner && (
+                      {owners.length > 0 && (
                         <span>
-                          → {ownerDisplayName(market, owner.ownerCompanyId, owner.ownerNameRaw)}
+                          →{" "}
+                          {owners
+                            .map((o) => ownerDisplayName(market, o.ownerCompanyId, o.ownerNameRaw))
+                            .join(", ")}
                         </span>
                       )}
                     </div>

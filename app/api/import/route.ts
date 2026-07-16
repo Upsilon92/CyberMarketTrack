@@ -140,6 +140,8 @@ export async function POST(req: NextRequest) {
             family: row.family,
             labelFr: row.labelFr,
             labelEn: row.labelEn,
+            descriptionFr: orNull(row.descriptionFr),
+            descriptionEn: orNull(row.descriptionEn),
             category: orNull(row.category),
           });
           if (!parsed.success) {
@@ -257,6 +259,7 @@ export async function POST(req: NextRequest) {
             type: row.type,
             year: row.year,
             month: orNull(row.month),
+            importance: orNull(row.importance) ?? "MEDIUM",
             description: orNull(row.description),
             subjectCompanyId: subjectCompanyId ?? null,
             subjectSolutionId: subjectSolutionId ?? null,

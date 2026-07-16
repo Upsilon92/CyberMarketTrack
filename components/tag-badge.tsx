@@ -14,14 +14,26 @@ export function TagBadge({
   tag,
   locale,
 }: {
-  tag: { slug: string; family: string; labelFr: string; labelEn: string };
+  tag: {
+    slug: string;
+    family: string;
+    labelFr: string;
+    labelEn: string;
+    descriptionFr?: string | null;
+    descriptionEn?: string | null;
+  };
   locale: string;
 }) {
   const label = locale === "fr" ? tag.labelFr : tag.labelEn;
+  const description = locale === "fr" ? tag.descriptionFr : tag.descriptionEn;
   return (
-    <Link href={`/tags#${tag.slug}`}>
-      <Badge variant="outline" className={FAMILY_STYLES[tag.family as TagFamily] ?? ""}>
+    <Link href={`/tags#${tag.slug}`} title={description ?? undefined}>
+      <Badge
+        variant="outline"
+        className={`${FAMILY_STYLES[tag.family as TagFamily] ?? ""} ${description ? "cursor-help" : ""}`}
+      >
         {label}
+        {description && <span className="ml-1 opacity-60">ⓘ</span>}
       </Badge>
     </Link>
   );

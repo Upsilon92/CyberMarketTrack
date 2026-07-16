@@ -1,6 +1,6 @@
-// Company page: general info, derived current owner, revenues, solutions
-// (current + former, derived), unified timeline (vertical + period bands),
-// fund portfolio, and the "as of year" view (?at=YYYY).
+// Company page: general info, derived current owner(s), revenues, solutions
+// (current + former, derived), unified visual timeline + period bands, and the
+// fund portfolio.
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
@@ -8,11 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge } from "@/components/status-badge";
+import { CompanyLogo } from "@/components/company-logo";
 import { Markdown } from "@/components/markdown";
 import { RevenueChart } from "@/components/revenue-chart";
 import { EventLine } from "@/components/event-line";
+import { EventTimeline } from "@/components/event-timeline";
 import { PeriodBands, toSegments, type BandRow } from "@/components/period-bands";
-import { AsOfSelect } from "@/components/as-of-select";
 import {
   loadMarket,
   loadAllEvents,
@@ -21,7 +22,7 @@ import {
   portfolioOfFund,
   isStale,
 } from "@/lib/queries";
-import { formerNamePeriods, periodAt, type OwnershipPeriod } from "@/lib/timeline";
+import { formerNamePeriods, type OwnershipPeriod } from "@/lib/timeline";
 import { formatDate, formatRange, type Locale } from "@/lib/date";
 import { countryFlag } from "@/lib/flags";
 import type { CompanyStatus } from "@/lib/constants";
@@ -49,20 +50,14 @@ async function OwnershipLabel({
   return t(key, { owner: ownerName, range });
 }
 
-export default async function CompanyPage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ id: string }>;
-  searchParams: Promise<{ at?: string }>;
-}) {
+export default async function CompanyPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { at } = await searchParams;
   const locale = (await getLocale()) as Locale;
   const t = await getTranslations("company");
   const tCommon = await getTranslations("common");
   const tTypes = await getTranslations("companyTypes");
   const tStatuses = await getTranslations("statuses");
+  const tOwnership = await getTranslations("ownership");
 
   const market = await loadMarket();
   const company = market.companies.find((c) => c.id === id);
@@ -70,34 +65,18 @@ export default async function CompanyPage({
 
   const tl = company.timeline;
   const isFund = company.types.some((ct) => ct.type === "INVESTMENT_FUND");
-
-  // ---- "As of" view: derive the state at the requested year -----------------
-  const atYear = at && /^\d{4}$/.test(at) ? Number(at) : null;
-  const atDate = atYear ? { year: atYear, month: 12 } : null; // end of that year
-  const nameAt = atDate ? periodAt(tl.namePeriods, atDate)?.name : null;
-  const ownerAt = atDate ? periodAt(tl.ownershipPeriods, atDate) : null;
-  const statusAt = atDate ? (periodAt(tl.statusPeriods, atDate)?.status ?? null) : null;
-
-  const displayedName = atDate ? (nameAt ?? "—") : tl.currentName;
-  const displayedOwner = atDate ? ownerAt : tl.currentOwner;
-  const displayedStatus = atDate ? statusAt : tl.currentStatus;
-
   const formers = formerNamePeriods(tl);
 
-  // ---- Solutions owned (derived) — at the selected date if any --------------
   const { current: currentSolutions, former: formerSolutions } = solutionsOfCompany(market, id);
-  const solutionsAt = atDate
-    ? market.solutions.filter((s) => periodAt(s.timeline.ownershipPeriods, atDate)?.ownerCompanyId === id)
-    : currentSolutions;
 
-  // ---- Events of this company (for the vertical timeline) -------------------
   const allEvents = await loadAllEvents();
   const companyEvents = allEvents.filter((e) => e.subjectCompanyId === id);
   const acquisitionsMade = allEvents.filter(
-    (e) => e.type === "ACQUISITION" && e.acquirerCompanyId === id
+    (e) => (e.type === "ACQUISITION" || e.type === "CO_INVESTMENT") && e.acquirerCompanyId === id
   );
 
-  // ---- Period bands ----------------------------------------------------------
+  // ---- Period bands: one segment row per open owner would be noisy, so the
+  // owners row shows the full ownership history (parallel periods overlap). ----
   const bands: BandRow[] = [
     { label: t("names"), segments: toSegments(tl.namePeriods, (p) => p.name) },
     {
@@ -119,21 +98,17 @@ export default async function CompanyPage({
       {/* Header */}
       <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-3">
+          <CompanyLogo name={tl.currentName} logoUrl={company.logoUrl} size={44} />
           <h1 className="text-2xl font-bold">
-            {countryFlag(company.country)} {displayedName}
+            {countryFlag(company.country)} {tl.currentName}
           </h1>
           {company.types.map((ct) => (
             <Badge key={ct.id} variant="outline">
               {tTypes(ct.type)}
             </Badge>
           ))}
-          {displayedStatus && <StatusBadge status={displayedStatus as CompanyStatus} />}
-          {isStale(company.updatedAt) && (
-            <Badge variant="destructive">{tCommon("toRecheck")}</Badge>
-          )}
-          <div className="ml-auto">
-            <AsOfSelect minYear={company.foundedYear} value={atYear ?? undefined} />
-          </div>
+          <StatusBadge status={tl.currentStatus as CompanyStatus} />
+          {isStale(company.updatedAt) && <Badge variant="destructive">{tCommon("toRecheck")}</Badge>}
         </div>
         {formers.length > 0 && (
           <p className="text-sm text-muted-foreground">
@@ -181,45 +156,37 @@ export default async function CompanyPage({
           </CardContent>
         </Card>
 
-        {/* Current (or as-of) owner */}
+        {/* Current owner(s) — may be several (co-investment) */}
         <Card>
           <CardHeader>
             <CardTitle>{t("currentOwner")}</CardTitle>
           </CardHeader>
           <CardContent className="text-sm">
-            {displayedOwner ? (
-              <div className="space-y-1">
-                {displayedOwner.ownerCompanyId ? (
-                  <Link
-                    href={`/companies/${displayedOwner.ownerCompanyId}`}
-                    className="text-primary hover:underline"
-                  >
+            {tl.currentOwners.length > 0 ? (
+              <ul className="space-y-1.5">
+                {tl.currentOwners.map((owner, i) => {
+                  const label = (
                     <OwnershipLabel
-                      period={displayedOwner}
-                      ownerName={ownerDisplayName(
-                        market,
-                        displayedOwner.ownerCompanyId,
-                        displayedOwner.ownerNameRaw
-                      )}
+                      period={owner}
+                      ownerName={ownerDisplayName(market, owner.ownerCompanyId, owner.ownerNameRaw)}
                       locale={locale}
                     />
-                  </Link>
-                ) : (
-                  <OwnershipLabel
-                    period={displayedOwner}
-                    ownerName={ownerDisplayName(
-                      market,
-                      displayedOwner.ownerCompanyId,
-                      displayedOwner.ownerNameRaw
-                    )}
-                    locale={locale}
-                  />
-                )}
-              </div>
+                  );
+                  return (
+                    <li key={i}>
+                      {owner.ownerCompanyId ? (
+                        <Link href={`/companies/${owner.ownerCompanyId}`} className="text-primary hover:underline">
+                          {label}
+                        </Link>
+                      ) : (
+                        label
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
             ) : (
-              <span className="text-muted-foreground">
-                {(await getTranslations("ownership"))("independent")}
-              </span>
+              <span className="text-muted-foreground">{tOwnership("independent")}</span>
             )}
           </CardContent>
         </Card>
@@ -285,22 +252,20 @@ export default async function CompanyPage({
       {/* Solutions (derived ownership) */}
       <Card>
         <CardHeader>
-          <CardTitle>{atDate ? `${t("currentSolutions")} (${atYear})` : t("currentSolutions")}</CardTitle>
+          <CardTitle>{t("currentSolutions")}</CardTitle>
         </CardHeader>
         <CardContent className="text-sm space-y-3">
-          {solutionsAt.length === 0 && <p className="text-muted-foreground">{t("noSolutions")}</p>}
+          {currentSolutions.length === 0 && <p className="text-muted-foreground">{t("noSolutions")}</p>}
           <ul className="space-y-1">
-            {solutionsAt.map((s) => (
+            {currentSolutions.map((s) => (
               <li key={s.id}>
                 <Link href={`/solutions/${s.id}`} className="text-primary hover:underline">
-                  {atDate
-                    ? (periodAt(s.timeline.namePeriods, atDate)?.name ?? s.timeline.currentName)
-                    : s.timeline.currentName}
+                  {s.timeline.currentName}
                 </Link>
               </li>
             ))}
           </ul>
-          {!atDate && formerSolutions.length > 0 && (
+          {formerSolutions.length > 0 && (
             <>
               <h3 className="font-medium text-muted-foreground pt-2">{t("formerSolutions")}</h3>
               <ul className="space-y-1">
@@ -342,20 +307,12 @@ export default async function CompanyPage({
               <TabsTrigger value="timeline">{t("timelineView")}</TabsTrigger>
               <TabsTrigger value="bands">{t("bandsView")}</TabsTrigger>
             </TabsList>
-            <TabsContent value="timeline" className="pt-3">
-              <div className="divide-y [&>*]:py-2.5">
-                {companyEvents.length === 0 && (
-                  <p className="text-sm text-muted-foreground">{tCommon("noResults")}</p>
-                )}
-                {companyEvents.map((e) => (
-                  <div key={e.id}>
-                    <EventLine event={e} />
-                    {e.description && (
-                      <p className="text-xs text-muted-foreground mt-1 ml-28">{e.description}</p>
-                    )}
-                  </div>
-                ))}
-              </div>
+            <TabsContent value="timeline" className="pt-4">
+              {companyEvents.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{tCommon("noResults")}</p>
+              ) : (
+                <EventTimeline events={companyEvents} />
+              )}
             </TabsContent>
             <TabsContent value="bands" className="pt-3">
               <PeriodBands rows={bands} />

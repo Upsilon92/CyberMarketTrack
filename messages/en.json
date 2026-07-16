@@ -50,7 +50,16 @@
     "statSolutionsLabel": "Solutions",
     "statEventsLabel": "Market events",
     "latestEvents": "Latest events",
-    "seeAllNews": "All market news"
+    "seeAllNews": "All market news",
+    "colMajor": "Major events",
+    "colMedium": "Notable events",
+    "colMinor": "Minor events",
+    "colEmpty": "No event"
+  },
+  "importances": {
+    "MAJOR": "Major",
+    "MEDIUM": "Notable",
+    "MINOR": "Minor"
   },
   "companies": {
     "title": "Companies",
@@ -159,6 +168,7 @@
   "eventTypes": {
     "COMPANY_RENAME": "Rename",
     "ACQUISITION": "Acquisition",
+    "CO_INVESTMENT": "Co-investment",
     "ABSORPTION": "Full absorption",
     "DIVESTMENT": "Divestment",
     "MERGER": "Merger",
@@ -174,6 +184,7 @@
   "eventText": {
     "COMPANY_RENAME": "<subject></subject> becomes {newName}",
     "ACQUISITION": "<subject></subject> is acquired by <actor></actor>",
+    "CO_INVESTMENT": "<actor></actor> co-invests in <subject></subject>",
     "ABSORPTION": "<subject></subject> is fully absorbed by <actor></actor>",
     "ABSORPTION_NO_ACTOR": "<subject></subject> is fully absorbed",
     "DIVESTMENT": "<subject></subject> becomes independent again",
@@ -347,6 +358,8 @@
       "description": "Description (markdown)",
       "website": "Website",
       "logoUrl": "Logo URL",
+      "logoUpload": "…or upload a file (transparent PNG/SVG, max 256 KB)",
+      "logoTooBig": "File too large (max 256 KB).",
       "initialCompany": "Original vendor",
       "initialCompanyHint": "The company that created the solution. The current vendor is derived from transfers.",
       "features": "Features (markdown)",
@@ -357,8 +370,12 @@
       "family": "Family",
       "labelFr": "Label FR",
       "labelEn": "Label EN",
+      "descriptionFr": "Description FR (explains the abbreviation)",
+      "descriptionEn": "Description EN",
       "category": "Category (scopes)",
       "eventType": "Event type",
+      "importance": "Importance",
+      "coInvestor": "Co-investor (referenced)",
       "year": "Year",
       "month": "Month (optional)",
       "newName": "New name",

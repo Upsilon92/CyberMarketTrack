@@ -102,8 +102,10 @@ export interface CompanyTimeline {
   ownershipPeriods: OwnershipPeriod[];
   statusPeriods: StatusPeriod[];
   currentName: string;
-  /** Open ownership period, or null when the company is independent */
+  /** Last-opened ownership period, or null when independent (single-owner display) */
   currentOwner: OwnershipPeriod | null;
+  /** ALL currently-open ownership periods (>1 when co-investors hold in parallel) */
+  currentOwners: OwnershipPeriod[];
   currentStatus: CompanyStatus;
   /** FUNDING / OTHER — displayed on the timeline, no effect on state */
   informationalEvents: TimelineEventInput[];
@@ -172,6 +174,7 @@ function statusForOutcome(outcome: string | null | undefined): CompanyStatus {
 const COMPANY_STATE_TYPES = new Set([
   "COMPANY_RENAME",
   "ACQUISITION",
+  "CO_INVESTMENT",
   "ABSORPTION",
   "DIVESTMENT",
   "MERGER",
@@ -196,9 +199,10 @@ export function buildCompanyTimeline(
   // Each event closes the open period of the dimension it modifies and opens
   // a new one. The last period of each dimension stays open (end = null).
   const openName = () => namePeriods[namePeriods.length - 1];
-  const openOwnership = (): OwnershipPeriod | null => {
-    const last = ownershipPeriods[ownershipPeriods.length - 1];
-    return last && last.end === null ? last : null;
+  // With co-investment, several ownership periods can be open at once.
+  const openOwnerships = (): OwnershipPeriod[] => ownershipPeriods.filter((p) => p.end === null);
+  const closeAllOwnerships = (at: DatePoint) => {
+    for (const p of ownershipPeriods) if (p.end === null) p.end = at;
   };
   const openStatus = () => statusPeriods[statusPeriods.length - 1];
 
@@ -218,8 +222,9 @@ export function buildCompanyTimeline(
         break;
       }
       case "ACQUISITION": {
-        const current = openOwnership();
-        if (current) current.end = at; // previous owner sold to the new one
+        // Full buyout: closes ALL previous owners (including co-investors) and
+        // opens a single new ownership.
+        closeAllOwnerships(at);
         ownershipPeriods.push({
           ownerCompanyId: e.acquirerCompanyId ?? null,
           ownerNameRaw: e.acquirerNameRaw ?? null,
@@ -230,14 +235,30 @@ export function buildCompanyTimeline(
         setStatus(statusForOutcome(e.outcome), at);
         break;
       }
+      case "CO_INVESTMENT": {
+        // Adds a PARALLEL owner WITHOUT closing the existing ones: several
+        // ownership periods stay open at once (consortium / co-investment).
+        ownershipPeriods.push({
+          ownerCompanyId: e.acquirerCompanyId ?? null,
+          ownerNameRaw: e.acquirerNameRaw ?? null,
+          ownershipType: (e.outcome ?? "INVESTOR_OWNED") as AcquisitionOutcome,
+          start: at,
+          end: null,
+        });
+        // Co-investment implies investor ownership (unless already absorbed etc.)
+        if (["INDEPENDENT", "INVESTOR_UNKNOWN"].includes(openStatus().status)) {
+          setStatus("INVESTOR_OWNED", at);
+        }
+        break;
+      }
       case "ABSORPTION": {
-        // An already-owned subsidiary is now fully absorbed by the SAME owner:
-        // the brand disappears. Close the current ownership period and reopen
-        // one with the same owner but ownershipType ABSORBED.
-        const current = openOwnership();
-        const ownerCompanyId = e.acquirerCompanyId ?? current?.ownerCompanyId ?? null;
-        const ownerNameRaw = e.acquirerNameRaw ?? current?.ownerNameRaw ?? null;
-        if (current) current.end = at;
+        // An already-owned subsidiary is now fully absorbed: the brand
+        // disappears. Close all current owners and reopen one ABSORBED period.
+        const current = openOwnerships();
+        const ref = current[current.length - 1];
+        const ownerCompanyId = e.acquirerCompanyId ?? ref?.ownerCompanyId ?? null;
+        const ownerNameRaw = e.acquirerNameRaw ?? ref?.ownerNameRaw ?? null;
+        closeAllOwnerships(at);
         ownershipPeriods.push({
           ownerCompanyId,
           ownerNameRaw,
@@ -249,9 +270,8 @@ export function buildCompanyTimeline(
         break;
       }
       case "DIVESTMENT": {
-        // Ends the ownership WITHOUT opening a new one: back to independent.
-        const current = openOwnership();
-        if (current) current.end = at;
+        // Ends ALL ownership WITHOUT opening a new one: back to independent.
+        closeAllOwnerships(at);
         setStatus("INDEPENDENT", at);
         break;
       }
@@ -261,20 +281,21 @@ export function buildCompanyTimeline(
       }
       case "SHUTDOWN": {
         // The company ceases to exist: any ownership ends too.
-        const current = openOwnership();
-        if (current) current.end = at;
+        closeAllOwnerships(at);
         setStatus("DEFUNCT", at);
         break;
       }
     }
   }
 
+  const currentOwners = openOwnerships();
   return {
     namePeriods,
     ownershipPeriods,
     statusPeriods,
     currentName: openName().name,
-    currentOwner: openOwnership(),
+    currentOwner: currentOwners[currentOwners.length - 1] ?? null,
+    currentOwners,
     currentStatus: openStatus().status,
     informationalEvents,
     stateEvents,
@@ -509,7 +530,7 @@ export function validateCompanyEvents(
   // 3. DIVESTMENT / ABSORPTION without an ongoing ownership at that date.
   let owned = false;
   for (const e of sorted) {
-    if (e.type === "ACQUISITION") owned = true;
+    if (e.type === "ACQUISITION" || e.type === "CO_INVESTMENT") owned = true;
     else if (e.type === "DIVESTMENT") {
       if (!owned) issues.push({ level: "error", code: "divestmentWithoutOwnership", eventIds: [e.id] });
       owned = false;

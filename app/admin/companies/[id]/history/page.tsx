@@ -18,6 +18,7 @@ export default async function CompanyHistoryPage({ params }: { params: Promise<{
     type: e.type,
     year: e.year,
     month: e.month,
+    importance: e.importance,
     description: e.description,
     newName: e.newName,
     acquirerCompanyId: e.acquirerCompanyId,
