@@ -203,19 +203,33 @@ export function CompanyForm({
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="logoUrl">{tf("logoUrl")}</Label>
-          <Input
-            id="logoUrl"
-            type="url"
-            value={values.logoUrl}
-            onChange={(e) => set("logoUrl", e.target.value)}
-            className={errCls("logoUrl")}
-          />
+          {values.logoUrl.startsWith("data:") ? (
+            <div className="flex items-center h-9 px-3 rounded-md border bg-muted/40 text-sm text-muted-foreground">
+              {tf("logoUploadedFile")}
+            </div>
+          ) : (
+            <Input
+              id="logoUrl"
+              type="url"
+              placeholder="https://…"
+              value={values.logoUrl}
+              onChange={(e) => set("logoUrl", e.target.value)}
+              className={errCls("logoUrl")}
+            />
+          )}
         </div>
       </div>
 
       {/* Logo upload — only after the company exists (needs an id). Stores a
-          data URI in logoUrl, overriding the URL field above. */}
-      {companyId && <LogoUploader companyId={companyId} current={values.logoUrl} />}
+          data URI in logoUrl. The callback keeps the form's logoUrl in sync so
+          a subsequent Save does not overwrite the freshly uploaded logo. */}
+      {companyId && (
+        <LogoUploader
+          companyId={companyId}
+          current={values.logoUrl}
+          onChange={(v) => set("logoUrl", v)}
+        />
+      )}
 
       <div className="flex gap-2">
         <Button type="submit" disabled={busy}>
@@ -229,14 +243,30 @@ export function CompanyForm({
   );
 }
 
-// Uploads a logo file to /api/companies/[id]/logo (stored as data URI).
-function LogoUploader({ companyId, current }: { companyId: string; current: string }) {
+// Uploads a logo file to /api/companies/[id]/logo (stored as a data URI). The
+// endpoint persists it immediately; `onChange` mirrors the value into the
+// parent form state so a later Save keeps it.
+function LogoUploader({
+  companyId,
+  current,
+  onChange,
+}: {
+  companyId: string;
+  current: string;
+  onChange: (dataUri: string) => void;
+}) {
   const router = useRouter();
   const tf = useTranslations("admin.fields");
   const t = useTranslations("admin");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [preview, setPreview] = useState(current);
+
+  const codeMessage = (code: string) =>
+    code === "tooBig"
+      ? tf("logoTooBig")
+      : code === "badType"
+        ? tf("logoBadType")
+        : t("genericError");
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -249,27 +279,32 @@ function LogoUploader({ companyId, current }: { companyId: string; current: stri
       fd.append("file", file);
       const res = await fetch(`/api/companies/${companyId}/logo`, { method: "POST", body: fd });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.code ?? "error");
-      setPreview(data.logoUrl);
+      if (!res.ok) {
+        setError(codeMessage(data.code ?? "error"));
+        return;
+      }
+      onChange(data.logoUrl); // keep parent form in sync (fix: Save no longer wipes it)
       router.refresh();
-    } catch (err) {
-      setError(err instanceof Error && err.message === "tooBig" ? tf("logoTooBig") : t("genericError"));
+    } catch {
+      setError(t("genericError"));
     } finally {
       setBusy(false);
     }
   }
 
+  const isUploaded = current.startsWith("data:");
+
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-3 flex-wrap">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      {preview ? (
+      {current ? (
         <img
-          src={preview}
+          src={current}
           alt="logo"
-          className="w-12 h-12 object-contain rounded-md ring-1 ring-border bg-white/70 dark:bg-white/10 p-1"
+          className="h-16 max-w-[180px] object-contain rounded-md ring-1 ring-border bg-white dark:bg-white/10 p-2"
         />
       ) : (
-        <span className="w-12 h-12 rounded-md ring-1 ring-border grid place-items-center text-xs text-muted-foreground">
+        <span className="w-16 h-16 rounded-md ring-1 ring-border grid place-items-center text-xs text-muted-foreground">
           —
         </span>
       )}
@@ -277,6 +312,16 @@ function LogoUploader({ companyId, current }: { companyId: string; current: stri
         <span className="text-xs text-muted-foreground block mb-1">{tf("logoUpload")}</span>
         <input type="file" accept="image/*" onChange={onFile} disabled={busy} className="text-sm" />
       </label>
+      {isUploaded && (
+        <button
+          type="button"
+          onClick={() => onChange("")}
+          className="text-xs text-primary hover:underline"
+        >
+          {tf("logoClear")}
+        </button>
+      )}
+      {busy && <span className="text-xs text-muted-foreground">{t("saving")}</span>}
       {error && <span className="text-xs text-destructive">{error}</span>}
     </div>
   );

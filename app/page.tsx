@@ -78,7 +78,7 @@ export default async function HomePage() {
               <div
                 className={`px-4 py-2.5 border-b text-sm font-semibold flex items-center gap-2 ${
                   col.key === "MAJOR"
-                    ? "text-rose-700 dark:text-rose-300"
+                    ? "text-emerald-700 dark:text-emerald-300"
                     : col.key === "MEDIUM"
                       ? "text-amber-700 dark:text-amber-300"
                       : "text-muted-foreground"
@@ -86,7 +86,11 @@ export default async function HomePage() {
               >
                 <span
                   className={`w-2 h-2 rounded-full ${
-                    col.key === "MAJOR" ? "bg-rose-500" : col.key === "MEDIUM" ? "bg-amber-500" : "bg-muted-foreground/50"
+                    col.key === "MAJOR"
+                      ? "bg-emerald-500"
+                      : col.key === "MEDIUM"
+                        ? "bg-amber-500"
+                        : "bg-muted-foreground/50"
                   }`}
                 />
                 {col.title}

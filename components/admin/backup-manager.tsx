@@ -59,6 +59,9 @@ export function BackupManager() {
           <a href="/api/backup/sqlite" download>
             <Button variant="outline">{t("downloadSqlite")}</Button>
           </a>
+          <a href="/api/backup/logos" download>
+            <Button variant="outline">{t("downloadLogos")}</Button>
+          </a>
         </div>
       </div>
 

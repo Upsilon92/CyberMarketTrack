@@ -69,7 +69,9 @@
    OKLCH; the primary hue ~255 (blue) carries through buttons, links, accents.
 ------------------------------------------------------------------------------ */
 :root {
-  --background: oklch(0.995 0.002 250);
+  /* Light mode: a soft grey page background so white cards clearly stand out,
+     with a slightly darker border for crisp tile delineation. */
+  --background: oklch(0.965 0.006 255);
   --foreground: oklch(0.19 0.02 260);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.19 0.02 260);
@@ -77,15 +79,15 @@
   --popover-foreground: oklch(0.19 0.02 260);
   --primary: oklch(0.5 0.19 260); /* deep cyber blue */
   --primary-foreground: oklch(0.99 0.01 250);
-  --secondary: oklch(0.96 0.01 255);
+  --secondary: oklch(0.945 0.012 255);
   --secondary-foreground: oklch(0.28 0.04 260);
-  --muted: oklch(0.965 0.008 255);
-  --muted-foreground: oklch(0.52 0.03 260);
-  --accent: oklch(0.94 0.03 255);
+  --muted: oklch(0.95 0.01 255);
+  --muted-foreground: oklch(0.48 0.03 260);
+  --accent: oklch(0.92 0.035 255);
   --accent-foreground: oklch(0.3 0.08 262);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.9 0.012 255);
-  --input: oklch(0.9 0.012 255);
+  --border: oklch(0.86 0.016 255);
+  --input: oklch(0.86 0.016 255);
   --ring: oklch(0.5 0.19 260);
   --chart-1: oklch(0.5 0.19 260);
   --chart-2: oklch(0.62 0.15 200);

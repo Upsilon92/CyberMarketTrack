@@ -95,7 +95,9 @@ export function valueKey(item: ComparatorItem, criterionId: string): string {
 export function emptyContent(): ComparatorContent {
   return {
     version: 1,
-    orientation: "itemsAsRows",
+    // Blank comparators put the compared items in COLUMNS (one per company /
+    // solution). Tag-template generators override this to itemsAsRows.
+    orientation: "itemsAsColumns",
     items: [],
     defaultAttributes: [],
     categories: [],

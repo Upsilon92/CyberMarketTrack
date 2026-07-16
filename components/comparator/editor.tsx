@@ -19,6 +19,8 @@ import {
   comparatorContentSchema,
   emptyContent,
   valueKey,
+  itemKey,
+  orderedCriteria,
   COMPANY_DEFAULT_ATTRIBUTES,
   SOLUTION_DEFAULT_ATTRIBUTES,
   CELL_TYPES,
@@ -26,6 +28,7 @@ import {
   type ComparatorContent,
   type ComparatorItem,
 } from "@/lib/comparator";
+import { toCsv } from "@/lib/csv";
 import type { ComparatorCatalog } from "@/lib/comparator-data";
 
 let idCounter = 0;
@@ -77,11 +80,23 @@ export function ComparatorEditor({
   // ---- Items -----------------------------------------------------------------
   function addItem(kind: "company" | "solution", id: string) {
     if (!id) return;
-    update((c) =>
-      c.items.some((i) => i.kind === kind && i.id === id)
-        ? c
-        : { ...c, items: [...c.items, { kind, id }] }
-    );
+    update((c) => {
+      if (c.items.some((i) => i.kind === kind && i.id === id)) return c;
+      const items = [...c.items, { kind, id }];
+      // On the FIRST item of a kind, auto-enable its default attributes so the
+      // relevant columns (e.g. a solution's vendor) fill in automatically. Still
+      // toggleable afterwards.
+      const firstOfKind = !c.items.some((i) => i.kind === kind);
+      let defaultAttributes = c.defaultAttributes;
+      if (firstOfKind) {
+        const toAdd =
+          kind === "solution"
+            ? [...SOLUTION_DEFAULT_ATTRIBUTES]
+            : (["logo", "country", "foundedYear"] as string[]);
+        defaultAttributes = [...new Set([...c.defaultAttributes, ...toAdd])];
+      }
+      return { ...c, items, defaultAttributes };
+    });
   }
   function removeItem(item: ComparatorItem) {
     update((c) => ({
@@ -202,6 +217,55 @@ export function ComparatorEditor({
     URL.revokeObjectURL(url);
   }
 
+  // CSV export: a spreadsheet-friendly table (items as columns, one row per
+  // default attribute then per criterion). Cell values are rendered to text.
+  function exportCsv() {
+    const cellText = (item: ComparatorItem, criterionId: string, type: string): string => {
+      const v = content.values[valueKey(item, criterionId)];
+      if (!v) return "";
+      if (v.t === "boolean") return v.v === "yes" ? "Oui" : "Partiel";
+      if (v.t === "rating") return String(v.v);
+      if (v.t === "number") return String(v.v);
+      if (v.t === "text") return v.v;
+      if (v.t === "solution")
+        return v.solutionId
+          ? (solutionOptions.find((s) => s.id === v.solutionId)?.label ?? v.name ?? "")
+          : (v.name ?? "");
+      void type;
+      return "";
+    };
+    const attrText = (item: ComparatorItem, attr: string): string => {
+      const cat = catalogMap.get(itemKey(item));
+      if (!cat) return "";
+      if (attr === "logo") return ""; // image, not exportable to text
+      if (attr === "country") return cat.country ?? "";
+      if (attr === "originCountry") return cat.originCountry ?? "";
+      return cat.attributes[attr] ?? "";
+    };
+
+    const ordered = orderedCriteria(content);
+    const header = ["", ...content.items.map((it) => catalogMap.get(itemKey(it))?.label ?? "?")];
+    const rows: string[][] = [];
+    for (const attr of content.defaultAttributes) {
+      rows.push([tAttrs(attr as Parameters<typeof tAttrs>[0]), ...content.items.map((it) => attrText(it, attr))]);
+    }
+    for (const crit of ordered) {
+      const catName = crit.categoryId
+        ? content.categories.find((cat) => cat.id === crit.categoryId)?.name
+        : null;
+      const label = catName ? `${catName} — ${crit.name}` : crit.name;
+      rows.push([label, ...content.items.map((it) => cellText(it, crit.id, crit.type))]);
+    }
+    const csv = "﻿" + toCsv(header, rows); // BOM for Excel UTF-8
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${name || "comparator"}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function importJson(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
@@ -265,6 +329,9 @@ export function ComparatorEditor({
           </Button>
           <Button size="sm" variant="outline" onClick={() => window.print()}>
             {t("print")}
+          </Button>
+          <Button size="sm" variant="outline" onClick={exportCsv}>
+            {t("exportCsv")}
           </Button>
           <Button size="sm" variant="outline" onClick={exportJson}>
             {t("exportJson")}

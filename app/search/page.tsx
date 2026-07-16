@@ -44,7 +44,7 @@ export default async function SearchPage({
                 <Link key={c.id} href={`/companies/${c.id}`}>
                   <Card className="card-hover">
                     <CardContent className="py-3 flex flex-wrap items-center gap-2">
-                      <CompanyLogo name={c.timeline.currentName} logoUrl={c.logoUrl} size={24} />
+                      <CompanyLogo name={c.timeline.currentName} logoUrl={c.logoUrl} width={56} height={32} />
                       <span className="font-medium">
                         {countryFlag(c.country)} {c.timeline.currentName}
                       </span>

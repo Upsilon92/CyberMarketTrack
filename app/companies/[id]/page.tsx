@@ -9,9 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge } from "@/components/status-badge";
 import { CompanyLogo } from "@/components/company-logo";
+import { Flag } from "@/components/flag";
 import { Markdown } from "@/components/markdown";
 import { RevenueChart } from "@/components/revenue-chart";
-import { EventLine } from "@/components/event-line";
 import { EventTimeline } from "@/components/event-timeline";
 import { PeriodBands, toSegments, type BandRow } from "@/components/period-bands";
 import {
@@ -70,9 +70,12 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
   const { current: currentSolutions, former: formerSolutions } = solutionsOfCompany(market, id);
 
   const allEvents = await loadAllEvents();
-  const companyEvents = allEvents.filter((e) => e.subjectCompanyId === id);
-  const acquisitionsMade = allEvents.filter(
-    (e) => (e.type === "ACQUISITION" || e.type === "CO_INVESTMENT") && e.acquirerCompanyId === id
+  // The company's own history (it is the subject) AND the acquisitions it made
+  // (it is the acquirer) are woven into a single chronological timeline.
+  const companyEvents = allEvents.filter(
+    (e) =>
+      e.subjectCompanyId === id ||
+      ((e.type === "ACQUISITION" || e.type === "CO_INVESTMENT") && e.acquirerCompanyId === id)
   );
 
   // ---- Period bands: one segment row per open owner would be noisy, so the
@@ -98,9 +101,10 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
       {/* Header */}
       <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-3">
-          <CompanyLogo name={tl.currentName} logoUrl={company.logoUrl} size={44} />
-          <h1 className="text-2xl font-bold">
-            {countryFlag(company.country)} {tl.currentName}
+          <CompanyLogo name={tl.currentName} logoUrl={company.logoUrl} width={140} height={72} />
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <Flag iso={company.country} size="1.5em" />
+            {tl.currentName}
           </h1>
           {company.types.map((ct) => (
             <Badge key={ct.id} variant="outline">
@@ -283,20 +287,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
       </Card>
 
       {/* Acquisitions made */}
-      {acquisitionsMade.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("acquisitionsMade")}</CardTitle>
-          </CardHeader>
-          <CardContent className="divide-y [&>*]:py-2">
-            {acquisitionsMade.map((e) => (
-              <EventLine key={e.id} event={e} showTypeBadge={false} />
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Unified timeline */}
+      {/* Unified history: timeline + period bands + acquired companies */}
       <Card>
         <CardHeader>
           <CardTitle>{t("timeline")}</CardTitle>
@@ -311,7 +302,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
               {companyEvents.length === 0 ? (
                 <p className="text-sm text-muted-foreground">{tCommon("noResults")}</p>
               ) : (
-                <EventTimeline events={companyEvents} />
+                <EventTimeline events={companyEvents} highlightAcquirerId={id} />
               )}
             </TabsContent>
             <TabsContent value="bands" className="pt-3">

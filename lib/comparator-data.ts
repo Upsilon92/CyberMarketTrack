@@ -163,6 +163,7 @@ export async function generateChecksTemplate(
     : market.solutions;
 
   const content = emptyContent();
+  content.orientation = "itemsAsRows"; // checks matrix: solutions in rows, tags in columns
   content.items = solutions.map((s) => ({ kind: "solution" as const, id: s.id }));
   content.defaultAttributes = ["vendor"];
   content.categories = categories;
@@ -198,6 +199,7 @@ export async function generateCoverageTemplate(
   const vendorIds = [...new Set(solutions.map((s) => s.timeline.currentOwnerCompanyId))];
 
   const content = emptyContent();
+  content.orientation = "itemsAsRows"; // coverage matrix: vendors in rows, capabilities in columns
   content.items = vendorIds.map((id) => ({ kind: "company" as const, id }));
   content.defaultAttributes = ["logo", "country"];
   content.categories = categories;

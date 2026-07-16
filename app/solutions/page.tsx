@@ -80,12 +80,12 @@ export default async function SolutionsPage({
 
       {list.length === 0 && <p className="text-muted-foreground">{t("empty")}</p>}
 
-      <div className="grid gap-2">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {list.map((s) => {
           const formers = formerNamePeriods(s.timeline);
           return (
             <Link key={s.id} href={`/solutions/${s.id}`}>
-              <Card className="card-hover">
+              <Card className="card-hover h-full">
                 <CardContent className="py-3 space-y-1.5">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium">{s.timeline.currentName}</span>

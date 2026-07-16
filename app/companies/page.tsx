@@ -5,6 +5,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status-badge";
 import { CompanyLogo } from "@/components/company-logo";
+import { Flag } from "@/components/flag";
 import { MultiFilterBar, type MultiFilterGroup } from "@/components/multi-filter-bar";
 import { loadMarket, ownerDisplayName, isStale } from "@/lib/queries";
 import { formerNamePeriods } from "@/lib/timeline";
@@ -92,38 +93,52 @@ export default async function CompaniesPage({
 
       {list.length === 0 && <p className="text-muted-foreground">{t("empty")}</p>}
 
-      <div className="grid gap-2">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {list.map((c) => {
           const formers = formerNamePeriods(c.timeline);
           const owners = c.timeline.currentOwners;
           return (
             <Link key={c.id} href={`/companies/${c.id}`}>
-              <Card className="card-hover">
-                <CardContent className="py-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <CompanyLogo name={c.timeline.currentName} logoUrl={c.logoUrl} size={24} />
-                    <span className="font-medium">
-                      {countryFlag(c.country)} {c.timeline.currentName}
-                    </span>
-                    {c.types.map((ct) => (
-                      <Badge key={ct.id} variant="outline" className="text-[10px]">
-                        {tTypes(ct.type)}
-                      </Badge>
-                    ))}
-                    <StatusBadge status={c.timeline.currentStatus as CompanyStatus} />
-                    {isStale(c.updatedAt) && (
-                      <Badge variant="destructive" className="text-[10px]">
-                        {tCommon("toRecheck")}
-                      </Badge>
-                    )}
-                    <span className="ml-auto text-xs text-muted-foreground">
-                      {tCommon("founded", {
-                        date: formatDate({ year: c.foundedYear, month: c.foundedMonth }, locale),
-                      })}
-                    </span>
-                  </div>
-                  {(formers.length > 0 || owners.length > 0) && (
-                    <div className="mt-1 text-xs text-muted-foreground flex flex-wrap gap-x-4">
+              <Card className="card-hover h-full">
+                <CardContent className="py-3 flex gap-3">
+                  <CompanyLogo
+                    name={c.timeline.currentName}
+                    logoUrl={c.logoUrl}
+                    width={84}
+                    height={52}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span className="font-medium flex items-center gap-1.5">
+                        <Flag iso={c.country} size="1.4em" />
+                        {c.timeline.currentName}
+                      </span>
+                      {c.types.map((ct) => (
+                        <Badge key={ct.id} variant="outline" className="text-[10px]">
+                          {tTypes(ct.type)}
+                        </Badge>
+                      ))}
+                      <StatusBadge status={c.timeline.currentStatus as CompanyStatus} />
+                      {isStale(c.updatedAt) && (
+                        <Badge variant="destructive" className="text-[10px]">
+                          {tCommon("toRecheck")}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground flex flex-wrap gap-x-3 gap-y-0.5">
+                      <span>
+                        {tCommon("founded", {
+                          date: formatDate({ year: c.foundedYear, month: c.foundedMonth }, locale),
+                        })}
+                      </span>
+                      {owners.length > 0 && (
+                        <span>
+                          →{" "}
+                          {owners
+                            .map((o) => ownerDisplayName(market, o.ownerCompanyId, o.ownerNameRaw))
+                            .join(", ")}
+                        </span>
+                      )}
                       {formers.length > 0 && (
                         <span>
                           {tCommon("formerly", {
@@ -133,16 +148,8 @@ export default async function CompaniesPage({
                           })}
                         </span>
                       )}
-                      {owners.length > 0 && (
-                        <span>
-                          →{" "}
-                          {owners
-                            .map((o) => ownerDisplayName(market, o.ownerCompanyId, o.ownerNameRaw))
-                            .join(", ")}
-                        </span>
-                      )}
                     </div>
-                  )}
+                  </div>
                 </CardContent>
               </Card>
             </Link>

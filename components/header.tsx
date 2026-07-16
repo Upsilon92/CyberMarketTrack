@@ -6,6 +6,7 @@ import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { MobileNav } from "@/components/mobile-nav";
 import { NavLink } from "@/components/nav-link";
+import { HeaderSearch } from "@/components/header-search";
 
 export async function Header() {
   const t = await getTranslations("nav");
@@ -38,7 +39,8 @@ export async function Header() {
           ))}
         </nav>
 
-        <div className="ml-auto flex items-center gap-0.5">
+        <div className="ml-auto flex items-center gap-1">
+          <HeaderSearch />
           <LocaleSwitcher />
           <ThemeToggle />
           {/* Settings / admin access (gear) */}

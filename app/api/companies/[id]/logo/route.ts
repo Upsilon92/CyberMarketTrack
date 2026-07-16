@@ -7,8 +7,36 @@ import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
 import { requireAdmin, unauthorized, notFound, serverError } from "@/lib/api-utils";
 
-const MAX_BYTES = 256 * 1024; // 256 KB
+const MAX_BYTES = 512 * 1024; // 512 KB (landscape logos with the company name)
 const ALLOWED = ["image/png", "image/jpeg", "image/webp", "image/svg+xml", "image/gif"];
+
+/**
+ * Verifies the file's real content matches an allowed image type by inspecting
+ * its magic bytes — the browser-provided MIME type is spoofable, so we never
+ * trust it alone (spec security requirement #1). Returns the trusted MIME type,
+ * or null if the bytes don't match any allowed image format.
+ */
+function detectImageType(buf: Buffer): string | null {
+  // PNG: 89 50 4E 47 0D 0A 1A 0A
+  if (buf.length >= 8 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47)
+    return "image/png";
+  // JPEG: FF D8 FF
+  if (buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return "image/jpeg";
+  // GIF: "GIF8"
+  if (buf.length >= 4 && buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x38)
+    return "image/gif";
+  // WebP: "RIFF"...."WEBP"
+  if (
+    buf.length >= 12 &&
+    buf.toString("ascii", 0, 4) === "RIFF" &&
+    buf.toString("ascii", 8, 12) === "WEBP"
+  )
+    return "image/webp";
+  // SVG: an XML/text file containing an <svg root element (scan the head only)
+  const head = buf.toString("utf8", 0, Math.min(buf.length, 1024)).toLowerCase();
+  if (head.includes("<svg")) return "image/svg+xml";
+  return null;
+}
 
 export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const session = await requireAdmin();
@@ -24,15 +52,21 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     if (!(file instanceof File)) {
       return NextResponse.json({ error: "No file", code: "noFile" }, { status: 400 });
     }
-    if (!ALLOWED.includes(file.type)) {
-      return NextResponse.json({ error: "Unsupported type", code: "badType" }, { status: 400 });
-    }
     if (file.size > MAX_BYTES) {
       return NextResponse.json({ error: "Too large", code: "tooBig" }, { status: 413 });
     }
+    // Declared type must be in the allowlist AND the real content must match.
+    if (!ALLOWED.includes(file.type)) {
+      return NextResponse.json({ error: "Unsupported type", code: "badType" }, { status: 400 });
+    }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const dataUri = `data:${file.type};base64,${buffer.toString("base64")}`;
+    const realType = detectImageType(buffer);
+    if (!realType) {
+      return NextResponse.json({ error: "Not an image", code: "badType" }, { status: 400 });
+    }
+    // Use the content-detected type (not the client-provided one) for the URI.
+    const dataUri = `data:${realType};base64,${buffer.toString("base64")}`;
 
     await prisma.company.update({ where: { id }, data: { logoUrl: dataUri } });
     await logAudit({

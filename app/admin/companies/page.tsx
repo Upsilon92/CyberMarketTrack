@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DeleteButton } from "@/components/admin/delete-button";
 import { StatusBadge } from "@/components/status-badge";
+import { CompanyLogo } from "@/components/company-logo";
 import { loadMarket, isStale } from "@/lib/queries";
 import type { CompanyStatus } from "@/lib/constants";
 
@@ -30,6 +31,7 @@ export default async function AdminCompanies() {
       <div className="divide-y border rounded-md">
         {list.map((c) => (
           <div key={c.id} className="p-3 flex flex-wrap items-center gap-2 text-sm">
+            <CompanyLogo name={c.timeline.currentName} logoUrl={c.logoUrl} width={56} height={30} />
             <span className="font-medium">{c.timeline.currentName}</span>
             {c.timeline.currentName !== c.initialName && (
               <span className="text-xs text-muted-foreground">({c.initialName})</span>
