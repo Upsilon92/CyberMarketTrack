@@ -87,6 +87,8 @@ export function eventSummary(e: EventInput, subjectName: string): string {
       return `Renommage de ${subjectName} → ${e.newName} (${e.year})`;
     case "ACQUISITION":
       return `Rachat de ${subjectName} (${e.year}, ${e.outcome})`;
+    case "ABSORPTION":
+      return `Absorption totale de ${subjectName} (${e.year})`;
     case "DIVESTMENT":
       return `Reprise d'indépendance de ${subjectName} (${e.year})`;
     case "MERGER":

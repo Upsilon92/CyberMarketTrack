@@ -156,9 +156,12 @@ function statusForOutcome(outcome: string | null | undefined): CompanyStatus {
     case "ABSORBED":
       return "ABSORBED";
     case "AUTONOMOUS":
-    case "UNKNOWN": // unknown detail, but the company IS owned: subsidiary is the neutral choice
-    default:
       return "SUBSIDIARY";
+    case "UNKNOWN":
+    default:
+      // Owned, but the nature of the ownership is unknown — kept as a distinct
+      // status rather than forced into SUBSIDIARY.
+      return "INVESTOR_UNKNOWN";
   }
 }
 
@@ -166,7 +169,14 @@ function statusForOutcome(outcome: string | null | undefined): CompanyStatus {
 // buildCompanyTimeline
 // ---------------------------------------------------------------------------
 
-const COMPANY_STATE_TYPES = new Set(["COMPANY_RENAME", "ACQUISITION", "DIVESTMENT", "MERGER", "SHUTDOWN"]);
+const COMPANY_STATE_TYPES = new Set([
+  "COMPANY_RENAME",
+  "ACQUISITION",
+  "ABSORPTION",
+  "DIVESTMENT",
+  "MERGER",
+  "SHUTDOWN",
+]);
 
 export function buildCompanyTimeline(
   company: CompanyInput,
@@ -218,6 +228,24 @@ export function buildCompanyTimeline(
           end: null,
         });
         setStatus(statusForOutcome(e.outcome), at);
+        break;
+      }
+      case "ABSORPTION": {
+        // An already-owned subsidiary is now fully absorbed by the SAME owner:
+        // the brand disappears. Close the current ownership period and reopen
+        // one with the same owner but ownershipType ABSORBED.
+        const current = openOwnership();
+        const ownerCompanyId = e.acquirerCompanyId ?? current?.ownerCompanyId ?? null;
+        const ownerNameRaw = e.acquirerNameRaw ?? current?.ownerNameRaw ?? null;
+        if (current) current.end = at;
+        ownershipPeriods.push({
+          ownerCompanyId,
+          ownerNameRaw,
+          ownershipType: "ABSORBED",
+          start: at,
+          end: null,
+        });
+        setStatus("ABSORBED", at);
         break;
       }
       case "DIVESTMENT": {
@@ -402,6 +430,7 @@ export interface SequenceIssue {
     | "eventBeforeCreation"
     | "duplicateDimensionDate"
     | "divestmentWithoutOwnership"
+    | "absorptionWithoutOwnership"
     | "eventAfterShutdown";
   /** Ids of the offending events */
   eventIds: string[];
@@ -413,6 +442,7 @@ function companyDimension(type: string): "name" | "ownership" | "status" | null 
     case "COMPANY_RENAME":
       return "name";
     case "ACQUISITION":
+    case "ABSORPTION":
     case "DIVESTMENT":
       return "ownership";
     case "MERGER":
@@ -476,13 +506,17 @@ export function validateCompanyEvents(
   // 2. Two events modifying the same dimension at the exact same date.
   issues.push(...findDuplicateDimensionDates(events, companyDimension));
 
-  // 3. DIVESTMENT without an ongoing ownership at that date.
+  // 3. DIVESTMENT / ABSORPTION without an ongoing ownership at that date.
   let owned = false;
   for (const e of sorted) {
     if (e.type === "ACQUISITION") owned = true;
     else if (e.type === "DIVESTMENT") {
       if (!owned) issues.push({ level: "error", code: "divestmentWithoutOwnership", eventIds: [e.id] });
       owned = false;
+    } else if (e.type === "ABSORPTION") {
+      // Absorption presupposes an existing ownership; the company stays owned
+      // (now fully absorbed) so `owned` remains true.
+      if (!owned) issues.push({ level: "error", code: "absorptionWithoutOwnership", eventIds: [e.id] });
     } else if (e.type === "SHUTDOWN") owned = false;
   }
 

@@ -40,11 +40,15 @@
     "admin": "Administration"
   },
   "home": {
+    "badge": "Veille du marché cybersécurité",
     "title": "La base de connaissances du marché de la cybersécurité",
     "subtitle": "Entreprises, solutions, historique complet des rachats, fusions et renommages.",
     "statCompanies": "{count, plural, one {# entreprise} other {# entreprises}}",
     "statSolutions": "{count, plural, one {# solution} other {# solutions}}",
     "statEvents": "{count, plural, one {# événement} other {# événements}}",
+    "statCompaniesLabel": "Entreprises",
+    "statSolutionsLabel": "Solutions",
+    "statEventsLabel": "Événements de marché",
     "latestEvents": "Derniers événements",
     "seeAllNews": "Toute l'actualité"
   },
@@ -66,6 +70,7 @@
   "statuses": {
     "INDEPENDENT": "Indépendante",
     "INVESTOR_OWNED": "Détenue par un fonds",
+    "INVESTOR_UNKNOWN": "Détention (type inconnu)",
     "SUBSIDIARY": "Filiale",
     "ABSORBED": "Absorbée",
     "MERGED": "Fusionnée",
@@ -154,6 +159,7 @@
   "eventTypes": {
     "COMPANY_RENAME": "Renommage",
     "ACQUISITION": "Rachat",
+    "ABSORPTION": "Absorption totale",
     "DIVESTMENT": "Reprise d'indépendance",
     "MERGER": "Fusion",
     "SHUTDOWN": "Fermeture",
@@ -168,6 +174,8 @@
   "eventText": {
     "COMPANY_RENAME": "<subject></subject> devient {newName}",
     "ACQUISITION": "<subject></subject> est rachetée par <actor></actor>",
+    "ABSORPTION": "<subject></subject> est totalement absorbée par <actor></actor>",
+    "ABSORPTION_NO_ACTOR": "<subject></subject> est totalement absorbée",
     "DIVESTMENT": "<subject></subject> redevient indépendante",
     "MERGER": "<subject></subject> fusionne avec <actor></actor>",
     "SHUTDOWN": "<subject></subject> cesse son activité",
@@ -323,6 +331,7 @@
       "eventBeforeCreation": "L'événement est antérieur à la création de l'entité.",
       "duplicateDimensionDate": "Deux événements modifient la même dimension à la même date (ordre ambigu).",
       "divestmentWithoutOwnership": "Reprise d'indépendance sans détention en cours à cette date.",
+      "absorptionWithoutOwnership": "Absorption sans détention en cours à cette date (utilisez plutôt un Rachat avec issue « Absorption »).",
       "eventAfterShutdown": "Événement postérieur à la fermeture de la société."
     },
     "absorbedProposal": "Absorption : créer aussi les transferts de solutions vers l'acquéreur ?",
@@ -354,6 +363,7 @@
       "month": "Mois (optionnel)",
       "newName": "Nouveau nom",
       "acquirer": "Acquéreur (référencé)",
+      "absorbedBy": "Absorbée par (laisser vide = propriétaire actuel)",
       "acquirerNameRaw": "Acquéreur (texte libre si non référencé)",
       "outcome": "Issue du rachat",
       "withCompany": "Fusion avec",

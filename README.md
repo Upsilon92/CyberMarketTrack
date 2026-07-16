@@ -79,6 +79,39 @@ Prérequis : Docker + Docker Compose installés.
 La base vit dans `site/data/` **sur le serveur hôte** (volume Docker) : elle
 survit aux reconstructions du conteneur.
 
+### 2 bis. Construire directement depuis GitHub (sans cloner)
+
+Docker sait construire une image à partir d'un dépôt Git distant, en ciblant
+le sous-dossier `site/` où se trouve le `Dockerfile`. Sur le serveur :
+
+```
+# 1) Construire l'image depuis le dépôt (branche main, sous-dossier site)
+docker build -t cybermarkettrack "https://github.com/Upsilon92/CyberMarketTrack.git#main:site"
+
+# 2) Préparer le dossier de données + le fichier d'environnement sur l'hôte
+mkdir -p cmt/data && cd cmt
+#   créer un fichier .env (voir variables ci-dessus) avec au minimum
+#   AUTH_SECRET, ADMIN_USERNAME, ADMIN_PASSWORD
+
+# 3) Lancer le conteneur (les migrations s'appliquent au démarrage)
+docker run -d --name cybermarkettrack -p 3000:3000 \
+  --env-file .env \
+  -e DATABASE_URL=file:./data/cybermarkettrack.db \
+  -v "$(pwd)/data:/app/data" \
+  --restart unless-stopped \
+  cybermarkettrack
+```
+
+Pour **mettre à jour** après un push sur GitHub : refaire l'étape 1
+(`docker build …`) puis `docker rm -f cybermarkettrack` et relancer l'étape 3.
+Les données sont préservées (volume `./data`). Le `node_modules` n'est pas
+concerné : l'image est reconstruite proprement (`npm ci`), la jonction Windows
+`runtime/` n'existe pas côté dépôt (elle est gitignorée).
+
+> Variante Compose : le fichier [`docker-compose.github.yml`](./docker-compose.github.yml)
+> encapsule ces commandes. Copier ce seul fichier + un `.env` sur le serveur,
+> puis `docker compose -f docker-compose.github.yml up -d --build`.
+
 ---
 
 ## 3. Sauvegarde et restauration

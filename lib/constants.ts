@@ -14,6 +14,7 @@ export type CompanyType = (typeof COMPANY_TYPES)[number];
 export const EVENT_TYPES = [
   "COMPANY_RENAME", // changes company name           -> newName
   "ACQUISITION", // changes company owner          -> acquirerCompanyId/acquirerNameRaw, outcome
+  "ABSORPTION", // an already-owned subsidiary is fully absorbed (brand disappears) -> acquirerCompanyId (defaults to current owner)
   "DIVESTMENT", // ends ownership (back to INDEPENDENT) -> note
   "MERGER", // company becomes MERGED         -> withCompanyId
   "SHUTDOWN", // company becomes DEFUNCT
@@ -31,6 +32,7 @@ export type EventType = (typeof EVENT_TYPES)[number];
 export const COMPANY_EVENT_TYPES: EventType[] = [
   "COMPANY_RENAME",
   "ACQUISITION",
+  "ABSORPTION",
   "DIVESTMENT",
   "MERGER",
   "SHUTDOWN",
@@ -61,6 +63,7 @@ export type AcquisitionOutcome = (typeof ACQUISITION_OUTCOMES)[number];
 export const COMPANY_STATUSES = [
   "INDEPENDENT",
   "INVESTOR_OWNED",
+  "INVESTOR_UNKNOWN", // owned following an acquisition whose nature is unknown
   "SUBSIDIARY",
   "ABSORBED",
   "MERGED",

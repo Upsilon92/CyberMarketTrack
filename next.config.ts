@@ -31,16 +31,20 @@ const securityHeaders = [
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
 ];
 
+// This workstation keeps node_modules in ../runtime (Windows junction, see
+// ../LISEZMOI.txt). Detect that local layout to adapt two settings:
+//  - Turbopack root must be the parent so the junction target stays in-root.
+//  - `output: "standalone"` is skipped locally so `npm start` works simply
+//    (fast local prod check); Docker (no runtime/ folder) keeps standalone for
+//    a small image whose entrypoint runs `node server.js`.
+const isLocalRuntimeLayout = fs.existsSync(
+  path.join(__dirname, "..", "runtime", "node_modules")
+);
+
 const nextConfig: NextConfig = {
-  // Standalone output keeps the Docker image small (multi-stage build)
-  output: "standalone",
-  // On this workstation the real node_modules lives in ../runtime/node_modules
-  // (Windows junction, see ../LISEZMOI.txt): declare the parent folder as the
-  // Turbopack root so the junction target stays inside the watched filesystem
-  // root. In Docker (no runtime/ folder) the default root is kept.
-  ...(fs.existsSync(path.join(__dirname, "..", "runtime", "node_modules"))
+  ...(isLocalRuntimeLayout
     ? { turbopack: { root: path.join(__dirname, "..") } }
-    : {}),
+    : { output: "standalone" }),
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },

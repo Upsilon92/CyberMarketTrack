@@ -120,6 +120,7 @@ const eventBase = z.object({
 const COMPANY_SUBJECT_TYPES = new Set([
   "COMPANY_RENAME",
   "ACQUISITION",
+  "ABSORPTION",
   "DIVESTMENT",
   "MERGER",
   "SHUTDOWN",

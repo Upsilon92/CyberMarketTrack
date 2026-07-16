@@ -4,7 +4,7 @@ import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status-badge";
-import { FilterBar, type FilterDef } from "@/components/filter-bar";
+import { MultiFilterBar, type MultiFilterGroup } from "@/components/multi-filter-bar";
 import { loadMarket, ownerDisplayName, isStale } from "@/lib/queries";
 import { formerNamePeriods } from "@/lib/timeline";
 import { formatRange, formatDate, type Locale } from "@/lib/date";
@@ -19,7 +19,8 @@ export default async function CompaniesPage({
 }: {
   searchParams: Promise<{ type?: string; country?: string; status?: string; sort?: string }>;
 }) {
-  const { type, country, status, sort = "name" } = await searchParams;
+  const sp = await searchParams;
+  const sort = sp.sort ?? "name";
   const locale = (await getLocale()) as Locale;
   const t = await getTranslations("companies");
   const tTypes = await getTranslations("companyTypes");
@@ -27,10 +28,16 @@ export default async function CompaniesPage({
   const tCommon = await getTranslations("common");
   const market = await loadMarket();
 
+  // Multi-select: each param is a comma-separated list; OR within a group,
+  // AND across groups.
+  const selType = sp.type?.split(",").filter(Boolean) ?? [];
+  const selCountry = sp.country?.split(",").filter(Boolean) ?? [];
+  const selStatus = sp.status?.split(",").filter(Boolean) ?? [];
+
   let list = market.companies;
-  if (type) list = list.filter((c) => c.types.some((ct) => ct.type === type));
-  if (country) list = list.filter((c) => c.country === country);
-  if (status) list = list.filter((c) => c.timeline.currentStatus === status);
+  if (selType.length) list = list.filter((c) => c.types.some((ct) => selType.includes(ct.type)));
+  if (selCountry.length) list = list.filter((c) => selCountry.includes(c.country));
+  if (selStatus.length) list = list.filter((c) => selStatus.includes(c.timeline.currentStatus));
 
   list = [...list].sort((a, b) => {
     if (sort === "founded") return a.foundedYear - b.foundedYear;
@@ -40,42 +47,43 @@ export default async function CompaniesPage({
 
   const countries = [...new Set(market.companies.map((c) => c.country))].sort();
 
-  const filters: FilterDef[] = [
+  const groups: MultiFilterGroup[] = [
     {
-      name: "type",
+      param: "type",
       label: t("type"),
-      value: type ?? "",
+      selected: selType,
       options: COMPANY_TYPES.map((v) => ({ value: v, label: tTypes(v) })),
     },
     {
-      name: "country",
+      param: "country",
       label: tCommon("country"),
-      value: country ?? "",
+      selected: selCountry,
       options: countries.map((c) => ({ value: c, label: `${countryFlag(c)} ${c}` })),
     },
     {
-      name: "status",
+      param: "status",
       label: t("status"),
-      value: status ?? "",
+      selected: selStatus,
       options: COMPANY_STATUSES.map((s) => ({ value: s, label: tStatuses(s) })),
-    },
-    {
-      name: "sort",
-      label: t("sortBy"),
-      value: sort,
-      noAllOption: true,
-      options: [
-        { value: "name", label: t("sortName") },
-        { value: "founded", label: t("sortFounded") },
-        { value: "updated", label: t("sortUpdated") },
-      ],
     },
   ];
 
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">{t("title")}</h1>
-      <FilterBar filters={filters} allLabel={tCommon("all")} resetLabel={tCommon("reset")} />
+      <MultiFilterBar
+        groups={groups}
+        sort={{
+          label: t("sortBy"),
+          value: sort,
+          options: [
+            { value: "name", label: t("sortName") },
+            { value: "founded", label: t("sortFounded") },
+            { value: "updated", label: t("sortUpdated") },
+          ],
+        }}
+        resetLabel={tCommon("reset")}
+      />
 
       {list.length === 0 && <p className="text-muted-foreground">{t("empty")}</p>}
 
@@ -85,7 +93,7 @@ export default async function CompaniesPage({
           const owner = c.timeline.currentOwner;
           return (
             <Link key={c.id} href={`/companies/${c.id}`}>
-              <Card className="hover:border-primary/50 transition-colors">
+              <Card className="card-hover">
                 <CardContent className="py-3">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium">

@@ -85,7 +85,7 @@ export default async function SolutionsPage({
           const formers = formerNamePeriods(s.timeline);
           return (
             <Link key={s.id} href={`/solutions/${s.id}`}>
-              <Card className="hover:border-primary/50 transition-colors">
+              <Card className="card-hover">
                 <CardContent className="py-3 space-y-1.5">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium">{s.timeline.currentName}</span>

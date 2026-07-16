@@ -71,6 +71,7 @@ interface PreviewResponse {
 const COMPANY_EVENT_CHOICES = [
   "COMPANY_RENAME",
   "ACQUISITION",
+  "ABSORPTION",
   "DIVESTMENT",
   "MERGER",
   "SHUTDOWN",
@@ -332,6 +333,8 @@ export function HistoryEditor({
         return `→ ${e.newName}`;
       case "ACQUISITION":
         return `→ ${e.acquirerCompanyId ? companyLabel(e.acquirerCompanyId) : e.acquirerNameRaw} (${e.outcome})`;
+      case "ABSORPTION":
+        return e.acquirerCompanyId ? `→ ${companyLabel(e.acquirerCompanyId)}` : "";
       case "MERGER":
         return `→ ${companyLabel(e.withCompanyId)}`;
       case "SOLUTION_TRANSFER":
@@ -540,6 +543,26 @@ export function HistoryEditor({
                     ))}
                   </select>
                 </div>
+              </div>
+            )}
+
+            {form.type === "ABSORPTION" && (
+              <div className="space-y-1.5">
+                <Label>{t("fields.absorbedBy")}</Label>
+                <select
+                  className="border rounded-md bg-background text-foreground px-2 py-2 text-sm w-full"
+                  value={form.acquirerCompanyId}
+                  onChange={(e) => set("acquirerCompanyId", e.target.value)}
+                >
+                  <option value="">{t("fields.none")}</option>
+                  {companies
+                    .filter((c) => c.id !== entityId)
+                    .map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.label}
+                      </option>
+                    ))}
+                </select>
               </div>
             )}
 

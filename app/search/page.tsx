@@ -41,7 +41,7 @@ export default async function SearchPage({
               const formers = formerNamePeriods(c.timeline);
               return (
                 <Link key={c.id} href={`/companies/${c.id}`}>
-                  <Card className="hover:border-primary/50 transition-colors">
+                  <Card className="card-hover">
                     <CardContent className="py-3 flex flex-wrap items-center gap-2">
                       <span className="font-medium">
                         {countryFlag(c.country)} {c.timeline.currentName}
@@ -80,7 +80,7 @@ export default async function SearchPage({
               const vendor = ownerDisplayName(market, s.timeline.currentOwnerCompanyId);
               return (
                 <Link key={s.id} href={`/solutions/${s.id}`}>
-                  <Card className="hover:border-primary/50 transition-colors">
+                  <Card className="card-hover">
                     <CardContent className="py-3 flex flex-wrap items-center gap-2">
                       <span className="font-medium">{s.timeline.currentName}</span>
                       <span className="text-xs text-muted-foreground">{vendor}</span>

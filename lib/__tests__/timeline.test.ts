@@ -181,6 +181,51 @@ describe("buildCompanyTimeline — SailPoint (DIVESTMENT)", () => {
 });
 
 // =============================================================================
+// ABSORPTION — a subsidiary fully absorbed later by the SAME owner
+// =============================================================================
+describe("buildCompanyTimeline — ABSORPTION (Subsidiary → Absorbed later)", () => {
+  const sub = { id: "sub", initialName: "BrandCo", foundedYear: 2005 };
+  // Bought as an autonomous subsidiary (2019), then fully absorbed (2021).
+  const tl = buildCompanyTimeline(sub, [
+    ev({ type: "ACQUISITION", year: 2019, acquirerCompanyId: "parent", outcome: "AUTONOMOUS" }),
+    ev({ type: "ABSORPTION", year: 2021 }),
+  ]);
+
+  it("shows the distinction SUBSIDIARY (2019–2021) then ABSORBED (since 2021)", () => {
+    expect(tl.statusPeriods.map((p) => p.status)).toEqual([
+      "INDEPENDENT",
+      "SUBSIDIARY",
+      "ABSORBED",
+    ]);
+    expect(tl.currentStatus).toBe("ABSORBED");
+  });
+
+  it("keeps the SAME owner across the subsidiary and absorbed periods", () => {
+    expect(tl.ownershipPeriods.map((p) => [p.ownerCompanyId, p.ownershipType, p.end?.year ?? null])).toEqual([
+      ["parent", "AUTONOMOUS", 2021],
+      ["parent", "ABSORBED", null],
+    ]);
+  });
+
+  it("rejects an ABSORPTION with no ongoing ownership", () => {
+    const issues = validateCompanyEvents(sub, [ev({ type: "ABSORPTION", year: 2010 })]);
+    expect(issues.some((i) => i.code === "absorptionWithoutOwnership" && i.level === "error")).toBe(true);
+  });
+});
+
+// =============================================================================
+// INVESTOR_UNKNOWN — acquisition of unknown nature is NOT forced to SUBSIDIARY
+// =============================================================================
+describe("buildCompanyTimeline — outcome UNKNOWN → INVESTOR_UNKNOWN status", () => {
+  it("derives INVESTOR_UNKNOWN, not SUBSIDIARY", () => {
+    const tl = buildCompanyTimeline({ id: "u", initialName: "U", foundedYear: 2000 }, [
+      ev({ type: "ACQUISITION", year: 2020, acquirerCompanyId: "x", outcome: "UNKNOWN" }),
+    ]);
+    expect(tl.currentStatus).toBe("INVESTOR_UNKNOWN");
+  });
+});
+
+// =============================================================================
 // Data gaps — unknown launch date
 // =============================================================================
 describe("buildSolutionTimeline — unknown launch date (allowed gap)", () => {

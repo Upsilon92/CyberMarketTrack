@@ -40,8 +40,13 @@ export default async function RootLayout({
           <NextIntlClientProvider>
             <Header />
             <main className="flex-1 w-full max-w-6xl mx-auto px-4 py-6">{children}</main>
-            <footer className="border-t py-4 text-center text-xs text-muted-foreground">
-              CyberMarketTrack
+            <footer className="border-t border-border/70 mt-4">
+              <div className="max-w-6xl mx-auto px-4 py-5 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                <span className="font-medium text-foreground/80">
+                  CyberMarket<span className="brand-gradient">Track</span>
+                </span>
+                <span>Base de connaissances du marché de la cybersécurité</span>
+              </div>
             </footer>
           </NextIntlClientProvider>
         </ThemeProvider>

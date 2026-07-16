@@ -6,6 +6,7 @@ import type { CompanyStatus } from "@/lib/constants";
 const STATUS_STYLES: Record<CompanyStatus, string> = {
   INDEPENDENT: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300",
   INVESTOR_OWNED: "bg-violet-100 text-violet-800 dark:bg-violet-950 dark:text-violet-300",
+  INVESTOR_UNKNOWN: "bg-fuchsia-100 text-fuchsia-800 dark:bg-fuchsia-950 dark:text-fuchsia-300",
   SUBSIDIARY: "bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300",
   ABSORBED: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300",
   MERGED: "bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300",

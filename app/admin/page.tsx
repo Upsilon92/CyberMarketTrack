@@ -28,7 +28,7 @@ export default async function AdminHome() {
     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
       {cards.map((c) => (
         <Link key={c.href} href={c.href}>
-          <Card className="hover:border-primary/50 transition-colors">
+          <Card className="card-hover">
             <CardContent className="py-6 text-center">
               {c.count !== null && <div className="text-2xl font-bold">{c.count}</div>}
               <div className="text-sm text-muted-foreground">{c.label}</div>

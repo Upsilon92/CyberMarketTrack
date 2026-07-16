@@ -89,8 +89,10 @@ export async function EventLine({
   const subjectNode = <EntityLink href={subject.href} name={subject.name} />;
   const actorNode = actor ? <EntityLink href={actor.href} name={actor.name} /> : <span>?</span>;
 
-  const key =
-    event.type === "FUNDING" && !event.round ? "FUNDING_NO_ROUND" : (event.type as string);
+  let key: string = event.type;
+  if (event.type === "FUNDING" && !event.round) key = "FUNDING_NO_ROUND";
+  // ABSORPTION may have no explicit actor (owner absorbed it in place)
+  if (event.type === "ABSORPTION" && !actor) key = "ABSORPTION_NO_ACTOR";
 
   const text = t.rich(key, {
     subject: () => subjectNode,

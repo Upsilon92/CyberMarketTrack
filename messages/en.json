@@ -40,11 +40,15 @@
     "admin": "Admin"
   },
   "home": {
+    "badge": "Cybersecurity market intelligence",
     "title": "The cybersecurity market knowledge base",
     "subtitle": "Companies, solutions, and the full history of acquisitions, mergers and renames.",
     "statCompanies": "{count, plural, one {# company} other {# companies}}",
     "statSolutions": "{count, plural, one {# solution} other {# solutions}}",
     "statEvents": "{count, plural, one {# event} other {# events}}",
+    "statCompaniesLabel": "Companies",
+    "statSolutionsLabel": "Solutions",
+    "statEventsLabel": "Market events",
     "latestEvents": "Latest events",
     "seeAllNews": "All market news"
   },
@@ -66,6 +70,7 @@
   "statuses": {
     "INDEPENDENT": "Independent",
     "INVESTOR_OWNED": "Investor-owned",
+    "INVESTOR_UNKNOWN": "Owned (unknown type)",
     "SUBSIDIARY": "Subsidiary",
     "ABSORBED": "Absorbed",
     "MERGED": "Merged",
@@ -154,6 +159,7 @@
   "eventTypes": {
     "COMPANY_RENAME": "Rename",
     "ACQUISITION": "Acquisition",
+    "ABSORPTION": "Full absorption",
     "DIVESTMENT": "Divestment",
     "MERGER": "Merger",
     "SHUTDOWN": "Shutdown",
@@ -168,6 +174,8 @@
   "eventText": {
     "COMPANY_RENAME": "<subject></subject> becomes {newName}",
     "ACQUISITION": "<subject></subject> is acquired by <actor></actor>",
+    "ABSORPTION": "<subject></subject> is fully absorbed by <actor></actor>",
+    "ABSORPTION_NO_ACTOR": "<subject></subject> is fully absorbed",
     "DIVESTMENT": "<subject></subject> becomes independent again",
     "MERGER": "<subject></subject> merges with <actor></actor>",
     "SHUTDOWN": "<subject></subject> shuts down",
@@ -323,6 +331,7 @@
       "eventBeforeCreation": "The event predates the entity's creation.",
       "duplicateDimensionDate": "Two events modify the same dimension at the exact same date (ambiguous order).",
       "divestmentWithoutOwnership": "Divestment without an ongoing ownership at that date.",
+      "absorptionWithoutOwnership": "Absorption without an ongoing ownership at that date (use an Acquisition with the \"Absorbed\" outcome instead).",
       "eventAfterShutdown": "Event dated after the company's shutdown."
     },
     "absorbedProposal": "Absorption: also create the solution transfers to the acquirer?",
@@ -354,6 +363,7 @@
       "month": "Month (optional)",
       "newName": "New name",
       "acquirer": "Acquirer (referenced)",
+      "absorbedBy": "Absorbed by (leave empty = current owner)",
       "acquirerNameRaw": "Acquirer (free text if not referenced)",
       "outcome": "Acquisition outcome",
       "withCompany": "Merged with",
