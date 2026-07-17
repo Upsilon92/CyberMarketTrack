@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge } from "@/components/status-badge";
 import { CompanyLogo } from "@/components/company-logo";
 import { Flag } from "@/components/flag";
+import { LogoDownloadButton } from "@/components/logo-download-button";
 import { Markdown } from "@/components/markdown";
 import { RevenueChart } from "@/components/revenue-chart";
 import { EventTimeline } from "@/components/event-timeline";
@@ -113,6 +114,11 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
           ))}
           <StatusBadge status={tl.currentStatus as CompanyStatus} />
           {isStale(company.updatedAt) && <Badge variant="destructive">{tCommon("toRecheck")}</Badge>}
+          {company.logoUrl && (
+            <span className="ml-auto">
+              <LogoDownloadButton name={tl.currentName} logoUrl={company.logoUrl} />
+            </span>
+          )}
         </div>
         {formers.length > 0 && (
           <p className="text-sm text-muted-foreground">

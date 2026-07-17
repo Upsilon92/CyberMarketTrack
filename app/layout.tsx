@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
-import { getLocale } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { ThemeProvider } from "next-themes";
 import { Header } from "@/components/header";
 import "./globals.css";
@@ -27,6 +27,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const locale = await getLocale();
+  const t = await getTranslations("common");
 
   return (
     <html
@@ -45,7 +46,7 @@ export default async function RootLayout({
                 <span className="font-medium text-foreground/80">
                   CyberMarket<span className="brand-gradient">Track</span>
                 </span>
-                <span>Base de connaissances du marché de la cybersécurité</span>
+                <span>{t("tagline")}</span>
               </div>
             </footer>
           </NextIntlClientProvider>

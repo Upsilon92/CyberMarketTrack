@@ -5,14 +5,14 @@
 #   2. mkdir -p data
 #   3. docker compose -f docker-compose.github.yml up -d --build
 #
-# Le contexte de build pointe directement sur le dépôt GitHub, sous-dossier
-# `site` (branche main), où se trouve le Dockerfile. Pour mettre à jour après
-# un push : `docker compose -f docker-compose.github.yml up -d --build` (ajouter
+# Le contexte de build pointe directement sur le dépôt GitHub (branche main),
+# dont la racine contient le Dockerfile. Pour mettre à jour après un push :
+# `docker compose -f docker-compose.github.yml up -d --build` (ajouter
 # `--pull` / `--no-cache` si besoin de forcer la reconstruction).
 services:
   app:
     build:
-      context: "https://github.com/Upsilon92/CyberMarketTrack.git#main:site"
+      context: "https://github.com/Upsilon92/CyberMarketTrack.git#main"
     ports:
       - "3000:3000"
     env_file:

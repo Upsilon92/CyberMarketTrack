@@ -13,9 +13,39 @@ export function BackupManager() {
   const t = useTranslations("admin.backupPage");
   const tAdmin = useTranslations("admin");
   const restoreRef = useRef<HTMLInputElement>(null);
+  const logosRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [logoReport, setLogoReport] = useState<{
+    applied: number;
+    skipped: number;
+    errors: number;
+  } | null>(null);
+
+  async function onImportLogos(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setBusy(true);
+    setError(null);
+    setLogoReport(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/backup/logos", { method: "POST", body: fd });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new ApiError(res.status, data);
+      setLogoReport({ applied: data.applied, skipped: data.skipped, errors: data.errors });
+      router.refresh();
+    } catch (err) {
+      setError(
+        err instanceof ApiError && err.code === "tooBig" ? t("tooBig") : tAdmin("genericError")
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function onRestore(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -63,6 +93,30 @@ export function BackupManager() {
             <Button variant="outline">{t("downloadLogos")}</Button>
           </a>
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <h2 className="font-medium">{t("importLogosTitle")}</h2>
+        <p className="text-sm text-muted-foreground">{t("importLogosHint")}</p>
+        <Button variant="outline" disabled={busy} onClick={() => logosRef.current?.click()}>
+          {busy ? tAdmin("saving") : t("importLogos")}
+        </Button>
+        <input
+          ref={logosRef}
+          type="file"
+          accept=".zip,application/zip"
+          className="hidden"
+          onChange={onImportLogos}
+        />
+        {logoReport && (
+          <p className="text-sm text-emerald-600">
+            {t("importLogosReport", {
+              applied: logoReport.applied,
+              skipped: logoReport.skipped,
+              errors: logoReport.errors,
+            })}
+          </p>
+        )}
       </div>
 
       <div className="space-y-2 border border-destructive/40 rounded-md p-4">

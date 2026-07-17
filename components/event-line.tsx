@@ -18,11 +18,32 @@ function nameAtEvent(namePeriods: NamePeriod[], at: DatePoint, fallback: string)
   return periodAt(namePeriods, at)?.name ?? fallback;
 }
 
-function EntityLink({ href, name }: { href: string | null; name: string }) {
-  if (!href) return <span className="font-medium">{name}</span>;
+function EntityLink({
+  href,
+  name,
+  logoUrl,
+}: {
+  href: string | null;
+  name: string;
+  logoUrl?: string | null;
+}) {
+  const inner = (
+    <>
+      {logoUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={logoUrl}
+          alt=""
+          className="inline-block h-4 max-w-[2rem] object-contain align-text-bottom mr-1 rounded-sm"
+        />
+      )}
+      {name}
+    </>
+  );
+  if (!href) return <span className="font-medium">{inner}</span>;
   return (
     <Link href={href} className="font-medium underline-offset-2 hover:underline">
-      {name}
+      {inner}
     </Link>
   );
 }
@@ -59,6 +80,7 @@ export async function EventLine({
           subjectSolutionState.timeline.currentName
         ),
         href: `/solutions/${subjectSolutionState.id}`,
+        logoUrl: null as string | null, // solutions have no logo
       }
     : subjectCompanyState
       ? {
@@ -68,8 +90,9 @@ export async function EventLine({
             subjectCompanyState.timeline.currentName
           ),
           href: `/companies/${subjectCompanyState.id}`,
+          logoUrl: subjectCompanyState.logoUrl,
         }
-      : { name: "?", href: null };
+      : { name: "?", href: null, logoUrl: null as string | null };
 
   // Actor: acquirer / merge partner / new solution owner
   const actorCompany = event.acquirerCompany ?? event.withCompany ?? event.newOwnerCompany;
@@ -79,18 +102,26 @@ export async function EventLine({
         name:
           market.solutionNameById.get(event.intoSolution.id) ?? event.intoSolution.initialName,
         href: `/solutions/${event.intoSolution.id}`,
+        logoUrl: null as string | null,
       }
     : actorCompany
       ? {
           name: market.companyNameById.get(actorCompany.id) ?? actorCompany.initialName,
           href: `/companies/${actorCompany.id}`,
+          logoUrl: actorCompany.logoUrl,
         }
       : event.acquirerNameRaw
-        ? { name: event.acquirerNameRaw, href: null }
+        ? { name: event.acquirerNameRaw, href: null, logoUrl: null as string | null }
         : null;
 
-  const subjectNode = <EntityLink href={subject.href} name={subject.name} />;
-  const actorNode = actor ? <EntityLink href={actor.href} name={actor.name} /> : <span>?</span>;
+  const subjectNode = (
+    <EntityLink href={subject.href} name={subject.name} logoUrl={subject.logoUrl} />
+  );
+  const actorNode = actor ? (
+    <EntityLink href={actor.href} name={actor.name} logoUrl={actor.logoUrl} />
+  ) : (
+    <span>?</span>
+  );
 
   let key: string = event.type;
   if (event.type === "FUNDING" && !event.round) key = "FUNDING_NO_ROUND";

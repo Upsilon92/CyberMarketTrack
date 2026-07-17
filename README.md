@@ -20,12 +20,10 @@ node --version
 ```
 
 Si la commande échoue, installer Node.js LTS depuis https://nodejs.org
-(ou, sur ce poste, la distribution portable est déjà dans
-`D:\Users\Louis\Tools\nodejs`, ajoutée au PATH utilisateur).
 
 ### Étapes
 
-1. Ouvrir un terminal **dans le dossier `site/`** du projet.
+1. Ouvrir un terminal **à la racine du projet** (là où se trouve `package.json`).
 2. Installer les dépendances (une seule fois, ~2 minutes) :
    ```
    npm install
@@ -48,6 +46,10 @@ Si la commande échoue, installer Node.js LTS depuis https://nodejs.org
    → http://localhost:3000 (admin : http://localhost:3000/admin, identifiants
    du `.env`).
 
+> Note : `npm run dev` recompile chaque page à la demande et peut être lent au
+> premier chargement. Pour évaluer rapidement le rendu, préférez un build de
+> production : `npm run build` puis `npm start`.
+
 ### Variables d'environnement (`.env`)
 
 | Variable | Rôle |
@@ -64,8 +66,8 @@ Si la commande échoue, installer Node.js LTS depuis https://nodejs.org
 
 Prérequis : Docker + Docker Compose installés.
 
-1. Copier le dossier `site/` sur le serveur.
-2. Dans `site/` : `cp .env.example .env` puis éditer les secrets.
+1. Copier le projet sur le serveur.
+2. À la racine : `cp .env.example .env` puis éditer les secrets.
 3. Construire et démarrer :
    ```
    docker compose up -d --build
@@ -76,17 +78,17 @@ Prérequis : Docker + Docker Compose installés.
 5. Importer les données : soit l'import CSV (`/admin/import`), soit la
    restauration d'un export JSON (`/admin/backup`).
 
-La base vit dans `site/data/` **sur le serveur hôte** (volume Docker) : elle
+La base vit dans `./data` **sur le serveur hôte** (volume Docker) : elle
 survit aux reconstructions du conteneur.
 
 ### 2 bis. Construire directement depuis GitHub (sans cloner)
 
-Docker sait construire une image à partir d'un dépôt Git distant, en ciblant
-le sous-dossier `site/` où se trouve le `Dockerfile`. Sur le serveur :
+Docker sait construire une image à partir d'un dépôt Git distant (le
+`Dockerfile` est à la racine du dépôt). Sur le serveur :
 
 ```
-# 1) Construire l'image depuis le dépôt (branche main, sous-dossier site)
-docker build -t cybermarkettrack "https://github.com/Upsilon92/CyberMarketTrack.git#main:site"
+# 1) Construire l'image depuis le dépôt (branche main)
+docker build -t cybermarkettrack "https://github.com/Upsilon92/CyberMarketTrack.git#main"
 
 # 2) Préparer le dossier de données + le fichier d'environnement sur l'hôte
 mkdir -p cmt/data && cd cmt
@@ -104,9 +106,7 @@ docker run -d --name cybermarkettrack -p 3000:3000 \
 
 Pour **mettre à jour** après un push sur GitHub : refaire l'étape 1
 (`docker build …`) puis `docker rm -f cybermarkettrack` et relancer l'étape 3.
-Les données sont préservées (volume `./data`). Le `node_modules` n'est pas
-concerné : l'image est reconstruite proprement (`npm ci`), la jonction Windows
-`runtime/` n'existe pas côté dépôt (elle est gitignorée).
+Les données sont préservées (volume `./data`).
 
 > Variante Compose : le fichier [`docker-compose.github.yml`](./docker-compose.github.yml)
 > encapsule ces commandes. Copier ce seul fichier + un `.env` sur le serveur,
@@ -118,11 +118,11 @@ concerné : l'image est reconstruite proprement (`npm ci`), la jonction Windows
 
 Trois moyens complémentaires :
 
-1. **Page `/admin/backup`** : export JSON complet (ré-importable) et
-   téléchargement du fichier SQLite en un clic. La restauration depuis un
-   export JSON remplace toute la base (confirmation demandée, opération
-   atomique).
-2. **Script** : dans `site/`,
+1. **Page `/admin/backup`** : export JSON complet (ré-importable), export des
+   logos en ZIP, et téléchargement du fichier SQLite en un clic. La
+   restauration depuis un export JSON remplace toute la base (confirmation
+   demandée, opération atomique).
+2. **Script** :
    ```
    npm run backup
    ```
@@ -135,25 +135,24 @@ Trois moyens complémentaires :
 Une sauvegarde par nuit + rétention : sur l'hôte, `crontab -e` puis :
 
 ```
-0 3 * * * cp /chemin/site/data/cybermarkettrack.db /chemin/backups/cmt-$(date +\%F).db && find /chemin/backups -name "cmt-*.db" -mtime +30 -delete
+0 3 * * * cp /chemin/projet/data/cybermarkettrack.db /chemin/backups/cmt-$(date +\%F).db && find /chemin/backups -name "cmt-*.db" -mtime +30 -delete
 ```
 
 (copie quotidienne à 3 h, suppression des copies de plus de 30 jours).
 Penser à copier régulièrement ces sauvegardes **hors du serveur**.
 
-Sous Windows : Planificateur de tâches → exécuter `npm run backup` dans
-`site/` chaque nuit.
+Sous Windows : Planificateur de tâches → exécuter `npm run backup` chaque nuit.
 
 ---
 
 ## 4. Mise à jour des dépendances
 
-Tous les 1 à 3 mois, dans `site/` :
+Tous les 1 à 3 mois :
 
 ```
 npm audit             # liste les vulnérabilités connues
 npm update            # met à jour dans les bornes autorisées
-npm test              # les 36 tests doivent rester verts
+npm test              # les tests unitaires doivent rester verts
 npm run build         # le build doit passer
 ```
 
@@ -163,16 +162,14 @@ casser des versions majeures — faire un backup et un test complet après).
 
 ---
 
-## 5. Organisation des dossiers (rappel)
+## 5. Ce que le dépôt ne contient pas
 
-- `site/` = le code source → **c'est ce dossier qu'on versionne sur GitHub**.
-  Son `.gitignore` exclut déjà : `.env` (secrets), `data/` (base + backups),
-  `node_modules`, `lib/generated/` (code généré), `.next/` (cache de build).
-- `runtime/` = les modules installés (`node_modules`) → **jamais sur GitHub** ;
-  reconstructible à tout moment avec `npm install`.
-- Voir `../LISEZMOI.txt` pour le détail (jonction Windows).
+Le `.gitignore` exclut : `.env` (secrets), `data/` (base + backups),
+`node_modules` (réinstallé par `npm install`), `lib/generated/` (client Prisma
+régénéré par `npx prisma generate`) et `.next/` (cache de build). Ces éléments
+sont recréés localement par les commandes d'installation.
 
-## 6. Commandes utiles (dans `site/`)
+## 6. Commandes utiles
 
 | Commande | Effet |
 |---|---|

@@ -167,29 +167,28 @@ en v1.
 
 ## 4. Arborescence
 
+Le dépôt contient directement le projet Next.js (pas de sous-dossier) :
+
 ```
-CyberMarketTrack/
-├── LISEZMOI.txt          # explique la séparation site/ / runtime/
-├── runtime/node_modules  # dépendances installées (JAMAIS sur GitHub)
-└── site/                 # LE CODE SOURCE (dépôt GitHub)
-    ├── app/              # pages (App Router)
-    │   ├── (public)     : /, /companies, /solutions, /tags, /news, /search,
-    │   │                  /comparators
-    │   ├── admin/       : CRUD, éditeur d'historique, import CSV, audit,
-    │   │                  fiches à revoir, backup
-    │   ├── api/         : routes de mutation (Zod + session + AuditLog)
-    │   └── login/
-    ├── components/       # composants React (ui/ = shadcn, admin/, comparator/)
-    ├── lib/              # cœur : timeline.ts, date.ts, queries.ts, backup.ts,
-    │   │                 # comparator.ts, validation.ts, auth.ts, csv.ts…
-    │   └── generated/    # client Prisma généré (gitignoré)
-    ├── prisma/           # schema.prisma, migrations/, seed.ts
-    ├── messages/         # fr.json / en.json (toutes les chaînes UI)
-    ├── i18n/             # config next-intl (locale par cookie)
-    ├── scripts/          # backup.ts (npm run backup)
-    ├── data/             # cybermarkettrack.db + backups/ (gitignoré)
-    ├── proxy.ts          # middleware Next 16 : protection /admin + API
-    └── auth.config.ts    # config Auth.js edge-safe (sans Prisma)
+├── app/              # pages (App Router)
+│   ├── (public)     : /, /companies, /solutions, /tags, /news, /search,
+│   │                  /comparators
+│   ├── admin/       : CRUD, éditeur d'historique, import CSV, audit,
+│   │                  fiches à revoir, backup
+│   ├── api/         : routes de mutation (Zod + session + AuditLog)
+│   └── login/
+├── components/       # composants React (ui/ = shadcn, admin/, comparator/)
+├── lib/              # cœur : timeline.ts, date.ts, queries.ts, backup.ts,
+│   │                 # comparator.ts, validation.ts, auth.ts, csv.ts…
+│   └── generated/    # client Prisma généré (gitignoré)
+├── prisma/           # schema.prisma, migrations/, seed.ts
+├── messages/         # fr.json / en.json (toutes les chaînes UI)
+├── i18n/             # config next-intl (locale par cookie)
+├── scripts/          # backup.ts (npm run backup)
+├── data/             # cybermarkettrack.db + backups/ (gitignoré)
+├── proxy.ts          # middleware Next 16 : protection /admin + API
+├── Dockerfile        # image multi-stage (voir README)
+└── auth.config.ts    # config Auth.js edge-safe (sans Prisma)
 ```
 
 ## 5. Sécurité
