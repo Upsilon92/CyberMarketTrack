@@ -20,7 +20,9 @@ export function CompanyLogo({
   if (logoUrl) {
     return (
       <span
-        className={`inline-flex items-center justify-center rounded-md bg-white dark:bg-white/10 ring-1 ring-border overflow-hidden shrink-0 p-1 ${className}`}
+        // Always a light (white) backing so transparent logos stay legible in
+        // dark mode too.
+        className={`inline-flex items-center justify-center rounded-md bg-white ring-1 ring-border overflow-hidden shrink-0 p-1 ${className}`}
         style={{ width, height }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}

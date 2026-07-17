@@ -301,7 +301,7 @@ function LogoUploader({
         <img
           src={current}
           alt="logo"
-          className="h-16 max-w-[180px] object-contain rounded-md ring-1 ring-border bg-white dark:bg-white/10 p-2"
+          className="h-16 max-w-[180px] object-contain rounded-md ring-1 ring-border bg-white p-2"
         />
       ) : (
         <span className="w-16 h-16 rounded-md ring-1 ring-border grid place-items-center text-xs text-muted-foreground">

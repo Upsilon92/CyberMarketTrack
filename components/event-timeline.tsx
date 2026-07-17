@@ -67,7 +67,12 @@ export async function EventTimeline({
               )} ${major ? "w-4 h-4 -left-[33px] shadow-[0_0_0_3px] shadow-current/20" : "w-3 h-3"}`}
               aria-hidden
             />
-            <EventLine event={e} compact />
+            <EventLine
+              event={e}
+              compact
+              logoSide="right"
+              excludeCompanyId={highlightAcquirerId}
+            />
             {e.description && (
               <p className="text-xs text-muted-foreground mt-1 leading-snug">{e.description}</p>
             )}

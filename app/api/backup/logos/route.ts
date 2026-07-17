@@ -31,6 +31,13 @@ function safeName(name: string): string {
   return name.replace(/[^a-zA-Z0-9-_ ]/g, "").trim().replace(/\s+/g, "_") || "company";
 }
 
+/** One CSV row from string cells (quotes cells containing , " or newlines). */
+function csvRow(cells: string[]): string {
+  return cells
+    .map((c) => (/[",\n]/.test(c) ? `"${c.replace(/"/g, '""')}"` : c))
+    .join(",");
+}
+
 /** Verifies the bytes really are the claimed image type (defense in depth). */
 function looksLikeImage(buf: Buffer, mime: string): boolean {
   if (mime === "image/png") return buf.length > 8 && buf[0] === 0x89 && buf[1] === 0x50;
@@ -71,13 +78,16 @@ export async function GET() {
         used.add(file);
         zip.file(file, Buffer.from(b64, "base64"));
       } else {
-        // Remote URL: recorded in a manifest rather than fetched server-side.
-        externalUrls.push(`${c.initialName}\t${url}`);
+        // Remote URL: recorded in a CSV manifest rather than fetched server-side.
+        externalUrls.push(csvRow([c.initialName, url]));
       }
     }
 
     if (externalUrls.length > 0) {
-      zip.file("_external-logo-urls.txt", externalUrls.join("\n"));
+      zip.file(
+        "_external-logo-urls.csv",
+        "﻿" + csvRow(["company", "logoUrl"]) + "\n" + externalUrls.join("\n")
+      );
     }
 
     const content = await zip.generateAsync({ type: "nodebuffer" });
