@@ -12,7 +12,11 @@
 services:
   app:
     build:
+<<<<<<< HEAD
       context: "https://github.com/Upsilon92/CyberMarketTrack.git#main"
+=======
+      context: "https://github.com/Upsilon92/CyberMarketTrack.git"
+>>>>>>> 4653e42005d0f1c6a62d92fc224d10e0d49034a7
     ports:
       - "3000:3000"
     env_file:
