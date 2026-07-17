@@ -10,8 +10,8 @@ services:
     build: .
     ports:
       - "3000:3000"
-    env_file:
-      - .env
+#    env_file:
+#      - .env
     environment:
       # Inside the container the database always lives under /app/data
       - DATABASE_URL=file:./data/cybermarkettrack.db
