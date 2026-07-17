@@ -13,6 +13,12 @@
 import type { NextAuthConfig } from "next-auth";
 
 export const authConfig = {
+  // Self-hosted: the app is always reached behind a reverse proxy or by IP
+  // (e.g. http://192.168.1.33:3000), never on a domain Auth.js recognizes.
+  // Trust the Host header so Auth.js stops rejecting requests with
+  // "UntrustedHost". This is the documented self-hosting setting and does not
+  // rely on the AUTH_TRUST_HOST env var reaching the runtime.
+  trustHost: true,
   session: { strategy: "jwt" },
   pages: { signIn: "/login" },
   providers: [], // filled in lib/auth.ts
