@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { SearchBar } from "@/components/search-bar";
 import { EventLine } from "@/components/event-line";
+import { BrandLogo } from "@/components/brand-logo";
 import { Card, CardContent } from "@/components/ui/card";
 import { getStats, loadAllEvents } from "@/lib/queries";
 
@@ -31,6 +32,7 @@ export default async function HomePage() {
       <section className="relative overflow-hidden rounded-2xl border hero-surface">
         <div className="absolute inset-0 grid-overlay pointer-events-none" />
         <div className="relative px-6 py-12 sm:py-16 text-center space-y-5">
+          <BrandLogo size={92} className="mx-auto drop-shadow-sm" />
           <span className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
             <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
             {t("badge")}

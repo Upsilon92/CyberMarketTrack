@@ -7,6 +7,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { MobileNav } from "@/components/mobile-nav";
 import { NavLink } from "@/components/nav-link";
 import { HeaderSearch } from "@/components/header-search";
+import { BrandLogo } from "@/components/brand-logo";
 
 export async function Header() {
   const t = await getTranslations("nav");
@@ -27,7 +28,7 @@ export async function Header() {
         <MobileNav links={links} />
 
         <Link href="/" className="flex items-center gap-2 shrink-0 group">
-          <ShieldMark />
+          <BrandLogo size={30} className="transition-transform group-hover:scale-105" />
           <span className="font-semibold tracking-tight text-[15px]">
             CyberMarket<span className="brand-gradient">Track</span>
           </span>
@@ -55,18 +56,6 @@ export async function Header() {
         </div>
       </div>
     </header>
-  );
-}
-
-// Small inline shield mark (no icon library needed)
-function ShieldMark() {
-  return (
-    <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-primary/10 text-primary ring-1 ring-primary/20">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
-        <path d="m9 12 2 2 4-4" />
-      </svg>
-    </span>
   );
 }
 
