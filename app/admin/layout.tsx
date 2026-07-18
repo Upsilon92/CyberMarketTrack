@@ -25,6 +25,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     { href: "/admin/audit", label: t("audit") },
     { href: "/admin/review", label: t("review") },
     { href: "/admin/backup", label: t("backup") },
+    { href: "/admin/account", label: t("account") },
   ];
 
   async function doSignOut() {

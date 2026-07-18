@@ -206,3 +206,21 @@ export const aliasSchema = z
     path: ["companyId"],
   });
 export type AliasInput = z.infer<typeof aliasSchema>;
+
+// --- Password change ------------------------------------------------------------------
+
+export const passwordChangeSchema = z
+  .object({
+    currentPassword: z.string().min(1, "required"),
+    newPassword: z.string().min(10, "tooShort").max(200, "tooLong"),
+    confirmPassword: z.string().min(1, "required"),
+  })
+  .refine((p) => p.newPassword === p.confirmPassword, {
+    message: "mismatch",
+    path: ["confirmPassword"],
+  })
+  .refine((p) => p.newPassword !== p.currentPassword, {
+    message: "sameAsCurrent",
+    path: ["newPassword"],
+  });
+export type PasswordChangeInput = z.infer<typeof passwordChangeSchema>;

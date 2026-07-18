@@ -1,24 +1,26 @@
-# CyberMarketTrack — déploiement depuis GitHub (sans cloner le dépôt).
+# CyberMarketTrack — déploiement depuis GitHub, sans cloner ni préparer de .env.
 #
-# Usage sur le serveur :
-#   1. Copier CE fichier + un fichier .env (voir .env.example / README §2)
-#   2. mkdir -p data
-#   3. docker compose -f docker-compose.github.yml up -d --build
+# Usage sur le serveur (copier CE SEUL fichier suffit) :
+#   docker compose -f docker-compose.github.yml up -d --build
 #
 # Le contexte de build pointe directement sur le dépôt GitHub (branche main),
-# dont la racine contient le Dockerfile. Pour mettre à jour après un push :
-# `docker compose -f docker-compose.github.yml up -d --build` (ajouter
-# `--pull` / `--no-cache` si besoin de forcer la reconstruction).
+# dont la racine contient le Dockerfile. Aucun .env requis : valeurs par défaut
+# ci-dessous + AUTH_SECRET généré et persisté au 1er démarrage (data/.auth_secret).
+# Mise à jour après un push : relancer la même commande (ajouter `--pull` /
+# `--no-cache` pour forcer la reconstruction). CHANGEZ ADMIN_PASSWORD en prod.
 services:
   app:
     build:
       context: "https://github.com/Upsilon92/CyberMarketTrack.git#main"
     ports:
       - "3000:3000"
-    env_file:
-      - .env
     environment:
       - DATABASE_URL=file:./data/cybermarkettrack.db
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-ChangeMe!2026}
+      - FRESHNESS_MONTHS=${FRESHNESS_MONTHS:-12}
+      - AUTH_TRUST_HOST=true
+      - AUTH_SECRET=${AUTH_SECRET:-}
     volumes:
       - ./data:/app/data
     restart: unless-stopped

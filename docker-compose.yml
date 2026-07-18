@@ -1,20 +1,32 @@
-# CyberMarketTrack — production deployment.
-#   1. cp .env.example .env   (then edit the secrets!)
-#   2. docker compose up -d --build
-#   3. sign in at /login with ADMIN_USERNAME / ADMIN_PASSWORD from .env:
-#      on a fresh database the admin account is created automatically.
-# The ./data folder on the host holds the SQLite file: back it up with the
-# strategy described in the README.
+# CyberMarketTrack — déploiement en UNE commande, sans .env à préparer.
+#
+#   docker compose up -d --build
+#
+# Aucun fichier .env n'est requis : des valeurs par défaut sont fournies
+# ci-dessous et AUTH_SECRET (secret de session) est généré automatiquement au
+# premier démarrage puis persisté dans ./data. Le dossier ./data (base SQLite)
+# est créé automatiquement par Docker.
+#
+# Connexion sur /login avec ADMIN_USERNAME / ADMIN_PASSWORD : sur une base
+# vierge, le compte admin est créé automatiquement au premier login.
+#
+# Personnalisation (facultatif) : exporter la variable dans le shell ou créer
+# un fichier .env à côté de ce fichier — elle sera prise en priorité. CHANGEZ
+# ADMIN_PASSWORD pour une instance exposée sur Internet.
 services:
   app:
     build: .
     ports:
       - "3000:3000"
-#    env_file:
-#      - .env
     environment:
-      # Inside the container the database always lives under /app/data
+      # Dans le conteneur la base vit toujours sous /app/data
       - DATABASE_URL=file:./data/cybermarkettrack.db
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-ChangeMe!2026}
+      - FRESHNESS_MONTHS=${FRESHNESS_MONTHS:-12}
+      - AUTH_TRUST_HOST=true
+      # Laissé vide -> généré et persisté au 1er démarrage (data/.auth_secret).
+      - AUTH_SECRET=${AUTH_SECRET:-}
     volumes:
       - ./data:/app/data
     restart: unless-stopped

@@ -304,6 +304,7 @@
     "audit": "Audit log",
     "review": "Pages to review",
     "backup": "Backup",
+    "account": "Account",
     "new": "New",
     "newCompany": "New company",
     "newSolution": "New solution",
@@ -470,6 +471,27 @@
       "duplicate": "Duplicate (existing current name, historical name or alias)",
       "tooBig": "File too large (max 1 MB)",
       "invalidCsv": "Unreadable CSV or missing headers"
+    },
+    "accountPage": {
+      "title": "Account",
+      "signedInAs": "Signed in as {username}",
+      "changePassword": "Change password",
+      "current": "Current password",
+      "new": "New password",
+      "confirm": "Confirm new password",
+      "hint": "At least 10 characters.",
+      "submit": "Update password",
+      "saving": "Updating…",
+      "success": "Password updated.",
+      "errors": {
+        "wrongPassword": "Current password is incorrect.",
+        "tooShort": "At least 10 characters.",
+        "tooLong": "Password is too long.",
+        "mismatch": "The two passwords do not match.",
+        "sameAsCurrent": "The new password must differ from the current one.",
+        "required": "Required field.",
+        "generic": "Something went wrong."
+      }
     }
   }
 }

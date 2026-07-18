@@ -66,51 +66,47 @@ Si la commande échoue, installer Node.js LTS depuis https://nodejs.org
 
 Prérequis : Docker + Docker Compose installés.
 
+**Aucun `.env` à préparer.** Le seul secret réellement sensible (`AUTH_SECRET`,
+chiffrement des sessions) est généré automatiquement au premier démarrage et
+persisté dans `./data/.auth_secret` ; les autres valeurs ont des défauts dans
+le `docker-compose.yml`.
+
 1. Copier le projet sur le serveur.
-2. À la racine : `cp .env.example .env` puis éditer les secrets.
-3. Construire et démarrer :
+2. Construire et démarrer :
    ```
    docker compose up -d --build
    ```
-4. Ouvrir http://serveur:3000/login et se connecter avec
-   `ADMIN_USERNAME` / `ADMIN_PASSWORD` : sur une base vierge, le compte
-   admin est créé automatiquement au premier login.
-5. Importer les données : soit l'import CSV (`/admin/import`), soit la
+3. Ouvrir http://serveur:3000/login et se connecter avec
+   `ADMIN_USERNAME` / `ADMIN_PASSWORD` (défaut `admin` / `ChangeMe!2026`) :
+   sur une base vierge, le compte admin est créé automatiquement au premier
+   login.
+4. Importer les données : soit l'import CSV (`/admin/import`), soit la
    restauration d'un export JSON (`/admin/backup`).
 
 La base vit dans `./data` **sur le serveur hôte** (volume Docker) : elle
 survit aux reconstructions du conteneur.
 
+> **Personnalisation (facultatif).** Pour changer le mot de passe admin ou
+> fixer un `AUTH_SECRET` précis, exportez la variable dans le shell
+> (`export ADMIN_PASSWORD=…`) ou créez un fichier `.env` à côté du
+> `docker-compose.yml` (voir [`.env.example`](./.env.example)) : ces valeurs
+> sont prises en priorité sur les défauts. **Changez `ADMIN_PASSWORD`** sur
+> une instance exposée sur Internet.
+
 ### 2 bis. Construire directement depuis GitHub (sans cloner)
 
-Docker sait construire une image à partir d'un dépôt Git distant (le
-`Dockerfile` est à la racine du dépôt). Sur le serveur :
+Le fichier [`docker-compose.github.yml`](./docker-compose.github.yml) construit
+l'image **directement depuis le dépôt GitHub** — inutile de cloner. Copier ce
+**seul fichier** sur le serveur puis :
 
 ```
-# 1) Construire l'image depuis le dépôt (branche main)
-docker build -t cybermarkettrack "https://github.com/Upsilon92/CyberMarketTrack.git#main"
-
-# 2) Préparer le dossier de données + le fichier d'environnement sur l'hôte
-mkdir -p cmt/data && cd cmt
-#   créer un fichier .env (voir variables ci-dessus) avec au minimum
-#   AUTH_SECRET, ADMIN_USERNAME, ADMIN_PASSWORD
-
-# 3) Lancer le conteneur (les migrations s'appliquent au démarrage)
-docker run -d --name cybermarkettrack -p 3000:3000 \
-  --env-file .env \
-  -e DATABASE_URL=file:./data/cybermarkettrack.db \
-  -v "$(pwd)/data:/app/data" \
-  --restart unless-stopped \
-  cybermarkettrack
+docker compose -f docker-compose.github.yml up -d --build
 ```
 
-Pour **mettre à jour** après un push sur GitHub : refaire l'étape 1
-(`docker build …`) puis `docker rm -f cybermarkettrack` et relancer l'étape 3.
-Les données sont préservées (volume `./data`).
-
-> Variante Compose : le fichier [`docker-compose.github.yml`](./docker-compose.github.yml)
-> encapsule ces commandes. Copier ce seul fichier + un `.env` sur le serveur,
-> puis `docker compose -f docker-compose.github.yml up -d --build`.
+Là aussi, aucun `.env` : mêmes défauts + `AUTH_SECRET` auto-généré. Pour
+**mettre à jour** après un push sur GitHub, relancer la même commande (ajouter
+`--pull` / `--no-cache` pour forcer la reconstruction). Les données sont
+préservées (volume `./data`).
 
 ---
 
