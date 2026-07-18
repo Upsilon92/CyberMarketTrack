@@ -96,7 +96,10 @@ const companySchema = z.object({
   originCountry: z.string().max(2).nullable(),
   description: z.string().max(50_000).nullable(),
   website: z.string().max(500).nullable(),
-  logoUrl: z.string().max(500).nullable(),
+  // Uploaded logos are stored as data URIs (base64), so this can be large:
+  // the upload cap is 512 KB, which is ~700 K chars once base64-encoded.
+  // A 500-char limit here would reject any export containing an uploaded logo.
+  logoUrl: z.string().max(2_000_000).nullable(),
   createdAt: dateLike,
   updatedAt: dateLike,
 });
