@@ -291,6 +291,22 @@
       "solution": "Solution"
     }
   },
+  "setup": {
+    "title": "Create the admin account",
+    "subtitle": "First run: choose the administrator username and password.",
+    "username": "Username",
+    "password": "Password",
+    "confirm": "Confirm password",
+    "hint": "At least 10 characters. Choose a strong, unique password.",
+    "submit": "Create account",
+    "creating": "Creating…",
+    "done": "Account created. Sign in below.",
+    "mismatch": "The two passwords do not match.",
+    "tooShort": "Password must be at least 10 characters.",
+    "usernameTooShort": "Username must be at least 3 characters.",
+    "alreadyDone": "An admin account already exists.",
+    "error": "Something went wrong."
+  },
   "login": {
     "title": "Sign in",
     "username": "Username",

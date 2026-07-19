@@ -224,3 +224,11 @@ export const passwordChangeSchema = z
     path: ["newPassword"],
   });
 export type PasswordChangeInput = z.infer<typeof passwordChangeSchema>;
+
+// --- First-run admin setup ------------------------------------------------------------
+
+export const setupSchema = z.object({
+  username: z.string().trim().min(3, "usernameTooShort").max(100),
+  password: z.string().min(10, "tooShort").max(200),
+});
+export type SetupInput = z.infer<typeof setupSchema>;

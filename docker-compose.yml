@@ -21,8 +21,8 @@ services:
     environment:
       # Dans le conteneur la base vit toujours sous /app/data
       - DATABASE_URL=file:./data/cybermarkettrack.db
-      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-ChangeMe!2026}
+      # Aucun mot de passe admin par défaut : le compte est créé à la première
+      # connexion (page /login) en choisissant identifiant + mot de passe.
       - FRESHNESS_MONTHS=${FRESHNESS_MONTHS:-12}
       - AUTH_TRUST_HOST=true
       # Laissé vide -> généré et persisté au 1er démarrage (data/.auth_secret).

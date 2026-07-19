@@ -19,8 +19,11 @@ export default auth((req) => {
   const isLoggedIn = !!req.auth?.user;
   const isAdminArea = nextUrl.pathname.startsWith("/admin");
   const isAuthApi = nextUrl.pathname.startsWith("/api/auth");
+  // First-run admin creation must be reachable without a session (it guards
+  // itself server-side: it only works while no user exists yet).
+  const isSetupApi = nextUrl.pathname.startsWith("/api/setup");
   const isApiMutation =
-    nextUrl.pathname.startsWith("/api") && !isAuthApi && req.method !== "GET";
+    nextUrl.pathname.startsWith("/api") && !isAuthApi && !isSetupApi && req.method !== "GET";
 
   if (isAdminArea && !isLoggedIn) {
     const loginUrl = new URL("/login", nextUrl);

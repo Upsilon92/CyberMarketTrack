@@ -299,6 +299,22 @@
     "error": "Identifiant ou mot de passe incorrect, ou trop de tentatives. Réessayez dans une minute.",
     "signOut": "Déconnexion"
   },
+  "setup": {
+    "title": "Créer le compte administrateur",
+    "subtitle": "Première connexion : choisissez l'identifiant et le mot de passe de l'administrateur.",
+    "username": "Identifiant",
+    "password": "Mot de passe",
+    "confirm": "Confirmer le mot de passe",
+    "hint": "Au moins 10 caractères. Choisissez un mot de passe fort et unique.",
+    "submit": "Créer le compte",
+    "creating": "Création…",
+    "done": "Compte créé. Connectez-vous ci-dessous.",
+    "mismatch": "Les deux mots de passe ne correspondent pas.",
+    "tooShort": "Le mot de passe doit contenir au moins 10 caractères.",
+    "usernameTooShort": "L'identifiant doit contenir au moins 3 caractères.",
+    "alreadyDone": "Un compte administrateur existe déjà.",
+    "error": "Une erreur est survenue."
+  },
   "outcomes": {
     "INVESTOR_OWNED": "Rachat par un fonds (organisation indépendante)",
     "AUTONOMOUS": "Rachat industriel (filiale, marque conservée)",

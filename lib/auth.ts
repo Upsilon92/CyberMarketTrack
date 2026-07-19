@@ -28,25 +28,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null;
         }
 
-        // First-run bootstrap (fresh database, e.g. new Docker volume): when
-        // NO user exists yet, credentials matching ADMIN_USERNAME/ADMIN_PASSWORD
-        // from the environment create the admin account.
-        if ((await prisma.user.count()) === 0) {
-          const envUser = process.env.ADMIN_USERNAME ?? "admin";
-          const envPass = process.env.ADMIN_PASSWORD;
-          if (envPass && username === envUser && password === envPass) {
-            const created = await prisma.user.create({
-              data: {
-                username: envUser,
-                passwordHash: await bcrypt.hash(envPass, 12),
-                role: "ADMIN",
-              },
-            });
-            return { id: created.id, name: created.username, role: created.role };
-          }
-          return null;
-        }
-
+        // First-run (no admin yet) is handled by the setup flow (/api/setup via
+        // the login page), not by a default password. Until an admin is created,
+        // there is simply nothing to match and every attempt fails.
         const user = await prisma.user.findUnique({ where: { username } });
         if (!user) return null;
 

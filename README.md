@@ -32,8 +32,9 @@ Si la commande échoue, installer Node.js LTS depuis https://nodejs.org
    ```
    copier .env.example vers .env    (copy .env.example .env)
    ```
-   puis **ouvrir `.env` et changer `ADMIN_PASSWORD` et `AUTH_SECRET`**
-   (n'importe quelle longue chaîne aléatoire pour le secret).
+   puis **ouvrir `.env` et définir `AUTH_SECRET`** (n'importe quelle longue
+   chaîne aléatoire). Aucun mot de passe admin à mettre : il sera choisi à la
+   première connexion.
 4. Créer la base de données et la remplir avec les données d'exemple :
    ```
    npx prisma migrate dev
@@ -43,8 +44,9 @@ Si la commande échoue, installer Node.js LTS depuis https://nodejs.org
    ```
    npm run dev
    ```
-   → http://localhost:3000 (admin : http://localhost:3000/admin, identifiants
-   du `.env`).
+   → http://localhost:3000. Aller sur http://localhost:3000/login : la base
+   étant vierge, un formulaire vous invite à **créer le compte administrateur**
+   (identifiant + mot de passe de votre choix).
 
 > Note : `npm run dev` recompile chaque page à la demande et peut être lent au
 > premier chargement. Pour évaluer rapidement le rendu, préférez un build de
@@ -55,7 +57,6 @@ Si la commande échoue, installer Node.js LTS depuis https://nodejs.org
 | Variable | Rôle |
 |---|---|
 | `DATABASE_URL` | Emplacement du fichier SQLite (laisser `file:./data/cybermarkettrack.db`) |
-| `ADMIN_USERNAME` / `ADMIN_PASSWORD` | Compte administrateur (créé par le seed, ou automatiquement au premier login si la base est vide) |
 | `AUTH_SECRET` | Secret de chiffrement des sessions — **longue chaîne aléatoire, unique par instance** |
 | `AUTH_TRUST_HOST` | Laisser `"true"` en auto-hébergement |
 | `FRESHNESS_MONTHS` | Seuil (mois) du badge « à revérifier » (défaut 12) |
@@ -76,22 +77,20 @@ le `docker-compose.yml`.
    ```
    docker compose up -d --build
    ```
-3. Ouvrir http://serveur:3000/login et se connecter avec
-   `ADMIN_USERNAME` / `ADMIN_PASSWORD` (défaut `admin` / `ChangeMe!2026`) :
-   sur une base vierge, le compte admin est créé automatiquement au premier
-   login.
+3. Ouvrir **immédiatement** http://serveur:3000/login : la base étant vierge,
+   un formulaire vous invite à **créer le compte administrateur** (identifiant
+   + mot de passe fort de votre choix). Faites-le tout de suite — tant que le
+   compte n'existe pas, quiconque accède au site peut le créer.
 4. Importer les données : soit l'import CSV (`/admin/import`), soit la
    restauration d'un export JSON (`/admin/backup`).
 
 La base vit dans `./data` **sur le serveur hôte** (volume Docker) : elle
 survit aux reconstructions du conteneur.
 
-> **Personnalisation (facultatif).** Pour changer le mot de passe admin ou
-> fixer un `AUTH_SECRET` précis, exportez la variable dans le shell
-> (`export ADMIN_PASSWORD=…`) ou créez un fichier `.env` à côté du
-> `docker-compose.yml` (voir [`.env.example`](./.env.example)) : ces valeurs
-> sont prises en priorité sur les défauts. **Changez `ADMIN_PASSWORD`** sur
-> une instance exposée sur Internet.
+> **Personnalisation (facultatif).** Pour fixer un `AUTH_SECRET` précis (au lieu
+> de celui généré automatiquement), exportez-le dans le shell ou créez un
+> fichier `.env` à côté du `docker-compose.yml` (voir [`.env.example`](./.env.example)).
+> Le mot de passe admin, lui, se change ensuite dans l'interface via `/admin/account`.
 
 ### 2 bis. Construire directement depuis GitHub (sans cloner)
 

@@ -12,7 +12,6 @@
 import "dotenv/config";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { PrismaClient } from "../lib/generated/prisma/client";
-import bcrypt from "bcryptjs";
 
 const adapter = new PrismaBetterSqlite3({
   url: process.env.DATABASE_URL ?? "file:./data/cybermarkettrack.db",
@@ -34,17 +33,8 @@ async function main() {
   await prisma.comparator.deleteMany();
   await prisma.user.deleteMany();
 
-  // ---------------------------------------------------------------------------
-  // Admin user (password comes from ADMIN_PASSWORD env var, default for dev)
-  // ---------------------------------------------------------------------------
-  const adminPassword = process.env.ADMIN_PASSWORD ?? "ChangeMe!2026";
-  await prisma.user.create({
-    data: {
-      username: process.env.ADMIN_USERNAME ?? "admin",
-      passwordHash: await bcrypt.hash(adminPassword, 12),
-      role: "ADMIN",
-    },
-  });
+  // No admin user is seeded: the account is created on first login via the
+  // setup flow (/api/setup), so no default password exists anywhere.
 
   // ---------------------------------------------------------------------------
   // Tags (three families; SCOPE tags carry a grouping category)

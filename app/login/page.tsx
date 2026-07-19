@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { prisma } from "@/lib/prisma";
+import { SetupForm } from "@/components/setup-form";
 
 export const dynamic = "force-dynamic";
 
@@ -18,10 +20,15 @@ export default async function LoginPage({
 }) {
   const { callbackUrl = "/admin", error } = await searchParams;
   const t = await getTranslations("login");
+  const tSetup = await getTranslations("setup");
 
   // Already signed in? Straight to the admin.
   const session = await auth();
   if (session?.user) redirect(callbackUrl.startsWith("/") ? callbackUrl : "/admin");
+
+  // First run: no admin exists yet -> show the account-creation form instead of
+  // the login form (no default password is ever shipped).
+  const needsSetup = (await prisma.user.count()) === 0;
 
   async function doLogin(formData: FormData) {
     "use server";
@@ -45,9 +52,11 @@ export default async function LoginPage({
     <div className="flex justify-center pt-16">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>{t("title")}</CardTitle>
+          <CardTitle>{needsSetup ? tSetup("title") : t("title")}</CardTitle>
         </CardHeader>
         <CardContent>
+          {needsSetup && <SetupForm />}
+          {!needsSetup && (
           <form action={doLogin} className="space-y-4">
             <input type="hidden" name="callbackUrl" value={callbackUrl} />
             {error && (
@@ -67,6 +76,7 @@ export default async function LoginPage({
               {t("submit")}
             </Button>
           </form>
+          )}
         </CardContent>
       </Card>
     </div>
