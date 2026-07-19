@@ -17,6 +17,7 @@
     "toRecheck": "To re-check",
     "website": "Website",
     "country": "Country",
+    "continent": "Continent",
     "originCountry": "Origin country",
     "founded": "Founded in {date}",
     "launched": "Launched in {date}",
@@ -66,11 +67,23 @@
     "title": "Companies",
     "type": "Type",
     "status": "Status",
+    "statusExisting": "Existing",
+    "statusGone": "Defunct",
     "sortBy": "Sort by",
     "sortName": "Name",
     "sortFounded": "Founding year",
     "sortUpdated": "Last updated",
+    "searchPlaceholder": "Filter by name…",
     "empty": "No company matches the filters."
+  },
+  "continents": {
+    "EUROPE": "Europe",
+    "NORTH_AMERICA": "North America",
+    "SOUTH_AMERICA": "South America",
+    "ASIA": "Asia",
+    "AFRICA": "Africa",
+    "OCEANIA": "Oceania",
+    "ANTARCTICA": "Antarctica"
   },
   "companyTypes": {
     "VENDOR": "Vendor",
@@ -128,6 +141,7 @@
     "title": "Solutions",
     "vendor": "Vendor",
     "tagFilter": "Filter by tag",
+    "searchPlaceholder": "Filter by name or vendor…",
     "empty": "No solution matches the filters."
   },
   "solution": {

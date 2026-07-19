@@ -75,7 +75,7 @@ export default async function NewsPage({
         <CardContent className="divide-y [&>*]:py-3">
           {list.map((e) => (
             <div key={e.id}>
-              <EventLine event={e} />
+              <EventLine event={e} logoSide="right" />
               {e.description && (
                 <p className="text-xs text-muted-foreground mt-1 sm:ml-28">{e.description}</p>
               )}

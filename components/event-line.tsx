@@ -5,6 +5,7 @@
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Badge } from "@/components/ui/badge";
+import { Flag } from "@/components/flag";
 import { compareDates, formatDate, type DatePoint, type Locale } from "@/lib/date";
 import { periodAt, type NamePeriod } from "@/lib/timeline";
 import { loadMarket, type EventWithRelations } from "@/lib/queries";
@@ -26,6 +27,25 @@ function EntityLink({ href, name }: { href: string | null; name: string }) {
     <Link href={href} className="font-medium underline-offset-2 hover:underline">
       {name}
     </Link>
+  );
+}
+
+// The linked entity name, followed by its country flag when it is a company.
+// Kept on one line so the flag never wraps away from the name.
+function EntityNode({
+  href,
+  name,
+  country,
+}: {
+  href: string | null;
+  name: string;
+  country?: string | null;
+}) {
+  return (
+    <span className="whitespace-nowrap">
+      <EntityLink href={href} name={name} />
+      {country ? <Flag iso={country} size="1.05em" className="ml-1" /> : null}
+    </span>
   );
 }
 
@@ -94,6 +114,7 @@ export async function EventLine({
           subjectSolutionState.timeline.currentName
         ),
         href: `/solutions/${subjectSolutionState.id}`,
+        country: null as string | null,
       }
     : subjectCompanyState
       ? {
@@ -103,29 +124,41 @@ export async function EventLine({
             subjectCompanyState.timeline.currentName
           ),
           href: `/companies/${subjectCompanyState.id}`,
+          country: subjectCompanyState.country,
         }
-      : { name: "?", href: null };
+      : { name: "?", href: null, country: null };
 
   // Actor: acquirer / merge partner / new solution owner
   const actorCompany = event.acquirerCompany ?? event.withCompany ?? event.newOwnerCompany;
+  const actorCompanyState = actorCompany
+    ? (market.companies.find((c) => c.id === actorCompany.id) ?? null)
+    : null;
   // SOLUTION_INTEGRATED: the actor is a solution (the host), not a company
   const actor = event.intoSolution
     ? {
         name:
           market.solutionNameById.get(event.intoSolution.id) ?? event.intoSolution.initialName,
         href: `/solutions/${event.intoSolution.id}`,
+        country: null as string | null,
       }
     : actorCompany
       ? {
           name: market.companyNameById.get(actorCompany.id) ?? actorCompany.initialName,
           href: `/companies/${actorCompany.id}`,
+          country: actorCompanyState?.country ?? null,
         }
       : event.acquirerNameRaw
-        ? { name: event.acquirerNameRaw, href: null }
+        ? { name: event.acquirerNameRaw, href: null, country: null }
         : null;
 
-  const subjectNode = <EntityLink href={subject.href} name={subject.name} />;
-  const actorNode = actor ? <EntityLink href={actor.href} name={actor.name} /> : <span>?</span>;
+  const subjectNode = (
+    <EntityNode href={subject.href} name={subject.name} country={subject.country} />
+  );
+  const actorNode = actor ? (
+    <EntityNode href={actor.href} name={actor.name} country={actor.country} />
+  ) : (
+    <span>?</span>
+  );
 
   let key: string = event.type;
   if (event.type === "FUNDING" && !event.round) key = "FUNDING_NO_ROUND";

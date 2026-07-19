@@ -267,13 +267,22 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
         <CardContent className="text-sm space-y-3">
           {currentSolutions.length === 0 && <p className="text-muted-foreground">{t("noSolutions")}</p>}
           <ul className="space-y-1">
-            {currentSolutions.map((s) => (
-              <li key={s.id}>
-                <Link href={`/solutions/${s.id}`} className="text-primary hover:underline">
-                  {s.timeline.currentName}
-                </Link>
-              </li>
-            ))}
+            {currentSolutions.map((s) => {
+              // "Solution types" tags shown in parentheses after the name.
+              const typeTags = s.tags
+                .filter((tag) => tag.family === "SOLUTION_TYPE")
+                .map((tag) => (locale === "fr" ? tag.labelFr : tag.labelEn));
+              return (
+                <li key={s.id}>
+                  <Link href={`/solutions/${s.id}`} className="text-primary hover:underline">
+                    {s.timeline.currentName}
+                  </Link>
+                  {typeTags.length > 0 && (
+                    <span className="text-muted-foreground"> ({typeTags.join(", ")})</span>
+                  )}
+                </li>
+              );
+            })}
           </ul>
           {formerSolutions.length > 0 && (
             <>

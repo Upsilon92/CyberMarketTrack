@@ -102,7 +102,7 @@ export default async function HomePage() {
                   <p className="text-sm text-muted-foreground py-4">{t("colEmpty")}</p>
                 )}
                 {col.items.map((e) => (
-                  <EventLine key={e.id} event={e} compact />
+                  <EventLine key={e.id} event={e} compact logoSide="right" />
                 ))}
               </CardContent>
             </Card>

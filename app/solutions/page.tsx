@@ -7,6 +7,7 @@ import { TagBadge } from "@/components/tag-badge";
 import { CompanyLogo } from "@/components/company-logo";
 import { Flag } from "@/components/flag";
 import { MultiTagFilter } from "@/components/multi-tag-filter";
+import { LiveListFilter, type LiveListItem } from "@/components/live-list-filter";
 import { loadMarket, ownerDisplayName } from "@/lib/queries";
 import { formerNamePeriods } from "@/lib/timeline";
 import { formatRange, type Locale } from "@/lib/date";
@@ -58,6 +59,62 @@ export default async function SolutionsPage({
     SCOPE: "scopes",
   };
 
+  // Server-rendered cards + a searchable string (solution name + former names +
+  // aliases + editor name), for the live name/vendor filter.
+  const items: LiveListItem[] = list.map((s) => {
+    const formers = formerNamePeriods(s.timeline);
+    const vendor = market.companies.find((c) => c.id === s.timeline.currentOwnerCompanyId);
+    const vendorName = market.companyNameById.get(s.timeline.currentOwnerCompanyId) ?? "";
+    const search = [
+      s.timeline.currentName,
+      ...formers.map((p) => p.name),
+      ...s.aliases.map((a) => a.name),
+      vendorName,
+    ]
+      .join(" ")
+      .toLowerCase();
+    const node = (
+      <Link href={`/solutions/${s.id}`}>
+        <Card className="card-hover h-full">
+          <CardContent className="py-3 flex gap-3">
+            {/* Editor (vendor) logo */}
+            <CompanyLogo
+              name={vendor?.timeline.currentName ?? "?"}
+              logoUrl={vendor?.logoUrl}
+              width={72}
+              height={44}
+            />
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span className="font-medium">{s.timeline.currentName}</span>
+                {formers.length > 0 && (
+                  <span className="text-xs text-muted-foreground">
+                    {tCommon("formerly", {
+                      names: formers
+                        .map((p) => `${p.name} (${formatRange(p.start, p.end, locale)})`)
+                        .join(", "),
+                    })}
+                  </span>
+                )}
+              </div>
+              {/* Editor: flag + name */}
+              <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+                {vendor && <Flag iso={vendor.country} size="1.2em" />}
+                {ownerDisplayName(market, s.timeline.currentOwnerCompanyId)}
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {s.tags.map((tag) => (
+                  <TagBadge key={tag.id} tag={tag} locale={locale} />
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </Link>
+    );
+    return { id: s.id, search, node };
+  });
+
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">{t("title")}</h1>
@@ -80,53 +137,7 @@ export default async function SolutionsPage({
         resetLabel={tCommon("reset")}
       />
 
-      {list.length === 0 && <p className="text-muted-foreground">{t("empty")}</p>}
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        {list.map((s) => {
-          const formers = formerNamePeriods(s.timeline);
-          const vendor = market.companies.find((c) => c.id === s.timeline.currentOwnerCompanyId);
-          return (
-            <Link key={s.id} href={`/solutions/${s.id}`}>
-              <Card className="card-hover h-full">
-                <CardContent className="py-3 flex gap-3">
-                  {/* Editor (vendor) logo */}
-                  <CompanyLogo
-                    name={vendor?.timeline.currentName ?? "?"}
-                    logoUrl={vendor?.logoUrl}
-                    width={72}
-                    height={44}
-                  />
-                  <div className="min-w-0 flex-1 space-y-1.5">
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <span className="font-medium">{s.timeline.currentName}</span>
-                      {formers.length > 0 && (
-                        <span className="text-xs text-muted-foreground">
-                          {tCommon("formerly", {
-                            names: formers
-                              .map((p) => `${p.name} (${formatRange(p.start, p.end, locale)})`)
-                              .join(", "),
-                          })}
-                        </span>
-                      )}
-                    </div>
-                    {/* Editor: flag + name */}
-                    <div className="text-xs text-muted-foreground flex items-center gap-1.5">
-                      {vendor && <Flag iso={vendor.country} size="1.2em" />}
-                      {ownerDisplayName(market, s.timeline.currentOwnerCompanyId)}
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {s.tags.map((tag) => (
-                        <TagBadge key={tag.id} tag={tag} locale={locale} />
-                      ))}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          );
-        })}
-      </div>
+      <LiveListFilter items={items} placeholder={t("searchPlaceholder")} emptyLabel={t("empty")} />
     </div>
   );
 }

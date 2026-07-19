@@ -17,6 +17,7 @@
     "toRecheck": "À revérifier",
     "website": "Site web",
     "country": "Pays",
+    "continent": "Continent",
     "originCountry": "Pays d'origine",
     "founded": "Créée en {date}",
     "launched": "Lancée en {date}",
@@ -66,11 +67,23 @@
     "title": "Entreprises",
     "type": "Type",
     "status": "Statut",
+    "statusExisting": "Existante",
+    "statusGone": "Disparue",
     "sortBy": "Trier par",
     "sortName": "Nom",
     "sortFounded": "Année de création",
     "sortUpdated": "Dernière mise à jour",
+    "searchPlaceholder": "Filtrer par nom…",
     "empty": "Aucune entreprise ne correspond aux filtres."
+  },
+  "continents": {
+    "EUROPE": "Europe",
+    "NORTH_AMERICA": "Amérique du Nord",
+    "SOUTH_AMERICA": "Amérique du Sud",
+    "ASIA": "Asie",
+    "AFRICA": "Afrique",
+    "OCEANIA": "Océanie",
+    "ANTARCTICA": "Antarctique"
   },
   "companyTypes": {
     "VENDOR": "Éditeur",
@@ -128,6 +141,7 @@
     "title": "Solutions",
     "vendor": "Éditeur",
     "tagFilter": "Filtrer par tag",
+    "searchPlaceholder": "Filtrer par nom ou éditeur…",
     "empty": "Aucune solution ne correspond aux filtres."
   },
   "solution": {
