@@ -10,7 +10,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge } from "@/components/status-badge";
 import { CompanyLogo } from "@/components/company-logo";
 import { Flag } from "@/components/flag";
+import { Button } from "@/components/ui/button";
+import { DeleteButton } from "@/components/admin/delete-button";
 import { LogoDownloadButton } from "@/components/logo-download-button";
+import { auth } from "@/lib/auth";
 import { Markdown } from "@/components/markdown";
 import { RevenueChart } from "@/components/revenue-chart";
 import { EventTimeline } from "@/components/event-timeline";
@@ -59,6 +62,8 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
   const tTypes = await getTranslations("companyTypes");
   const tStatuses = await getTranslations("statuses");
   const tOwnership = await getTranslations("ownership");
+  const tAdmin = await getTranslations("admin");
+  const isAdmin = (await auth())?.user?.role === "ADMIN";
 
   const market = await loadMarket();
   const company = market.companies.find((c) => c.id === id);
@@ -132,6 +137,21 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
         <p className="text-xs text-muted-foreground">
           {tCommon("lastUpdated", { date: company.updatedAt.toLocaleDateString(locale) })}
         </p>
+        {isAdmin && (
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <Link href={`/admin/companies/${company.id}`}>
+              <Button size="sm" variant="outline">
+                {tAdmin("edit")}
+              </Button>
+            </Link>
+            <Link href={`/admin/companies/${company.id}/history`}>
+              <Button size="sm" variant="outline">
+                {tAdmin("history")}
+              </Button>
+            </Link>
+            <DeleteButton path={`/api/companies/${company.id}`} redirectTo="/companies" />
+          </div>
+        )}
       </div>
 
       <div className="grid md:grid-cols-3 gap-4">

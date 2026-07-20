@@ -74,7 +74,7 @@ export function CompanyForm({
       };
       if (companyId) await api(`/api/companies/${companyId}`, "PUT", payload);
       else await api("/api/companies", "POST", payload);
-      router.push("/admin/companies");
+      router.push(companyId ? `/companies/${companyId}` : "/companies");
       router.refresh();
     } catch (err) {
       if (err instanceof ApiError && err.fields) setFieldErrors(err.fields);

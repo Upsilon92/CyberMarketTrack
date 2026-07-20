@@ -19,6 +19,8 @@ import {
   isStale,
   solutionsIntegratedInto,
 } from "@/lib/queries";
+import { DeleteButton } from "@/components/admin/delete-button";
+import { auth } from "@/lib/auth";
 import { formerNamePeriods } from "@/lib/timeline";
 import { formatDate, formatRange, type Locale } from "@/lib/date";
 
@@ -30,6 +32,8 @@ export default async function SolutionPage({ params }: { params: Promise<{ id: s
   const t = await getTranslations("solution");
   const tCommon = await getTranslations("common");
   const tSolStatuses = await getTranslations("solutionStatuses");
+  const tAdmin = await getTranslations("admin");
+  const isAdmin = (await auth())?.user?.role === "ADMIN";
 
   const market = await loadMarket();
   const solution = market.solutions.find((s) => s.id === id);
@@ -138,6 +142,21 @@ export default async function SolutionPage({ params }: { params: Promise<{ id: s
         <p className="text-xs text-muted-foreground">
           {tCommon("lastUpdated", { date: solution.updatedAt.toLocaleDateString(locale) })}
         </p>
+        {isAdmin && (
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <Link href={`/admin/solutions/${solution.id}`}>
+              <Button size="sm" variant="outline">
+                {tAdmin("edit")}
+              </Button>
+            </Link>
+            <Link href={`/admin/solutions/${solution.id}/history`}>
+              <Button size="sm" variant="outline">
+                {tAdmin("history")}
+              </Button>
+            </Link>
+            <DeleteButton path={`/api/solutions/${solution.id}`} redirectTo="/solutions" />
+          </div>
+        )}
       </div>
 
       {/* Description & features */}

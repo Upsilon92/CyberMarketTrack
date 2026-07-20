@@ -187,7 +187,7 @@
     "COMPANY_RENAME": "Renommage",
     "ACQUISITION": "Rachat",
     "CO_INVESTMENT": "Co-investissement",
-    "ABSORPTION": "Absorption totale",
+    "ABSORPTION": "Absorption de filiale",
     "DIVESTMENT": "Reprise d'indépendance",
     "MERGER": "Fusion",
     "SHUTDOWN": "Fermeture",
@@ -354,6 +354,7 @@
     "history": "Éditeur d'historique",
     "historyOf": "Historique de {name}",
     "addEvent": "Ajouter un événement",
+    "addEventPickHint": "Choisissez l'entité concernée : vous ajouterez l'événement dans son historique.",
     "prepend": {
       "title": "Ajouter un historique antérieur",
       "hint": "Si cette solution existait AVANT sa création actuelle sous un autre nom ou chez un autre éditeur, renseignez-le ici : l'ancre sera reculée et les événements de renommage/transfert créés automatiquement.",

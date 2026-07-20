@@ -1,9 +1,13 @@
 // Market news: reverse-chronological feed of ALL events, filterable by event
 // type, year and company — turns the base into a market-watch tool.
+import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { DeleteButton } from "@/components/admin/delete-button";
 import { EventLine } from "@/components/event-line";
 import { FilterBar, type FilterDef } from "@/components/filter-bar";
+import { auth } from "@/lib/auth";
 import { loadAllEvents, loadMarket } from "@/lib/queries";
 import { EVENT_TYPES } from "@/lib/constants";
 
@@ -18,6 +22,8 @@ export default async function NewsPage({
   const t = await getTranslations("news");
   const tTypes = await getTranslations("eventTypes");
   const tCommon = await getTranslations("common");
+  const tAdmin = await getTranslations("admin");
+  const isAdmin = (await auth())?.user?.role === "ADMIN";
   const [events, market] = await Promise.all([loadAllEvents(), loadMarket()]);
 
   let list = events;
@@ -62,9 +68,16 @@ export default async function NewsPage({
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold">{t("title")}</h1>
-        <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">{t("title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
+        </div>
+        {isAdmin && (
+          <Link href="/admin/events/new">
+            <Button size="sm">+ {tAdmin("addEvent")}</Button>
+          </Link>
+        )}
       </div>
 
       <FilterBar filters={filters} allLabel={tCommon("all")} resetLabel={tCommon("reset")} />
@@ -74,10 +87,30 @@ export default async function NewsPage({
       <Card>
         <CardContent className="divide-y [&>*]:py-3">
           {list.map((e) => (
-            <div key={e.id}>
-              <EventLine event={e} logoSide="right" />
-              {e.description && (
-                <p className="text-xs text-muted-foreground mt-1 sm:ml-28">{e.description}</p>
+            <div key={e.id} className="flex items-start gap-3">
+              <div className="flex-1 min-w-0">
+                <EventLine event={e} logoSide="right" />
+                {e.description && (
+                  <p className="text-xs text-muted-foreground mt-1 sm:ml-28">{e.description}</p>
+                )}
+              </div>
+              {isAdmin && (
+                <div className="shrink-0 flex items-center gap-2">
+                  {(e.subjectCompanyId || e.subjectSolutionId) && (
+                    <Link
+                      href={
+                        e.subjectCompanyId
+                          ? `/admin/companies/${e.subjectCompanyId}/history`
+                          : `/admin/solutions/${e.subjectSolutionId}/history`
+                      }
+                    >
+                      <Button size="sm" variant="outline">
+                        {tAdmin("edit")}
+                      </Button>
+                    </Link>
+                  )}
+                  <DeleteButton path={`/api/events/${e.id}`} confirmKey="deleteEventConfirm" />
+                </div>
               )}
             </div>
           ))}

@@ -8,6 +8,8 @@ import { CompanyLogo } from "@/components/company-logo";
 import { Flag } from "@/components/flag";
 import { MultiFilterBar, type MultiFilterGroup } from "@/components/multi-filter-bar";
 import { LiveListFilter, type LiveListItem } from "@/components/live-list-filter";
+import { Button } from "@/components/ui/button";
+import { auth } from "@/lib/auth";
 import { loadMarket, ownerDisplayName, isStale } from "@/lib/queries";
 import { formerNamePeriods } from "@/lib/timeline";
 import { formatRange, formatDate, type Locale } from "@/lib/date";
@@ -36,6 +38,8 @@ export default async function CompaniesPage({
   const tTypes = await getTranslations("companyTypes");
   const tContinents = await getTranslations("continents");
   const tCommon = await getTranslations("common");
+  const tAdmin = await getTranslations("admin");
+  const isAdmin = (await auth())?.user?.role === "ADMIN";
   const market = await loadMarket();
 
   // Multi-select: each param is a comma-separated list; OR within a group,
@@ -188,7 +192,14 @@ export default async function CompaniesPage({
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">{t("title")}</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold">{t("title")}</h1>
+        {isAdmin && (
+          <Link href="/admin/companies/new">
+            <Button size="sm">+ {tAdmin("newCompany")}</Button>
+          </Link>
+        )}
+      </div>
       <MultiFilterBar
         groups={groups}
         sort={{

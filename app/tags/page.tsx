@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { TagBadge } from "@/components/tag-badge";
+import { auth } from "@/lib/auth";
 import { loadMarket } from "@/lib/queries";
 import { prisma } from "@/lib/prisma";
 import { TAG_FAMILIES, SCOPE_CATEGORIES } from "@/lib/constants";
@@ -16,6 +18,8 @@ export default async function TagsPage() {
   const t = await getTranslations("tags");
   const tFamilies = await getTranslations("tagFamilies");
   const tScopeCat = await getTranslations("scopeCategories");
+  const tAdmin = await getTranslations("admin");
+  const isAdmin = (await auth())?.user?.role === "ADMIN";
   const market = await loadMarket();
   const tags = await prisma.tag.findMany({ orderBy: { slug: "asc" } });
 
@@ -30,7 +34,11 @@ export default async function TagsPage() {
     return (
       <div id={tag.slug} className="space-y-1.5 scroll-mt-20">
         <div className="flex items-center gap-2">
-          <TagBadge tag={tag} locale={locale} />
+          <TagBadge
+            tag={tag}
+            locale={locale}
+            href={isAdmin ? `/admin/tags/${tag.id}` : undefined}
+          />
           <span className="text-xs text-muted-foreground">
             {t("solutionsTagged", { count: sols.length })}
           </span>
@@ -60,7 +68,14 @@ export default async function TagsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">{t("title")}</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold">{t("title")}</h1>
+        {isAdmin && (
+          <Link href="/admin/tags/new">
+            <Button size="sm">+ {tAdmin("newTag")}</Button>
+          </Link>
+        )}
+      </div>
 
       {TAG_FAMILIES.map((family) => {
         const familyTags = tags.filter((tag) => tag.family === family);

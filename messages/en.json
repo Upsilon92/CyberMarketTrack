@@ -187,7 +187,7 @@
     "COMPANY_RENAME": "Rename",
     "ACQUISITION": "Acquisition",
     "CO_INVESTMENT": "Co-investment",
-    "ABSORPTION": "Full absorption",
+    "ABSORPTION": "Subsidiary absorption",
     "DIVESTMENT": "Divestment",
     "MERGER": "Merger",
     "SHUTDOWN": "Shutdown",
@@ -354,6 +354,7 @@
     "history": "History editor",
     "historyOf": "History of {name}",
     "addEvent": "Add an event",
+    "addEventPickHint": "Pick the entity it concerns: you'll add the event in its history.",
     "prepend": {
       "title": "Add an earlier past",
       "hint": "If this solution existed BEFORE its current creation under another name or another vendor, enter it here: the anchor is moved back and the rename/transfer events are created automatically.",

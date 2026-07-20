@@ -2,15 +2,27 @@
 // Server component; the interactive bits are small client components.
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { auth, signOut } from "@/lib/auth";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { MobileNav } from "@/components/mobile-nav";
 import { NavLink } from "@/components/nav-link";
 import { HeaderSearch } from "@/components/header-search";
 import { BrandLogo } from "@/components/brand-logo";
+import { UserMenu } from "@/components/user-menu";
 
 export async function Header() {
   const t = await getTranslations("nav");
+  const tLogin = await getTranslations("login");
+  const tAdmin = await getTranslations("admin");
+
+  const session = await auth();
+  const isAdmin = session?.user?.role === "ADMIN";
+
+  async function doSignOut() {
+    "use server";
+    await signOut({ redirectTo: "/" });
+  }
 
   const links = [
     { href: "/", label: t("home") },
@@ -44,15 +56,25 @@ export async function Header() {
           <HeaderSearch />
           <LocaleSwitcher />
           <ThemeToggle />
-          {/* Settings / admin access (gear) */}
-          <Link
-            href="/admin"
-            aria-label={t("admin")}
-            title={t("admin")}
-            className="inline-flex items-center justify-center w-9 h-9 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-          >
-            <GearIcon />
-          </Link>
+          {/* Settings / admin access (gear) — only when signed in as admin */}
+          {isAdmin && (
+            <Link
+              href="/admin"
+              aria-label={t("admin")}
+              title={t("admin")}
+              className="inline-flex items-center justify-center w-9 h-9 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            >
+              <GearIcon />
+            </Link>
+          )}
+          <UserMenu
+            isLoggedIn={!!session?.user}
+            username={session?.user?.name}
+            loginLabel={tLogin("title")}
+            accountLabel={tAdmin("account")}
+            logoutLabel={tLogin("signOut")}
+            logoutAction={doSignOut}
+          />
         </div>
       </div>
     </header>

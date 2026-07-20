@@ -8,6 +8,8 @@ import { CompanyLogo } from "@/components/company-logo";
 import { Flag } from "@/components/flag";
 import { MultiTagFilter } from "@/components/multi-tag-filter";
 import { LiveListFilter, type LiveListItem } from "@/components/live-list-filter";
+import { Button } from "@/components/ui/button";
+import { auth } from "@/lib/auth";
 import { loadMarket, ownerDisplayName } from "@/lib/queries";
 import { formerNamePeriods } from "@/lib/timeline";
 import { formatRange, type Locale } from "@/lib/date";
@@ -26,6 +28,8 @@ export default async function SolutionsPage({
   const t = await getTranslations("solutions");
   const tFamilies = await getTranslations("tagFamilies");
   const tCommon = await getTranslations("common");
+  const tAdmin = await getTranslations("admin");
+  const isAdmin = (await auth())?.user?.role === "ADMIN";
   const market = await loadMarket();
   const allTags = await prisma.tag.findMany({ orderBy: { slug: "asc" } });
 
@@ -117,7 +121,14 @@ export default async function SolutionsPage({
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">{t("title")}</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold">{t("title")}</h1>
+        {isAdmin && (
+          <Link href="/admin/solutions/new">
+            <Button size="sm">+ {tAdmin("newSolution")}</Button>
+          </Link>
+        )}
+      </div>
 
       <MultiTagFilter
         groups={TAG_FAMILIES.map((family) => ({

@@ -82,7 +82,7 @@ export function SolutionForm({
       };
       if (solutionId) await api(`/api/solutions/${solutionId}`, "PUT", payload);
       else await api("/api/solutions", "POST", payload);
-      router.push("/admin/solutions");
+      router.push(solutionId ? `/solutions/${solutionId}` : "/solutions");
       router.refresh();
     } catch (err) {
       if (err instanceof ApiError && err.fields) setFieldErrors(err.fields);
