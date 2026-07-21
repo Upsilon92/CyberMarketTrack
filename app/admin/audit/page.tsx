@@ -45,21 +45,31 @@ export default async function AdminAudit({
       {entries.length === 0 && <p className="text-muted-foreground">{ta("empty")}</p>}
 
       <div className="divide-y border rounded-md text-sm">
+        <div className="p-2.5 flex items-center gap-2 text-xs font-medium text-muted-foreground bg-muted/40">
+          <span className="w-36 shrink-0">{ta("date")}</span>
+          <span className="w-24 shrink-0">{ta("action")}</span>
+          <span className="w-28 shrink-0">{ta("entity")}</span>
+          <span>{ta("summary")}</span>
+        </div>
         {entries.map((e) => (
           <div key={e.id} className="p-2.5 flex flex-wrap items-center gap-2">
             <span className="text-muted-foreground tabular-nums w-36 shrink-0">
               {e.timestamp.toLocaleString(locale)}
             </span>
-            <Badge
-              variant={e.action === "DELETE" ? "destructive" : "outline"}
-              className="text-[10px]"
-            >
-              {e.action}
-            </Badge>
-            <Badge variant="secondary" className="text-[10px]">
-              {e.entityType}
-            </Badge>
-            <span>{e.summary}</span>
+            <span className="w-24 shrink-0">
+              <Badge
+                variant={e.action === "DELETE" ? "destructive" : "outline"}
+                className="text-[10px]"
+              >
+                {ta.has(`actions.${e.action}`) ? ta(`actions.${e.action}`) : e.action}
+              </Badge>
+            </span>
+            <span className="w-28 shrink-0">
+              <Badge variant="secondary" className="text-[10px]">
+                {ta.has(`entities.${e.entityType}`) ? ta(`entities.${e.entityType}`) : e.entityType}
+              </Badge>
+            </span>
+            <span className="min-w-0">{e.summary}</span>
           </div>
         ))}
       </div>

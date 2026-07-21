@@ -3,8 +3,6 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { auth, signOut } from "@/lib/auth";
-import { LocaleSwitcher } from "@/components/locale-switcher";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { MobileNav } from "@/components/mobile-nav";
 import { NavLink } from "@/components/nav-link";
 import { HeaderSearch } from "@/components/header-search";
@@ -13,8 +11,6 @@ import { UserMenu } from "@/components/user-menu";
 
 export async function Header() {
   const t = await getTranslations("nav");
-  const tLogin = await getTranslations("login");
-  const tAdmin = await getTranslations("admin");
 
   const session = await auth();
   const isAdmin = session?.user?.role === "ADMIN";
@@ -54,8 +50,6 @@ export async function Header() {
 
         <div className="ml-auto flex items-center gap-1">
           <HeaderSearch />
-          <LocaleSwitcher />
-          <ThemeToggle />
           {/* Settings / admin access (gear) — only when signed in as admin */}
           {isAdmin && (
             <Link
@@ -70,9 +64,6 @@ export async function Header() {
           <UserMenu
             isLoggedIn={!!session?.user}
             username={session?.user?.name}
-            loginLabel={tLogin("title")}
-            accountLabel={tAdmin("account")}
-            logoutLabel={tLogin("signOut")}
             logoutAction={doSignOut}
           />
         </div>

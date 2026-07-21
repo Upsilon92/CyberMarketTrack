@@ -454,7 +454,25 @@
       "entity": "Entité",
       "summary": "Résumé",
       "empty": "Aucune entrée.",
-      "filterEntity": "Type d'entité"
+      "filterEntity": "Type d'entité",
+      "actions": {
+        "CREATE": "Création",
+        "UPDATE": "Modification",
+        "DELETE": "Suppression",
+        "IMPORT": "Import",
+        "RESTORE": "Restauration"
+      },
+      "entities": {
+        "Company": "Entreprise",
+        "Solution": "Solution",
+        "Tag": "Tag",
+        "User": "Utilisateur",
+        "Event": "Événement",
+        "Revenue": "Chiffre d'affaires",
+        "Alias": "Alias",
+        "Comparator": "Comparateur",
+        "Database": "Base de données"
+      }
     },
     "reviewPage": {
       "hint": "Liste de travail pour la maintenance : fiches périmées et logos cassés.",

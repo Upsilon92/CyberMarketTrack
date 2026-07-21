@@ -454,7 +454,25 @@
       "entity": "Entity",
       "summary": "Summary",
       "empty": "No entry.",
-      "filterEntity": "Entity type"
+      "filterEntity": "Entity type",
+      "actions": {
+        "CREATE": "Created",
+        "UPDATE": "Updated",
+        "DELETE": "Deleted",
+        "IMPORT": "Import",
+        "RESTORE": "Restore"
+      },
+      "entities": {
+        "Company": "Company",
+        "Solution": "Solution",
+        "Tag": "Tag",
+        "User": "User",
+        "Event": "Event",
+        "Revenue": "Revenue",
+        "Alias": "Alias",
+        "Comparator": "Comparator",
+        "Database": "Database"
+      }
     },
     "reviewPage": {
       "hint": "Maintenance work list: stale pages and broken logos.",

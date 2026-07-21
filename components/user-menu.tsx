@@ -1,16 +1,26 @@
 "use client";
 
-// Header account control. Signed out: a "Login" button linking to /login.
-// Signed in (admin): a dropdown with Account and Logout. The logout is a server
-// action passed from the (server) header.
+// Consolidated header account/settings menu — one compact button on mobile.
+// Theme and Language are nested submenus (click the user button → click Theme →
+// pick Light/Dark/System; same for Language). The logout is a server action
+// passed from the (server) header.
 import Link from "next/link";
+import { useEffect, useState, useTransition } from "react";
+import { useTheme } from "next-themes";
+import { useLocale, useTranslations } from "next-intl";
+import { setLocale } from "@/app/actions/locale";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -33,53 +43,94 @@ function UserIcon() {
   );
 }
 
+const THEME_ICON: Record<string, string> = { light: "☀️", dark: "🌙", system: "🖥️" };
+
 export function UserMenu({
   isLoggedIn,
   username,
-  loginLabel,
-  accountLabel,
-  logoutLabel,
   logoutAction,
 }: {
   isLoggedIn: boolean;
   username?: string | null;
-  loginLabel: string;
-  accountLabel: string;
-  logoutLabel: string;
   logoutAction: () => Promise<void>;
 }) {
-  if (!isLoggedIn) {
-    return (
-      <Link href="/login">
-        <Button variant="ghost" size="sm" className="gap-1.5" title={loginLabel}>
-          <UserIcon />
-          <span className="hidden sm:inline">{loginLabel}</span>
-        </Button>
-      </Link>
-    );
-  }
+  const tCommon = useTranslations("common");
+  const tLogin = useTranslations("login");
+  const tAdmin = useTranslations("admin");
+  const { theme, setTheme } = useTheme();
+  const locale = useLocale();
+  const [, startTransition] = useTransition();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  const currentTheme = mounted ? (theme ?? "system") : "system";
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="gap-1.5" aria-label={username ?? loginLabel}>
+        <Button variant="ghost" size="sm" className="w-9" aria-label={tLogin("title")}>
           <UserIcon />
-          <span className="hidden sm:inline max-w-[10rem] truncate">{username}</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        {username && <DropdownMenuLabel>{username}</DropdownMenuLabel>}
-        <DropdownMenuItem asChild>
-          <Link href="/admin/account">{accountLabel}</Link>
-        </DropdownMenuItem>
+      <DropdownMenuContent align="end" className="w-52">
+        {isLoggedIn && (
+          <>
+            {username && <DropdownMenuLabel>{username}</DropdownMenuLabel>}
+            <DropdownMenuItem asChild>
+              <Link href="/admin/account">{tAdmin("account")}</Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
+
+        {/* Theme submenu */}
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>
+            <span className="mr-2">{THEME_ICON[currentTheme]}</span>
+            {tCommon("theme")}
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent>
+            <DropdownMenuRadioGroup value={currentTheme} onValueChange={setTheme}>
+              <DropdownMenuRadioItem value="light">☀️ {tCommon("themeLight")}</DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="dark">🌙 {tCommon("themeDark")}</DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="system">
+                🖥️ {tCommon("themeSystem")}
+              </DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+
+        {/* Language submenu */}
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>
+            <span className="mr-2">🌐</span>
+            {tCommon("language")}
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent>
+            <DropdownMenuRadioGroup
+              value={locale}
+              onValueChange={(v) => startTransition(() => setLocale(v))}
+            >
+              <DropdownMenuRadioItem value="fr">🇫🇷 Français</DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="en">🇬🇧 English</DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+
         <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <form action={logoutAction}>
-            <button type="submit" className="w-full text-left">
-              {logoutLabel}
-            </button>
-          </form>
-        </DropdownMenuItem>
+        {isLoggedIn ? (
+          <DropdownMenuItem asChild>
+            <form action={logoutAction}>
+              <button type="submit" className="w-full text-left">
+                {tLogin("signOut")}
+              </button>
+            </form>
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem asChild>
+            <Link href="/login">{tLogin("submit")}</Link>
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
