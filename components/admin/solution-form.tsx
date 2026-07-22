@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { api, ApiError } from "@/components/admin/api";
+import { maybeSubmitProposal } from "@/components/proposal-submit";
 import { TAG_FAMILIES } from "@/lib/constants";
 
 export interface SolutionFormValues {
@@ -35,17 +36,26 @@ export function SolutionForm({
   initial,
   companies,
   tags,
+  proposalMode,
+  approveProposalId,
+  onDone,
 }: {
   solutionId?: string;
   initial?: Partial<SolutionFormValues>;
   companies: { id: string; label: string }[];
   tags: TagOption[];
+  proposalMode?: boolean;
+  approveProposalId?: string;
+  onDone?: () => void;
 }) {
   const router = useRouter();
   const locale = useLocale();
   const t = useTranslations("admin");
   const tf = useTranslations("admin.fields");
   const tFamilies = useTranslations("tagFamilies");
+  const tProp = useTranslations("proposals");
+  const [note, setNote] = useState("");
+  const [done, setDone] = useState(false);
 
   const [values, setValues] = useState<SolutionFormValues>({
     initialName: initial?.initialName ?? "",
@@ -80,6 +90,17 @@ export function SolutionForm({
         website: values.website,
         tagIds: values.tagIds,
       };
+      const handled = await maybeSubmitProposal(
+        proposalMode || approveProposalId
+          ? { proposalMode, approveProposalId, entityType: "Solution", targetId: solutionId ?? null, note }
+          : undefined,
+        payload
+      );
+      if (handled) {
+        if (onDone) onDone();
+        else setDone(true);
+        return;
+      }
       if (solutionId) await api(`/api/solutions/${solutionId}`, "PUT", payload);
       else await api("/api/solutions", "POST", payload);
       router.push(solutionId ? `/solutions/${solutionId}` : "/solutions");
@@ -93,6 +114,10 @@ export function SolutionForm({
   }
 
   const errCls = (field: string) => (fieldErrors[field] ? "border-destructive" : "");
+
+  if (done) {
+    return <p className="text-sm text-emerald-600 dark:text-emerald-400">{tProp("submitted")}</p>;
+  }
 
   return (
     <form onSubmit={onSubmit} className="space-y-4 max-w-2xl">
@@ -226,11 +251,18 @@ export function SolutionForm({
         })}
       </div>
 
+      {proposalMode && (
+        <div className="space-y-1.5">
+          <Label htmlFor="note">{tProp("note")}</Label>
+          <Textarea id="note" rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
+        </div>
+      )}
+
       <div className="flex gap-2">
         <Button type="submit" disabled={busy}>
-          {busy ? t("saving") : t("save")}
+          {busy ? t("saving") : proposalMode ? tProp("submit") : t("save")}
         </Button>
-        <Button type="button" variant="outline" onClick={() => router.back()}>
+        <Button type="button" variant="outline" onClick={() => (onDone ? onDone() : router.back())}>
           {t("cancel")}
         </Button>
       </div>

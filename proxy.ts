@@ -22,8 +22,15 @@ export default auth((req) => {
   // First-run admin creation must be reachable without a session (it guards
   // itself server-side: it only works while no user exists yet).
   const isSetupApi = nextUrl.pathname.startsWith("/api/setup");
+  // Public proposal submission (rate-limited by IP). The review actions on
+  // /api/proposals/[id] enforce requireAdmin themselves.
+  const isProposalsApi = nextUrl.pathname === "/api/proposals";
   const isApiMutation =
-    nextUrl.pathname.startsWith("/api") && !isAuthApi && !isSetupApi && req.method !== "GET";
+    nextUrl.pathname.startsWith("/api") &&
+    !isAuthApi &&
+    !isSetupApi &&
+    !isProposalsApi &&
+    req.method !== "GET";
 
   if (isAdminArea && !isLoggedIn) {
     const loginUrl = new URL("/login", nextUrl);

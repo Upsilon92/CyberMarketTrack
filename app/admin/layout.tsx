@@ -12,8 +12,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!session?.user || session.user.role !== "ADMIN") redirect("/login");
 
   const t = await getTranslations("admin");
+  const tProp = await getTranslations("proposals");
   const links = [
     { href: "/admin", label: t("dashboard") },
+    { href: "/admin/proposals", label: tProp("navLabel") },
     { href: "/admin/import", label: t("import") },
     { href: "/admin/audit", label: t("audit") },
     { href: "/admin/review", label: t("review") },

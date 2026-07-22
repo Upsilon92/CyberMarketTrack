@@ -29,6 +29,7 @@ export default async function SolutionsPage({
   const tFamilies = await getTranslations("tagFamilies");
   const tCommon = await getTranslations("common");
   const tAdmin = await getTranslations("admin");
+  const tProp = await getTranslations("proposals");
   const isAdmin = (await auth())?.user?.role === "ADMIN";
   const market = await loadMarket();
   const allTags = await prisma.tag.findMany({ orderBy: { slug: "asc" } });
@@ -108,7 +109,7 @@ export default async function SolutionsPage({
               </div>
               <div className="flex flex-wrap gap-1">
                 {s.tags.map((tag) => (
-                  <TagBadge key={tag.id} tag={tag} locale={locale} />
+                  <TagBadge key={tag.id} tag={tag} locale={locale} asLink={false} />
                 ))}
               </div>
             </div>
@@ -123,9 +124,15 @@ export default async function SolutionsPage({
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">{t("title")}</h1>
-        {isAdmin && (
+        {isAdmin ? (
           <Link href="/admin/solutions/new">
             <Button size="sm">+ {tAdmin("newSolution")}</Button>
+          </Link>
+        ) : (
+          <Link href="/propose?type=solution">
+            <Button size="sm" variant="outline">
+              {tProp("proposeAddSolution")}
+            </Button>
           </Link>
         )}
       </div>

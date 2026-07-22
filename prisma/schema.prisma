@@ -267,3 +267,34 @@ model AuditLog {
   @@index([entityType, entityId])
   @@index([timestamp])
 }
+
+// -----------------------------------------------------------------------------
+// Proposal — a suggested change to the knowledge base awaiting admin review.
+// Nothing here is applied to the base until an admin approves it (the payload is
+// then run through the SAME create/update logic as the admin routes).
+//   kind:       CREATE | UPDATE (later: DELETE)
+//   entityType: Company | Solution | Event | Tag
+//   payload:    JSON of the proposed fields (validated by the entity's Zod schema)
+//   origin:     USER (public submission) | AUTO (derived from the RSS feed, later)
+// String enums for the same SQLite reason as everywhere else (see top of file).
+// `submittedBy` is nullable now and becomes the userId once auth lands.
+// -----------------------------------------------------------------------------
+model Proposal {
+  id          String    @id @default(cuid())
+  kind        String // CREATE | UPDATE
+  entityType  String // Company | Solution | Event | Tag
+  targetId    String? // the entity being modified (UPDATE)
+  payload     String // JSON of proposed fields
+  note        String? // optional rationale from the proposer
+  origin      String    @default("USER") // USER | AUTO
+  status      String    @default("PENDING") // PENDING | APPROVED | REJECTED
+  sourceIp    String? // for per-IP rate limiting of USER proposals
+  submittedBy String? // future: userId once authenticated
+  reviewNote  String? // admin note on the decision
+  reviewedAt  DateTime?
+  reviewedBy  String?
+  createdAt   DateTime  @default(now())
+
+  @@index([status, createdAt])
+  @@index([sourceIp, createdAt])
+}

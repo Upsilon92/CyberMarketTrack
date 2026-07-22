@@ -63,6 +63,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
   const tStatuses = await getTranslations("statuses");
   const tOwnership = await getTranslations("ownership");
   const tAdmin = await getTranslations("admin");
+  const tProp = await getTranslations("proposals");
   const isAdmin = (await auth())?.user?.role === "ADMIN";
 
   const market = await loadMarket();
@@ -150,6 +151,15 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
               </Button>
             </Link>
             <DeleteButton path={`/api/companies/${company.id}`} redirectTo="/companies" />
+          </div>
+        )}
+        {!isAdmin && (
+          <div className="pt-1">
+            <Link href={`/propose?type=company&id=${company.id}`}>
+              <Button size="sm" variant="outline">
+                {tProp("proposeChange")}
+              </Button>
+            </Link>
           </div>
         )}
       </div>

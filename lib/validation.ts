@@ -232,3 +232,21 @@ export const setupSchema = z.object({
   password: z.string().min(10, "tooShort").max(200),
 });
 export type SetupInput = z.infer<typeof setupSchema>;
+
+// --- Proposal submission envelope -----------------------------------------------------
+// The `payload` is validated separately against the entity's own schema
+// (see lib/proposals.ts) since it depends on entityType.
+
+export const proposalSubmitSchema = z.object({
+  kind: z.enum(["CREATE", "UPDATE"]),
+  entityType: z.enum(["Company", "Solution", "Event", "Tag"]),
+  targetId: z.string().nullable().optional(),
+  payload: z.unknown(),
+  note: z
+    .string()
+    .trim()
+    .max(1000)
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
+});
+export type ProposalSubmitInput = z.infer<typeof proposalSubmitSchema>;

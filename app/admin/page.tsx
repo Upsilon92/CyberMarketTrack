@@ -9,8 +9,12 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminHome() {
   const t = await getTranslations("admin");
+  const tProp = await getTranslations("proposals");
   const market = await loadMarket();
-  const eventCount = await prisma.event.count();
+  const [eventCount, pendingProposals] = await Promise.all([
+    prisma.event.count(),
+    prisma.proposal.count({ where: { status: "PENDING" } }),
+  ]);
   const staleCount =
     market.companies.filter((c) => isStale(c.updatedAt)).length +
     market.solutions.filter((s) => isStale(s.updatedAt)).length;
@@ -18,6 +22,7 @@ export default async function AdminHome() {
   // Companies/Solutions/Tags are managed on their public pages now, so the
   // dashboard only surfaces the admin-only tools.
   const cards = [
+    { href: "/admin/proposals", label: tProp("navLabel"), count: pendingProposals },
     { href: "/admin/audit", label: t("audit"), count: eventCount },
     { href: "/admin/review", label: t("review"), count: staleCount },
     { href: "/admin/import", label: t("import"), count: null },

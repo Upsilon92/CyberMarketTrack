@@ -14,6 +14,7 @@ export function TagBadge({
   tag,
   locale,
   href,
+  asLink = true,
 }: {
   tag: {
     slug: string;
@@ -26,18 +27,24 @@ export function TagBadge({
   locale: string;
   /** Override the link target (e.g. the admin edit page). Defaults to /tags#slug. */
   href?: string;
+  /** Render a plain badge (no <a>) when already inside a clickable card. */
+  asLink?: boolean;
 }) {
   const label = locale === "fr" ? tag.labelFr : tag.labelEn;
   const description = locale === "fr" ? tag.descriptionFr : tag.descriptionEn;
+  const badge = (
+    <Badge
+      variant="outline"
+      className={`${FAMILY_STYLES[tag.family as TagFamily] ?? ""} ${description ? "cursor-help" : ""}`}
+    >
+      {label}
+      {description && <span className="ml-1 opacity-60">ⓘ</span>}
+    </Badge>
+  );
+  if (!asLink) return <span title={description ?? undefined}>{badge}</span>;
   return (
     <Link href={href ?? `/tags#${tag.slug}`} title={description ?? undefined}>
-      <Badge
-        variant="outline"
-        className={`${FAMILY_STYLES[tag.family as TagFamily] ?? ""} ${description ? "cursor-help" : ""}`}
-      >
-        {label}
-        {description && <span className="ml-1 opacity-60">ⓘ</span>}
-      </Badge>
+      {badge}
     </Link>
   );
 }

@@ -19,6 +19,7 @@ export default async function TagsPage() {
   const tFamilies = await getTranslations("tagFamilies");
   const tScopeCat = await getTranslations("scopeCategories");
   const tAdmin = await getTranslations("admin");
+  const tProp = await getTranslations("proposals");
   const isAdmin = (await auth())?.user?.role === "ADMIN";
   const market = await loadMarket();
   const tags = await prisma.tag.findMany({ orderBy: { slug: "asc" } });
@@ -70,9 +71,15 @@ export default async function TagsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">{t("title")}</h1>
-        {isAdmin && (
+        {isAdmin ? (
           <Link href="/admin/tags/new">
             <Button size="sm">+ {tAdmin("newTag")}</Button>
+          </Link>
+        ) : (
+          <Link href="/propose?type=tag">
+            <Button size="sm" variant="outline">
+              {tProp("proposeAddTag")}
+            </Button>
           </Link>
         )}
       </div>

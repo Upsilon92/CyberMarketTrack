@@ -39,6 +39,7 @@ export default async function CompaniesPage({
   const tContinents = await getTranslations("continents");
   const tCommon = await getTranslations("common");
   const tAdmin = await getTranslations("admin");
+  const tProp = await getTranslations("proposals");
   const isAdmin = (await auth())?.user?.role === "ADMIN";
   const market = await loadMarket();
 
@@ -194,9 +195,15 @@ export default async function CompaniesPage({
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">{t("title")}</h1>
-        {isAdmin && (
+        {isAdmin ? (
           <Link href="/admin/companies/new">
             <Button size="sm">+ {tAdmin("newCompany")}</Button>
+          </Link>
+        ) : (
+          <Link href="/propose?type=company">
+            <Button size="sm" variant="outline">
+              {tProp("proposeAddCompany")}
+            </Button>
           </Link>
         )}
       </div>

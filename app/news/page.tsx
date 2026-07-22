@@ -23,6 +23,7 @@ export default async function NewsPage({
   const tTypes = await getTranslations("eventTypes");
   const tCommon = await getTranslations("common");
   const tAdmin = await getTranslations("admin");
+  const tProp = await getTranslations("proposals");
   const isAdmin = (await auth())?.user?.role === "ADMIN";
   const [events, market] = await Promise.all([loadAllEvents(), loadMarket()]);
 
@@ -73,9 +74,15 @@ export default async function NewsPage({
           <h1 className="text-2xl font-bold">{t("title")}</h1>
           <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
         </div>
-        {isAdmin && (
+        {isAdmin ? (
           <Link href="/admin/events/new">
             <Button size="sm">+ {tAdmin("addEvent")}</Button>
+          </Link>
+        ) : (
+          <Link href="/propose?type=event">
+            <Button size="sm" variant="outline">
+              {tProp("proposeAddEvent")}
+            </Button>
           </Link>
         )}
       </div>

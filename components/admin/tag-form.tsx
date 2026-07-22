@@ -9,7 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DeleteButton } from "@/components/admin/delete-button";
+import { Textarea } from "@/components/ui/textarea";
 import { api, ApiError } from "@/components/admin/api";
+import { maybeSubmitProposal } from "@/components/proposal-submit";
 import { TAG_FAMILIES, SCOPE_CATEGORIES } from "@/lib/constants";
 
 export interface TagFormValues {
@@ -22,12 +24,27 @@ export interface TagFormValues {
   category: string;
 }
 
-export function TagForm({ tagId, initial }: { tagId?: string; initial?: Partial<TagFormValues> }) {
+export function TagForm({
+  tagId,
+  initial,
+  proposalMode,
+  approveProposalId,
+  onDone,
+}: {
+  tagId?: string;
+  initial?: Partial<TagFormValues>;
+  proposalMode?: boolean;
+  approveProposalId?: string;
+  onDone?: () => void;
+}) {
   const router = useRouter();
   const t = useTranslations("admin");
   const tf = useTranslations("admin.fields");
   const tFamilies = useTranslations("tagFamilies");
   const tScopeCat = useTranslations("scopeCategories");
+  const tProp = useTranslations("proposals");
+  const [note, setNote] = useState("");
+  const [done, setDone] = useState(false);
 
   const [values, setValues] = useState<TagFormValues>({
     slug: initial?.slug ?? "",
@@ -52,6 +69,17 @@ export function TagForm({ tagId, initial }: { tagId?: string; initial?: Partial<
         ...values,
         category: values.family === "SCOPE" ? values.category || null : null,
       };
+      const handled = await maybeSubmitProposal(
+        proposalMode || approveProposalId
+          ? { proposalMode, approveProposalId, entityType: "Tag", targetId: tagId ?? null, note }
+          : undefined,
+        payload
+      );
+      if (handled) {
+        if (onDone) onDone();
+        else setDone(true);
+        return;
+      }
       if (tagId) await api(`/api/tags/${tagId}`, "PUT", payload);
       else await api("/api/tags", "POST", payload);
       router.push("/tags");
@@ -61,6 +89,10 @@ export function TagForm({ tagId, initial }: { tagId?: string; initial?: Partial<
     } finally {
       setBusy(false);
     }
+  }
+
+  if (done) {
+    return <p className="text-sm text-emerald-600 dark:text-emerald-400">{tProp("submitted")}</p>;
   }
 
   return (
@@ -150,14 +182,21 @@ export function TagForm({ tagId, initial }: { tagId?: string; initial?: Partial<
         )}
       </div>
 
+      {proposalMode && (
+        <div className="space-y-1.5">
+          <Label htmlFor="note">{tProp("note")}</Label>
+          <Textarea id="note" rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
+        </div>
+      )}
+
       <div className="flex items-center gap-2">
         <Button type="submit" disabled={busy}>
-          {busy ? t("saving") : t("save")}
+          {busy ? t("saving") : proposalMode ? tProp("submit") : t("save")}
         </Button>
-        <Button type="button" variant="outline" onClick={() => router.back()}>
+        <Button type="button" variant="outline" onClick={() => (onDone ? onDone() : router.back())}>
           {t("cancel")}
         </Button>
-        {tagId && (
+        {tagId && !proposalMode && !approveProposalId && (
           <span className="ml-auto">
             <DeleteButton path={`/api/tags/${tagId}`} redirectTo="/tags" />
           </span>

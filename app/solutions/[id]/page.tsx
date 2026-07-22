@@ -33,6 +33,7 @@ export default async function SolutionPage({ params }: { params: Promise<{ id: s
   const tCommon = await getTranslations("common");
   const tSolStatuses = await getTranslations("solutionStatuses");
   const tAdmin = await getTranslations("admin");
+  const tProp = await getTranslations("proposals");
   const isAdmin = (await auth())?.user?.role === "ADMIN";
 
   const market = await loadMarket();
@@ -155,6 +156,15 @@ export default async function SolutionPage({ params }: { params: Promise<{ id: s
               </Button>
             </Link>
             <DeleteButton path={`/api/solutions/${solution.id}`} redirectTo="/solutions" />
+          </div>
+        )}
+        {!isAdmin && (
+          <div className="pt-1">
+            <Link href={`/propose?type=solution&id=${solution.id}`}>
+              <Button size="sm" variant="outline">
+                {tProp("proposeChange")}
+              </Button>
+            </Link>
           </div>
         )}
       </div>

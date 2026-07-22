@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { api, ApiError } from "@/components/admin/api";
+import { maybeSubmitProposal } from "@/components/proposal-submit";
 import { COMPANY_TYPES } from "@/lib/constants";
 
 export interface CompanyFormValues {
@@ -28,14 +29,25 @@ export interface CompanyFormValues {
 export function CompanyForm({
   companyId,
   initial,
+  proposalMode,
+  approveProposalId,
+  onDone,
 }: {
   companyId?: string; // undefined = create
   initial?: Partial<CompanyFormValues>;
+  /** Submit as a public proposal instead of a direct change */
+  proposalMode?: boolean;
+  /** Admin review: approve this proposal with the (edited) values */
+  approveProposalId?: string;
+  onDone?: () => void;
 }) {
   const router = useRouter();
   const t = useTranslations("admin");
   const tf = useTranslations("admin.fields");
   const tTypes = useTranslations("companyTypes");
+  const tProp = useTranslations("proposals");
+  const [note, setNote] = useState("");
+  const [done, setDone] = useState(false);
 
   const [values, setValues] = useState<CompanyFormValues>({
     initialName: initial?.initialName ?? "",
@@ -72,6 +84,17 @@ export function CompanyForm({
         website: values.website,
         logoUrl: values.logoUrl,
       };
+      const handled = await maybeSubmitProposal(
+        proposalMode || approveProposalId
+          ? { proposalMode, approveProposalId, entityType: "Company", targetId: companyId ?? null, note }
+          : undefined,
+        payload
+      );
+      if (handled) {
+        if (onDone) onDone();
+        else setDone(true);
+        return;
+      }
       if (companyId) await api(`/api/companies/${companyId}`, "PUT", payload);
       else await api("/api/companies", "POST", payload);
       router.push(companyId ? `/companies/${companyId}` : "/companies");
@@ -82,6 +105,10 @@ export function CompanyForm({
     } finally {
       setBusy(false);
     }
+  }
+
+  if (done) {
+    return <p className="text-sm text-emerald-600 dark:text-emerald-400">{tProp("submitted")}</p>;
   }
 
   const errCls = (field: string) => (fieldErrors[field] ? "border-destructive" : "");
@@ -223,7 +250,7 @@ export function CompanyForm({
       {/* Logo upload — only after the company exists (needs an id). Stores a
           data URI in logoUrl. The callback keeps the form's logoUrl in sync so
           a subsequent Save does not overwrite the freshly uploaded logo. */}
-      {companyId && (
+      {companyId && !proposalMode && !approveProposalId && (
         <LogoUploader
           companyId={companyId}
           current={values.logoUrl}
@@ -231,11 +258,18 @@ export function CompanyForm({
         />
       )}
 
+      {proposalMode && (
+        <div className="space-y-1.5">
+          <Label htmlFor="note">{tProp("note")}</Label>
+          <Textarea id="note" rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
+        </div>
+      )}
+
       <div className="flex gap-2">
         <Button type="submit" disabled={busy}>
-          {busy ? t("saving") : t("save")}
+          {busy ? t("saving") : proposalMode ? tProp("submit") : t("save")}
         </Button>
-        <Button type="button" variant="outline" onClick={() => router.back()}>
+        <Button type="button" variant="outline" onClick={() => (onDone ? onDone() : router.back())}>
           {t("cancel")}
         </Button>
       </div>
