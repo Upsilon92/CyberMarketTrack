@@ -58,8 +58,8 @@ async function fetchFeed(url: string): Promise<string> {
       headers: {
         "User-Agent": "Mozilla/5.0 (compatible; CyberMarketTrack/1.0; +https://cyber.upsilon.ovh)",
       },
-      // Cache the raw feed ~20 min (overrides force-dynamic's no-store default).
-      next: { revalidate: 1200 },
+      // Cache the raw feed ~60 min (overrides force-dynamic's no-store default).
+      next: { revalidate: 3600 },
     });
     return res.ok ? await res.text() : "";
   } catch {
