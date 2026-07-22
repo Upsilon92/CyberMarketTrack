@@ -45,6 +45,8 @@
     "badge": "Cybersecurity market intelligence",
     "title": "The cybersecurity market knowledge base",
     "subtitle": "Companies, solutions, and the full history of acquisitions, mergers and renames.",
+    "rssTitle": "Market news (RSS)",
+    "rssUnavailable": "News feed unavailable right now.",
     "statCompanies": "{count, plural, one {# company} other {# companies}}",
     "statSolutions": "{count, plural, one {# solution} other {# solutions}}",
     "statEvents": "{count, plural, one {# event} other {# events}}",

@@ -45,6 +45,8 @@
     "badge": "Veille du marché cybersécurité",
     "title": "La base de connaissances du marché de la cybersécurité",
     "subtitle": "Entreprises, solutions, historique complet des rachats, fusions et renommages.",
+    "rssTitle": "Actualité du marché (RSS)",
+    "rssUnavailable": "Flux d'actualité indisponible pour le moment.",
     "statCompanies": "{count, plural, one {# entreprise} other {# entreprises}}",
     "statSolutions": "{count, plural, one {# solution} other {# solutions}}",
     "statEvents": "{count, plural, one {# événement} other {# événements}}",

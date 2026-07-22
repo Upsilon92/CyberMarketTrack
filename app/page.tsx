@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { SearchBar } from "@/components/search-bar";
 import { EventLine } from "@/components/event-line";
 import { BrandLogo } from "@/components/brand-logo";
+import { MarketNews } from "@/components/market-news";
 import { Card, CardContent } from "@/components/ui/card";
 import { getStats, loadAllEvents } from "@/lib/queries";
 
@@ -31,16 +32,14 @@ export default async function HomePage() {
       {/* Hero */}
       <section className="relative overflow-hidden rounded-2xl border hero-surface">
         <div className="absolute inset-0 grid-overlay pointer-events-none" />
-        <div className="relative px-6 py-12 sm:py-16 text-center space-y-5">
-          <BrandLogo size={92} className="mx-auto drop-shadow-sm" />
-          <span className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-            {t("badge")}
-          </span>
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight max-w-3xl mx-auto text-balance">
+        <div className="relative px-6 py-6 sm:py-8 text-center space-y-3">
+          <BrandLogo size={56} className="mx-auto drop-shadow-sm" />
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight max-w-3xl mx-auto text-balance">
             {t("title")}
           </h1>
-          <p className="text-muted-foreground max-w-2xl mx-auto text-balance">{t("subtitle")}</p>
+          <p className="text-sm text-muted-foreground max-w-2xl mx-auto text-balance">
+            {t("subtitle")}
+          </p>
           <div className="flex justify-center pt-1">
             <SearchBar />
           </div>
@@ -52,19 +51,22 @@ export default async function HomePage() {
         {statCards.map((s) => (
           <Link key={s.href} href={s.href}>
             <Card className="card-hover h-full">
-              <CardContent className="py-5 flex items-center gap-4">
-                <span className="inline-flex items-center justify-center w-11 h-11 rounded-lg bg-primary/10 text-primary shrink-0">
+              <CardContent className="py-3 flex items-center gap-3">
+                <span className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10 text-primary shrink-0">
                   <StatIcon name={s.icon} />
                 </span>
                 <span>
-                  <span className="block text-2xl font-bold tabular-nums leading-none">{s.value}</span>
-                  <span className="block text-sm text-muted-foreground mt-1">{s.label}</span>
+                  <span className="block text-xl font-bold tabular-nums leading-none">{s.value}</span>
+                  <span className="block text-xs text-muted-foreground mt-0.5">{s.label}</span>
                 </span>
               </CardContent>
             </Card>
           </Link>
         ))}
       </section>
+
+      {/* Market news (Google News RSS) */}
+      <MarketNews />
 
       {/* Latest events, 3 columns by importance */}
       <section className="space-y-3">
