@@ -90,7 +90,7 @@ const tagSchema = z.object({
 const companySchema = z.object({
   id,
   initialName: z.string().max(300),
-  foundedYear: z.number().int(),
+  foundedYear: z.number().int().nullable(),
   foundedMonth: z.number().int().nullable(),
   country: z.string().max(2),
   originCountry: z.string().max(2).nullable(),
@@ -140,6 +140,13 @@ const eventSchema = z.object({
   amount: z.number().nullable(),
   round: z.string().max(100).nullable(),
   note: z.string().max(1000).nullable(),
+  // Newer event fields (HQ_RELOCATION / SPINOFF / acquirer-centric ACQUISITION).
+  // Optional so older backups without them still validate.
+  fromCountry: z.string().max(2).nullable().optional(),
+  newCountry: z.string().max(2).nullable().optional(),
+  newCity: z.string().max(200).nullable().optional(),
+  parentCompanyId: id.nullable().optional(),
+  acquiredNameRaw: z.string().max(300).nullable().optional(),
   createdAt: dateLike,
   updatedAt: dateLike,
 });
