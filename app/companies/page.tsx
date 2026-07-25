@@ -71,7 +71,7 @@ export default async function CompaniesPage({
   if (selStatus.length) list = list.filter((c) => allowedStatuses.has(c.timeline.currentStatus));
 
   list = [...list].sort((a, b) => {
-    if (sort === "founded") return a.foundedYear - b.foundedYear;
+    if (sort === "founded") return (a.foundedYear ?? 0) - (b.foundedYear ?? 0);
     if (sort === "updated") return b.updatedAt.getTime() - a.updatedAt.getTime();
     return a.timeline.currentName.localeCompare(b.timeline.currentName);
   });
@@ -160,11 +160,13 @@ export default async function CompaniesPage({
                 )}
               </div>
               <div className="mt-1 text-xs text-muted-foreground flex flex-wrap gap-x-3 gap-y-0.5">
-                <span>
-                  {tCommon("founded", {
-                    date: formatDate({ year: c.foundedYear, month: c.foundedMonth }, locale),
-                  })}
-                </span>
+                {c.foundedYear != null && (
+                  <span>
+                    {tCommon("founded", {
+                      date: formatDate({ year: c.foundedYear, month: c.foundedMonth }, locale),
+                    })}
+                  </span>
+                )}
                 {owners.length > 0 && (
                   <span>
                     →{" "}

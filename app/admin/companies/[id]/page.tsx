@@ -37,7 +37,7 @@ export default async function EditCompanyPage({ params }: { params: Promise<{ id
         initial={{
           initialName: company.initialName,
           types: company.types.map((ct) => ct.type),
-          foundedYear: String(company.foundedYear),
+          foundedYear: company.foundedYear != null ? String(company.foundedYear) : "",
           foundedMonth: company.foundedMonth == null ? "" : String(company.foundedMonth),
           country: company.country,
           originCountry: company.originCountry ?? "",

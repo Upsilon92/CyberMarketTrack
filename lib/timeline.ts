@@ -57,7 +57,7 @@ export interface TimelineEventInput {
 export interface CompanyInput {
   id: string;
   initialName: string;
-  foundedYear: number;
+  foundedYear?: number | null;
   foundedMonth?: number | null;
 }
 
@@ -191,7 +191,12 @@ export function buildCompanyTimeline(
   company: CompanyInput,
   events: TimelineEventInput[]
 ): CompanyTimeline {
-  const founded: DatePoint = { year: company.foundedYear, month: company.foundedMonth ?? null };
+  // Founding date may be unknown: start = null renders as an allowed data gap
+  // (same convention as a solution's launch date).
+  const founded: DatePoint | null =
+    company.foundedYear != null
+      ? { year: company.foundedYear, month: company.foundedMonth ?? null }
+      : null;
 
   const sorted = sortEvents(events);
   const stateEvents = sorted.filter((e) => COMPANY_STATE_TYPES.has(e.type));
@@ -538,13 +543,18 @@ export function validateCompanyEvents(
   events: TimelineEventInput[]
 ): SequenceIssue[] {
   const issues: SequenceIssue[] = [];
-  const founded: DatePoint = { year: company.foundedYear, month: company.foundedMonth ?? null };
+  const founded: DatePoint | null =
+    company.foundedYear != null
+      ? { year: company.foundedYear, month: company.foundedMonth ?? null }
+      : null;
   const sorted = sortEvents(events);
 
-  // 1. No event before the company's creation.
-  for (const e of sorted) {
-    if (isBefore(eventDate(e), founded)) {
-      issues.push({ level: "error", code: "eventBeforeCreation", eventIds: [e.id] });
+  // 1. No event before the company's creation (only when the founding date is known).
+  if (founded) {
+    for (const e of sorted) {
+      if (isBefore(eventDate(e), founded)) {
+        issues.push({ level: "error", code: "eventBeforeCreation", eventIds: [e.id] });
+      }
     }
   }
 

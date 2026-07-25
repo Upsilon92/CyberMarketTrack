@@ -46,7 +46,7 @@ export default async function ProposePage({
             ? {
                 initialName: c.initialName,
                 types: c.types.map((ct) => ct.type),
-                foundedYear: String(c.foundedYear),
+                foundedYear: c.foundedYear != null ? String(c.foundedYear) : "",
                 foundedMonth: c.foundedMonth != null ? String(c.foundedMonth) : "",
                 country: c.country,
                 originCountry: c.originCountry ?? "",

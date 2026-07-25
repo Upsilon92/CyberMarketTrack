@@ -38,7 +38,7 @@ datasource db {
 model Company {
   id          String  @id @default(cuid())
   initialName String // name at creation — anchor of the rename chain, never changes
-  foundedYear  Int
+  foundedYear  Int? // optional: founding year may be unknown at entry (like solution launchYear)
   foundedMonth Int? // 1-12, optional (variable-precision date)
   country       String // ISO 3166-1 alpha-2 (current HQ country)
   originCountry String? // ISO code, if different from current country

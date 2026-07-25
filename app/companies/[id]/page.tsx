@@ -175,11 +175,13 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <div className="flex flex-wrap gap-x-6 gap-y-1 text-muted-foreground">
-              <span>
-                {tCommon("founded", {
-                  date: formatDate({ year: company.foundedYear, month: company.foundedMonth }, locale),
-                })}
-              </span>
+              {company.foundedYear != null && (
+                <span>
+                  {tCommon("founded", {
+                    date: formatDate({ year: company.foundedYear, month: company.foundedMonth }, locale),
+                  })}
+                </span>
+              )}
               <span>
                 {tCommon("country")} : {countryFlag(company.country)} {company.country}
               </span>

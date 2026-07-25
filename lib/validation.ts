@@ -55,7 +55,7 @@ const optionalUrl = z
 export const companySchema = z.object({
   initialName: trimmed(200),
   types: z.array(z.enum(COMPANY_TYPES)).min(1, "typeRequired"),
-  foundedYear: yearSchema,
+  foundedYear: yearSchema.nullable().optional().or(z.literal("").transform(() => null)),
   foundedMonth: monthSchema,
   country: countryCode,
   originCountry: countryCode.nullable().optional().or(z.literal("").transform(() => null)),

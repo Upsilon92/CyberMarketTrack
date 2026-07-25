@@ -161,14 +161,13 @@ export function CompanyForm({
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <Label htmlFor="foundedYear">{tf("foundedYear")} *</Label>
+          <Label htmlFor="foundedYear">{tf("foundedYear")}</Label>
           <Input
             id="foundedYear"
             type="number"
             value={values.foundedYear}
             onChange={(e) => set("foundedYear", e.target.value)}
             className={errCls("foundedYear")}
-            required
           />
         </div>
         <div className="space-y-1.5">
