@@ -90,7 +90,8 @@
   "companyTypes": {
     "VENDOR": "Éditeur",
     "SERVICE_PROVIDER": "Société de services",
-    "INVESTMENT_FUND": "Fonds d'investissement"
+    "INVESTMENT_FUND": "Fonds d'investissement",
+    "DISTRIBUTOR": "Distributeur"
   },
   "statuses": {
     "INDEPENDENT": "Indépendante",
@@ -199,7 +200,8 @@
     "SOLUTION_DISCONTINUED": "Arrêt de solution",
     "SOLUTION_INTEGRATED": "Intégration de solution",
     "FUNDING": "Levée de fonds",
-    "OTHER": "Autre"
+    "OTHER": "Autre",
+    "HQ_RELOCATION": "Déménagement du siège"
   },
   "eventText": {
     "COMPANY_RENAME": "<subject></subject> devient {newName}",
@@ -217,7 +219,9 @@
     "SOLUTION_INTEGRATED": "<subject></subject> est intégrée dans <actor></actor>",
     "FUNDING": "<subject></subject> lève {amount} M ({round})",
     "FUNDING_NO_ROUND": "<subject></subject> lève {amount} M",
-    "OTHER": "<subject></subject>"
+    "OTHER": "<subject></subject>",
+    "HQ_RELOCATION": "<subject></subject> déplace son siège de {from} vers {location}",
+    "HQ_RELOCATION_NO_FROM": "<subject></subject> déplace son siège vers {location}"
   },
   "search": {
     "title": "Résultats pour « {query} »",
@@ -413,17 +417,18 @@
       "duplicateDimensionDate": "Deux événements modifient la même dimension à la même date (ordre ambigu).",
       "divestmentWithoutOwnership": "Reprise d'indépendance sans détention en cours à cette date.",
       "absorptionWithoutOwnership": "Absorption sans détention en cours à cette date (utilisez plutôt un Rachat avec issue « Absorption »).",
-      "eventAfterShutdown": "Événement postérieur à la fermeture de la société."
+      "eventAfterShutdown": "Événement postérieur à la fermeture de la société.",
+      "newCountryRequired": "Le pays de destination est requis."
     },
     "absorbedProposal": "Absorption : créer aussi les transferts de solutions vers l'acquéreur ?",
     "absorbedProposalHint": "Les solutions cochées recevront un événement « Transfert de solution » à la même date.",
     "fields": {
-      "initialName": "Nom à la création",
-      "initialNameHint": "Point d'ancrage : ne change jamais. Le nom courant est calculé depuis les événements de renommage.",
+      "initialName": "Nom initial connu",
+      "initialNameHint": "Le plus ancien nom que vous connaissez ; laissez le nom actuel si vous ignorez l'historique. Le nom courant est recalculé depuis les renommages.",
       "types": "Types",
       "foundedYear": "Année de création",
       "foundedMonth": "Mois (optionnel)",
-      "country": "Pays (code ISO)",
+      "country": "Pays",
       "originCountry": "Pays d'origine (optionnel)",
       "description": "Description (markdown)",
       "website": "Site web",
@@ -462,7 +467,12 @@
       "amount": "Montant (M)",
       "round": "Tour (ex : Series A)",
       "note": "Note (ex : IPO Nasdaq)",
-      "none": "—"
+      "none": "—",
+      "newCountry": "Nouveau pays (siège)",
+      "newCity": "Ville (optionnel)",
+      "countryPlaceholder": "Rechercher un pays…",
+      "companyPlaceholder": "Rechercher une entreprise…",
+      "fromCountry": "Pays d'origine"
     },
     "revenues": {
       "title": "Chiffre d'affaires",
@@ -571,6 +581,20 @@
         "required": "Champ requis.",
         "generic": "Une erreur est survenue."
       }
+    },
+    "noResults": "Aucun résultat",
+    "backToCompany": "Retour à la fiche",
+    "backToSolution": "Retour à la fiche",
+    "prependCompany": {
+      "title": "Ajouter un historique antérieur",
+      "hint": "Si vous apprenez que l'entreprise existait plus tôt sous un autre nom, indiquez-le : l'ancre recule et un renommage est créé à la date du changement.",
+      "previousName": "Nom antérieur de {current}",
+      "changeYear": "Année du changement",
+      "changeMonth": "Mois",
+      "newFoundedYear": "Année de création (optionnel)",
+      "apply": "Appliquer",
+      "applied": "Historique antérieur ajouté.",
+      "nothing": "Rien à ajouter (nom identique)."
     }
   }
 }

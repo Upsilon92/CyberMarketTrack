@@ -1,7 +1,10 @@
 // Dedicated history editor screen for a company (spec F2).
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { Button } from "@/components/ui/button";
 import { HistoryEditor, type EditorEvent } from "@/components/admin/history-editor";
+import { PrependCompanyHistoryForm } from "@/components/admin/prepend-company-history-form";
 import { loadMarket, solutionsOfCompany } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
@@ -30,6 +33,9 @@ export default async function CompanyHistoryPage({ params }: { params: Promise<{
     amount: e.amount,
     round: e.round,
     note: e.note,
+    fromCountry: e.fromCountry,
+    newCountry: e.newCountry,
+    newCity: e.newCity,
   }));
 
   const companies = [...market.companies]
@@ -45,9 +51,15 @@ export default async function CompanyHistoryPage({ params }: { params: Promise<{
 
   return (
     <div className="space-y-4">
+      <Link href={`/companies/${id}`}>
+        <Button variant="outline" size="sm">
+          ← {t("backToCompany")}
+        </Button>
+      </Link>
       <h1 className="text-xl font-bold">
         {t("historyOf", { name: company.timeline.currentName })}
       </h1>
+      <PrependCompanyHistoryForm companyId={id} currentName={company.initialName} />
       <HistoryEditor
         kind="company"
         entityId={id}

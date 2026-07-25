@@ -90,7 +90,8 @@
   "companyTypes": {
     "VENDOR": "Vendor",
     "SERVICE_PROVIDER": "Service provider",
-    "INVESTMENT_FUND": "Investment fund"
+    "INVESTMENT_FUND": "Investment fund",
+    "DISTRIBUTOR": "Distributor"
   },
   "statuses": {
     "INDEPENDENT": "Independent",
@@ -199,7 +200,8 @@
     "SOLUTION_DISCONTINUED": "Solution discontinued",
     "SOLUTION_INTEGRATED": "Solution integration",
     "FUNDING": "Funding round",
-    "OTHER": "Other"
+    "OTHER": "Other",
+    "HQ_RELOCATION": "HQ relocation"
   },
   "eventText": {
     "COMPANY_RENAME": "<subject></subject> becomes {newName}",
@@ -217,7 +219,9 @@
     "SOLUTION_INTEGRATED": "<subject></subject> is integrated into <actor></actor>",
     "FUNDING": "<subject></subject> raises {amount}M ({round})",
     "FUNDING_NO_ROUND": "<subject></subject> raises {amount}M",
-    "OTHER": "<subject></subject>"
+    "OTHER": "<subject></subject>",
+    "HQ_RELOCATION": "<subject></subject> relocates its headquarters from {from} to {location}",
+    "HQ_RELOCATION_NO_FROM": "<subject></subject> relocates its headquarters to {location}"
   },
   "search": {
     "title": "Results for “{query}”",
@@ -413,17 +417,18 @@
       "duplicateDimensionDate": "Two events modify the same dimension at the exact same date (ambiguous order).",
       "divestmentWithoutOwnership": "Divestment without an ongoing ownership at that date.",
       "absorptionWithoutOwnership": "Absorption without an ongoing ownership at that date (use an Acquisition with the \"Absorbed\" outcome instead).",
-      "eventAfterShutdown": "Event dated after the company's shutdown."
+      "eventAfterShutdown": "Event dated after the company's shutdown.",
+      "newCountryRequired": "Destination country is required."
     },
     "absorbedProposal": "Absorption: also create the solution transfers to the acquirer?",
     "absorbedProposalHint": "Checked solutions will get a \"Solution transfer\" event at the same date.",
     "fields": {
-      "initialName": "Name at creation",
-      "initialNameHint": "Anchor: never changes. The current name is derived from rename events.",
+      "initialName": "Earliest known name",
+      "initialNameHint": "The oldest name you know; leave the current name if you don't know the history. The current name is recomputed from rename events.",
       "types": "Types",
       "foundedYear": "Founding year",
       "foundedMonth": "Month (optional)",
-      "country": "Country (ISO code)",
+      "country": "Country",
       "originCountry": "Origin country (optional)",
       "description": "Description (markdown)",
       "website": "Website",
@@ -462,7 +467,12 @@
       "amount": "Amount (M)",
       "round": "Round (e.g. Series A)",
       "note": "Note (e.g. Nasdaq IPO)",
-      "none": "—"
+      "none": "—",
+      "newCountry": "New country (HQ)",
+      "newCity": "City (optional)",
+      "countryPlaceholder": "Search a country…",
+      "companyPlaceholder": "Search a company…",
+      "fromCountry": "Origin country"
     },
     "revenues": {
       "title": "Revenue",
@@ -571,6 +581,20 @@
         "required": "Required field.",
         "generic": "Something went wrong."
       }
+    },
+    "noResults": "No results",
+    "backToCompany": "Back to company",
+    "backToSolution": "Back to solution",
+    "prependCompany": {
+      "title": "Add an earlier past",
+      "hint": "If you learn the company existed earlier under another name, enter it here: the anchor moves back and a rename event is created at the change date.",
+      "previousName": "Earlier name of {current}",
+      "changeYear": "Change year",
+      "changeMonth": "Month",
+      "newFoundedYear": "Founded year (optional)",
+      "apply": "Apply",
+      "applied": "Earlier history added.",
+      "nothing": "Nothing to add (same name)."
     }
   }
 }

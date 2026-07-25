@@ -21,6 +21,7 @@ import { PeriodBands, toSegments, type BandRow } from "@/components/period-bands
 import {
   loadMarket,
   loadAllEvents,
+  companiesInvolved,
   ownerDisplayName,
   solutionsOfCompany,
   portfolioOfFund,
@@ -77,13 +78,10 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
   const { current: currentSolutions, former: formerSolutions } = solutionsOfCompany(market, id);
 
   const allEvents = await loadAllEvents();
-  // The company's own history (it is the subject) AND the acquisitions it made
-  // (it is the acquirer) are woven into a single chronological timeline.
-  const companyEvents = allEvents.filter(
-    (e) =>
-      e.subjectCompanyId === id ||
-      ((e.type === "ACQUISITION" || e.type === "CO_INVESTMENT") && e.acquirerCompanyId === id)
-  );
+  // An event appears in the history of EVERY company it involves (subject,
+  // acquirer, merge partner, new owner) — so e.g. Proofpoint's timeline shows
+  // the companies it acquired, not only Proofpoint's own subject events.
+  const companyEvents = allEvents.filter((e) => companiesInvolved(e).includes(id));
 
   // ---- Period bands: one segment row per open owner would be noisy, so the
   // owners row shows the full ownership history (parallel periods overlap). ----

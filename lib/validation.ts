@@ -119,6 +119,9 @@ const eventBase = z.object({
   amount: z.coerce.number().positive().nullable().optional(),
   round: optionalTrimmed(80),
   note: optionalTrimmed(500),
+  fromCountry: countryCode.nullable().optional().or(z.literal("").transform(() => null)),
+  newCountry: countryCode.nullable().optional().or(z.literal("").transform(() => null)),
+  newCity: optionalTrimmed(120),
 });
 
 const COMPANY_SUBJECT_TYPES = new Set([
@@ -130,6 +133,7 @@ const COMPANY_SUBJECT_TYPES = new Set([
   "MERGER",
   "SHUTDOWN",
   "FUNDING",
+  "HQ_RELOCATION",
 ]);
 const SOLUTION_SUBJECT_TYPES = new Set([
   "SOLUTION_RENAME",
@@ -168,6 +172,9 @@ export const eventSchema = eventBase.superRefine((e, ctx) => {
       break;
     case "MERGER":
       if (!e.withCompanyId) fail("withCompanyId", "withCompanyRequired");
+      break;
+    case "HQ_RELOCATION":
+      if (!e.newCountry) fail("newCountry", "newCountryRequired");
       break;
     case "SOLUTION_TRANSFER":
       if (!e.newOwnerCompanyId) fail("newOwnerCompanyId", "newOwnerRequired");

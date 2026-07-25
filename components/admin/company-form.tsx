@@ -3,16 +3,18 @@
 // Company create/edit form. Zod validation happens server-side (the API is
 // the source of truth); the form surfaces per-field errors returned by it.
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useMemo, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Combobox } from "@/components/ui/combobox";
 import { api, ApiError } from "@/components/admin/api";
 import { maybeSubmitProposal } from "@/components/proposal-submit";
 import { COMPANY_TYPES } from "@/lib/constants";
+import { countryOptions } from "@/lib/countries";
 
 export interface CompanyFormValues {
   initialName: string;
@@ -42,12 +44,15 @@ export function CompanyForm({
   onDone?: () => void;
 }) {
   const router = useRouter();
+  const locale = useLocale() as "fr" | "en";
   const t = useTranslations("admin");
   const tf = useTranslations("admin.fields");
   const tTypes = useTranslations("companyTypes");
   const tProp = useTranslations("proposals");
   const [note, setNote] = useState("");
   const [done, setDone] = useState(false);
+
+  const countryOpts = useMemo(() => countryOptions(locale), [locale]);
 
   const [values, setValues] = useState<CompanyFormValues>({
     initialName: initial?.initialName ?? "",
@@ -183,23 +188,25 @@ export function CompanyForm({
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <Label htmlFor="country">{tf("country")} *</Label>
-          <Input
+          <Combobox
             id="country"
-            maxLength={2}
-            placeholder="FR"
             value={values.country}
-            onChange={(e) => set("country", e.target.value.toUpperCase())}
+            onValueChange={(v) => set("country", v)}
+            options={countryOpts}
+            placeholder={tf("countryPlaceholder")}
+            emptyText={t("noResults")}
             className={errCls("country")}
-            required
           />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="originCountry">{tf("originCountry")}</Label>
-          <Input
+          <Combobox
             id="originCountry"
-            maxLength={2}
             value={values.originCountry}
-            onChange={(e) => set("originCountry", e.target.value.toUpperCase())}
+            onValueChange={(v) => set("originCountry", v)}
+            options={countryOpts}
+            placeholder={tf("countryPlaceholder")}
+            emptyText={t("noResults")}
             className={errCls("originCountry")}
           />
         </div>

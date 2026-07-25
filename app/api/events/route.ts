@@ -30,6 +30,15 @@ export async function POST(req: NextRequest) {
 
     const event = await prisma.event.create({ data });
 
+    // HQ_RELOCATION is informational but keeps the company's stored country in
+    // sync with its latest headquarters move.
+    if (data.type === "HQ_RELOCATION" && data.newCountry && data.subjectCompanyId) {
+      await prisma.company.update({
+        where: { id: data.subjectCompanyId },
+        data: { country: data.newCountry },
+      });
+    }
+
     await logAudit({
       userId: session.user.id,
       action: "CREATE",

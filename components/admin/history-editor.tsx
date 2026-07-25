@@ -13,7 +13,7 @@
 // Works for both entity kinds; the API and preview do the heavy lifting.
 // =============================================================================
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,7 +22,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Combobox } from "@/components/ui/combobox";
 import { api, ApiError } from "@/components/admin/api";
+import { countryOptions } from "@/lib/countries";
 import { formatDate, formatRange, type Locale } from "@/lib/date";
 
 // --- Serializable props -------------------------------------------------------
@@ -44,6 +46,9 @@ export interface EditorEvent {
   amount: number | null;
   round: string | null;
   note: string | null;
+  fromCountry: string | null;
+  newCountry: string | null;
+  newCity: string | null;
 }
 
 interface PreviewPeriod {
@@ -77,6 +82,7 @@ const COMPANY_EVENT_CHOICES = [
   "DIVESTMENT",
   "MERGER",
   "SHUTDOWN",
+  "HQ_RELOCATION",
   "FUNDING",
   "OTHER",
 ];
@@ -107,6 +113,9 @@ interface FormState {
   amount: string;
   round: string;
   note: string;
+  fromCountry: string;
+  newCountry: string;
+  newCity: string;
 }
 
 const EMPTY_FORM: FormState = {
@@ -125,6 +134,9 @@ const EMPTY_FORM: FormState = {
   amount: "",
   round: "",
   note: "",
+  fromCountry: "",
+  newCountry: "",
+  newCity: "",
 };
 
 export function HistoryEditor({
@@ -178,6 +190,19 @@ export function HistoryEditor({
     [companies]
   );
 
+  // Combobox options
+  const countryOpts = useMemo(() => countryOptions(locale === "fr" ? "fr" : "en"), [locale]);
+  // Actor company pickers exclude the current entity (a company can't be the
+  // acquirer/partner of its own event); SOLUTION_TRANSFER may target anyone.
+  const otherCompanyOptions = useMemo(
+    () => companies.filter((c) => c.id !== entityId).map((c) => ({ value: c.id, label: c.label })),
+    [companies, entityId]
+  );
+  const allCompanyOptions = useMemo(
+    () => companies.map((c) => ({ value: c.id, label: c.label })),
+    [companies]
+  );
+
   const choices = kind === "company" ? COMPANY_EVENT_CHOICES : SOLUTION_EVENT_CHOICES;
 
   const set = (k: keyof FormState, v: string) => setForm((p) => ({ ...p, [k]: v }));
@@ -202,6 +227,9 @@ export function HistoryEditor({
       amount: form.amount === "" ? null : form.amount,
       round: form.round,
       note: form.note,
+      fromCountry: form.fromCountry || null,
+      newCountry: form.newCountry || null,
+      newCity: form.newCity,
     };
   }, [form, kind, entityId]);
 
@@ -263,6 +291,9 @@ export function HistoryEditor({
       amount: e.amount == null ? "" : String(e.amount),
       round: e.round ?? "",
       note: e.note ?? "",
+      fromCountry: e.fromCountry ?? "",
+      newCountry: e.newCountry ?? "",
+      newCity: e.newCity ?? "",
     });
   }
 
@@ -353,6 +384,8 @@ export function HistoryEditor({
         return `→ ${otherSolutions.find((s) => s.id === e.intoSolutionId)?.label ?? "?"}`;
       case "FUNDING":
         return `${e.amount ?? "?"} M ${e.round ?? ""}`;
+      case "HQ_RELOCATION":
+        return `${e.fromCountry ? `${e.fromCountry} → ` : "→ "}${e.newCity ? `${e.newCity}, ` : ""}${e.newCountry ?? "?"}`;
       case "DIVESTMENT":
         return e.note ?? "";
       default:
@@ -530,20 +563,13 @@ export function HistoryEditor({
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label>{t("fields.acquirer")}</Label>
-                  <select
-                    className="border rounded-md bg-background text-foreground px-2 py-2 text-sm w-full"
+                  <Combobox
                     value={form.acquirerCompanyId}
-                    onChange={(e) => set("acquirerCompanyId", e.target.value)}
-                  >
-                    <option value="">{t("fields.none")}</option>
-                    {companies
-                      .filter((c) => c.id !== entityId)
-                      .map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.label}
-                        </option>
-                      ))}
-                  </select>
+                    onValueChange={(v) => set("acquirerCompanyId", v)}
+                    options={otherCompanyOptions}
+                    placeholder={t("fields.companyPlaceholder")}
+                    emptyText={t("noResults")}
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label>{t("fields.acquirerNameRaw")}</Label>
@@ -574,20 +600,13 @@ export function HistoryEditor({
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label>{t("fields.coInvestor")}</Label>
-                  <select
-                    className="border rounded-md bg-background text-foreground px-2 py-2 text-sm w-full"
+                  <Combobox
                     value={form.acquirerCompanyId}
-                    onChange={(e) => set("acquirerCompanyId", e.target.value)}
-                  >
-                    <option value="">{t("fields.none")}</option>
-                    {companies
-                      .filter((c) => c.id !== entityId)
-                      .map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.label}
-                        </option>
-                      ))}
-                  </select>
+                    onValueChange={(v) => set("acquirerCompanyId", v)}
+                    options={otherCompanyOptions}
+                    placeholder={t("fields.companyPlaceholder")}
+                    emptyText={t("noResults")}
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label>{t("fields.acquirerNameRaw")}</Label>
@@ -606,38 +625,26 @@ export function HistoryEditor({
             {form.type === "MERGER" && (
               <div className="space-y-1.5">
                 <Label>{t("fields.withCompany")} *</Label>
-                <select
-                  className="border rounded-md bg-background text-foreground px-2 py-2 text-sm w-full"
+                <Combobox
                   value={form.withCompanyId}
-                  onChange={(e) => set("withCompanyId", e.target.value)}
-                >
-                  <option value="">{t("fields.none")}</option>
-                  {companies
-                    .filter((c) => c.id !== entityId)
-                    .map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.label}
-                      </option>
-                    ))}
-                </select>
+                  onValueChange={(v) => set("withCompanyId", v)}
+                  options={otherCompanyOptions}
+                  placeholder={t("fields.companyPlaceholder")}
+                  emptyText={t("noResults")}
+                />
               </div>
             )}
 
             {form.type === "SOLUTION_TRANSFER" && (
               <div className="space-y-1.5">
                 <Label>{t("fields.newOwner")} *</Label>
-                <select
-                  className="border rounded-md bg-background text-foreground px-2 py-2 text-sm w-full"
+                <Combobox
                   value={form.newOwnerCompanyId}
-                  onChange={(e) => set("newOwnerCompanyId", e.target.value)}
-                >
-                  <option value="">{t("fields.none")}</option>
-                  {companies.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.label}
-                    </option>
-                  ))}
-                </select>
+                  onValueChange={(v) => set("newOwnerCompanyId", v)}
+                  options={allCompanyOptions}
+                  placeholder={t("fields.companyPlaceholder")}
+                  emptyText={t("noResults")}
+                />
               </div>
             )}
 
@@ -676,6 +683,35 @@ export function HistoryEditor({
               <div className="space-y-1.5">
                 <Label>{t("fields.note")}</Label>
                 <Input value={form.note} onChange={(e) => set("note", e.target.value)} />
+              </div>
+            )}
+
+            {form.type === "HQ_RELOCATION" && (
+              <div className="grid sm:grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <Label>{t("fields.fromCountry")}</Label>
+                  <Combobox
+                    value={form.fromCountry}
+                    onValueChange={(v) => set("fromCountry", v)}
+                    options={countryOpts}
+                    placeholder={t("fields.countryPlaceholder")}
+                    emptyText={t("noResults")}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>{t("fields.newCountry")} *</Label>
+                  <Combobox
+                    value={form.newCountry}
+                    onValueChange={(v) => set("newCountry", v)}
+                    options={countryOpts}
+                    placeholder={t("fields.countryPlaceholder")}
+                    emptyText={t("noResults")}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>{t("fields.newCity")}</Label>
+                  <Input value={form.newCity} onChange={(e) => set("newCity", e.target.value)} />
+                </div>
               </div>
             )}
 

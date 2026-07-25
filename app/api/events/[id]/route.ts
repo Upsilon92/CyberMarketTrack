@@ -33,6 +33,13 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
 
     const event = await prisma.event.update({ where: { id }, data });
 
+    if (data.type === "HQ_RELOCATION" && data.newCountry && data.subjectCompanyId) {
+      await prisma.company.update({
+        where: { id: data.subjectCompanyId },
+        data: { country: data.newCountry },
+      });
+    }
+
     await logAudit({
       userId: session.user.id,
       action: "UPDATE",

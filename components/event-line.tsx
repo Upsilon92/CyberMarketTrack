@@ -9,6 +9,7 @@ import { Flag } from "@/components/flag";
 import { compareDates, formatDate, type DatePoint, type Locale } from "@/lib/date";
 import { periodAt, type NamePeriod } from "@/lib/timeline";
 import { loadMarket, type EventWithRelations } from "@/lib/queries";
+import { countryName } from "@/lib/countries";
 
 /**
  * Name of the entity AS OF the event date, i.e. just BEFORE the event applies:
@@ -164,6 +165,16 @@ export async function EventLine({
   if (event.type === "FUNDING" && !event.round) key = "FUNDING_NO_ROUND";
   // ABSORPTION may have no explicit actor (owner absorbed it in place)
   if (event.type === "ABSORPTION" && !actor) key = "ABSORPTION_NO_ACTOR";
+  // HQ_RELOCATION: with a known origin country we show "from X to Y"
+  if (event.type === "HQ_RELOCATION" && !event.fromCountry) key = "HQ_RELOCATION_NO_FROM";
+
+  // HQ_RELOCATION: destination as "City, Country" (localized) or just the country
+  const relocationTo =
+    event.type === "HQ_RELOCATION"
+      ? event.newCity
+        ? `${event.newCity}, ${countryName(event.newCountry, locale)}`
+        : countryName(event.newCountry, locale)
+      : "";
 
   const text = t.rich(key, {
     subject: () => subjectNode,
@@ -171,6 +182,8 @@ export async function EventLine({
     newName: event.newName ?? "?",
     amount: event.amount ?? 0,
     round: event.round ?? "",
+    location: relocationTo,
+    from: countryName(event.fromCountry, locale),
   });
 
   // Company logos involved in the event (subject + actor), de-duplicated,

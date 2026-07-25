@@ -100,11 +100,15 @@ export async function applyProposal(p: {
   if (p.entityType === "Event") {
     const coherence = await checkEventCoherence(d);
     if (!coherence.subjectFound || coherence.errors.length > 0) throw new Error("incoherent-event");
-    if (isCreate) {
-      const e = await prisma.event.create({ data: d });
-      return e.id;
+    const e = isCreate
+      ? await prisma.event.create({ data: d })
+      : await prisma.event.update({ where: { id: p.targetId! }, data: d });
+    if (d.type === "HQ_RELOCATION" && d.newCountry && d.subjectCompanyId) {
+      await prisma.company.update({
+        where: { id: d.subjectCompanyId },
+        data: { country: d.newCountry },
+      });
     }
-    const e = await prisma.event.update({ where: { id: p.targetId! }, data: d });
     return e.id;
   }
 

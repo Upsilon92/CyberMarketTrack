@@ -213,6 +213,22 @@ export type EventWithRelations = Event & {
   intoSolution: Solution | null;
 };
 
+/**
+ * All company ids an event references in ANY role (subject, acquirer, merge
+ * partner, new owner). Used so an event surfaces in the history of EVERY
+ * company it involves — not only its subject. (State derivation still keys on
+ * the subject; this is display-only.)
+ */
+export function companiesInvolved(e: {
+  subjectCompanyId?: string | null;
+  acquirerCompanyId?: string | null;
+  withCompanyId?: string | null;
+  newOwnerCompanyId?: string | null;
+}): string[] {
+  const ids = [e.subjectCompanyId, e.acquirerCompanyId, e.withCompanyId, e.newOwnerCompanyId];
+  return [...new Set(ids.filter((x): x is string => !!x))];
+}
+
 export const loadAllEvents = cache(async (): Promise<EventWithRelations[]> => {
   return prisma.event.findMany({
     include: {

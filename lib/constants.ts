@@ -7,7 +7,7 @@
 // =============================================================================
 
 // --- Company types (a company can have several) ------------------------------
-export const COMPANY_TYPES = ["VENDOR", "SERVICE_PROVIDER", "INVESTMENT_FUND"] as const;
+export const COMPANY_TYPES = ["VENDOR", "SERVICE_PROVIDER", "DISTRIBUTOR", "INVESTMENT_FUND"] as const;
 export type CompanyType = (typeof COMPANY_TYPES)[number];
 
 // --- Event types --------------------------------------------------------------
@@ -19,6 +19,7 @@ export const EVENT_TYPES = [
   "DIVESTMENT", // ends ownership (back to INDEPENDENT) -> note
   "MERGER", // company becomes MERGED         -> withCompanyId
   "SHUTDOWN", // company becomes DEFUNCT
+  "HQ_RELOCATION", // HQ / parent company moves country -> newCountry (+ newCity); updates stored country
   "SOLUTION_RENAME", // changes solution name          -> newName
   "SOLUTION_TRANSFER", // changes solution vendor        -> newOwnerCompanyId
   "SOLUTION_LAUNCH", // solution becomes active
@@ -50,7 +51,7 @@ export const SOLUTION_EVENT_TYPES: EventType[] = [
 ];
 
 // Purely informational event types (displayed, no state effect)
-export const INFORMATIONAL_EVENT_TYPES: EventType[] = ["FUNDING", "OTHER"];
+export const INFORMATIONAL_EVENT_TYPES: EventType[] = ["FUNDING", "HQ_RELOCATION", "OTHER"];
 
 // --- Event importance (news prioritization) ------------------------------------
 export const EVENT_IMPORTANCES = ["MAJOR", "MEDIUM", "MINOR"] as const;
