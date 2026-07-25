@@ -117,6 +117,11 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
             </Badge>
           ))}
           <StatusBadge status={tl.currentStatus as CompanyStatus} />
+          {tl.isListed && (
+            <Badge variant="outline" className="border-emerald-500 text-emerald-700 dark:text-emerald-400">
+              {tCommon("listed")}
+            </Badge>
+          )}
           {isStale(company.updatedAt) && <Badge variant="destructive">{tCommon("toRecheck")}</Badge>}
           {company.logoUrl && (
             <span className="ml-auto">

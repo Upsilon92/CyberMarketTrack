@@ -26,6 +26,8 @@ export default async function CompanyHistoryPage({ params }: { params: Promise<{
     newName: e.newName,
     acquirerCompanyId: e.acquirerCompanyId,
     acquirerNameRaw: e.acquirerNameRaw,
+    acquiredNameRaw: e.acquiredNameRaw,
+    parentCompanyId: e.parentCompanyId,
     outcome: e.outcome,
     withCompanyId: e.withCompanyId,
     newOwnerCompanyId: e.newOwnerCompanyId,

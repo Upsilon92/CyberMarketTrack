@@ -17,9 +17,12 @@ export const EVENT_TYPES = [
   "CO_INVESTMENT", // adds a PARALLEL owner without closing existing ones -> acquirerCompanyId/acquirerNameRaw, outcome
   "ABSORPTION", // an already-owned subsidiary is fully absorbed (brand disappears) -> acquirerCompanyId (defaults to current owner)
   "DIVESTMENT", // ends ownership (back to INDEPENDENT) -> note
+  "SPINOFF", // carve-out: company is separated from a parent, becomes INDEPENDENT -> parentCompanyId
   "MERGER", // company becomes MERGED         -> withCompanyId
   "SHUTDOWN", // company becomes DEFUNCT
   "HQ_RELOCATION", // HQ / parent company moves country -> newCountry (+ newCity); updates stored country
+  "IPO", // company goes public (informational; drives derived isListed) -> note (exchange)
+  "DELISTING", // company leaves the market (informational; drives derived isListed) -> note
   "SOLUTION_RENAME", // changes solution name          -> newName
   "SOLUTION_TRANSFER", // changes solution vendor        -> newOwnerCompanyId
   "SOLUTION_LAUNCH", // solution becomes active
@@ -37,6 +40,7 @@ export const COMPANY_EVENT_TYPES: EventType[] = [
   "CO_INVESTMENT",
   "ABSORPTION",
   "DIVESTMENT",
+  "SPINOFF",
   "MERGER",
   "SHUTDOWN",
 ];
@@ -51,7 +55,13 @@ export const SOLUTION_EVENT_TYPES: EventType[] = [
 ];
 
 // Purely informational event types (displayed, no state effect)
-export const INFORMATIONAL_EVENT_TYPES: EventType[] = ["FUNDING", "HQ_RELOCATION", "OTHER"];
+export const INFORMATIONAL_EVENT_TYPES: EventType[] = [
+  "FUNDING",
+  "HQ_RELOCATION",
+  "IPO",
+  "DELISTING",
+  "OTHER",
+];
 
 // --- Event importance (news prioritization) ------------------------------------
 export const EVENT_IMPORTANCES = ["MAJOR", "MEDIUM", "MINOR"] as const;

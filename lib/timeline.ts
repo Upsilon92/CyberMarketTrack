@@ -37,7 +37,10 @@ export interface TimelineEventInput {
   // ACQUISITION
   acquirerCompanyId?: string | null;
   acquirerNameRaw?: string | null;
+  acquiredNameRaw?: string | null;
   outcome?: string | null;
+  // SPINOFF
+  parentCompanyId?: string | null;
   // MERGER
   withCompanyId?: string | null;
   // SOLUTION_TRANSFER
@@ -107,6 +110,8 @@ export interface CompanyTimeline {
   /** ALL currently-open ownership periods (>1 when co-investors hold in parallel) */
   currentOwners: OwnershipPeriod[];
   currentStatus: CompanyStatus;
+  /** Derived from IPO / DELISTING events (latest wins) — is the company listed */
+  isListed: boolean;
   /** FUNDING / OTHER — displayed on the timeline, no effect on state */
   informationalEvents: TimelineEventInput[];
   /** All state-affecting events, chronologically sorted (for timeline display) */
@@ -177,6 +182,7 @@ const COMPANY_STATE_TYPES = new Set([
   "CO_INVESTMENT",
   "ABSORPTION",
   "DIVESTMENT",
+  "SPINOFF",
   "MERGER",
   "SHUTDOWN",
 ]);
@@ -222,6 +228,9 @@ export function buildCompanyTimeline(
         break;
       }
       case "ACQUISITION": {
+        // Acquirer-centric record (subject IS the acquirer, target is free-text):
+        // informational only — it does NOT change the subject's own state.
+        if (e.acquiredNameRaw) break;
         // Full buyout: closes ALL previous owners (including co-investors) and
         // opens a single new ownership.
         closeAllOwnerships(at);
@@ -275,6 +284,13 @@ export function buildCompanyTimeline(
         setStatus("INDEPENDENT", at);
         break;
       }
+      case "SPINOFF": {
+        // Carve-out: the subject is separated from its parent and becomes an
+        // independent company (parentCompanyId is display-only).
+        closeAllOwnerships(at);
+        setStatus("INDEPENDENT", at);
+        break;
+      }
       case "MERGER": {
         setStatus("MERGED", at);
         break;
@@ -288,6 +304,13 @@ export function buildCompanyTimeline(
     }
   }
 
+  // Listing status: informational IPO / DELISTING events, latest wins.
+  let isListed = false;
+  for (const e of sorted) {
+    if (e.type === "IPO") isListed = true;
+    else if (e.type === "DELISTING") isListed = false;
+  }
+
   const currentOwners = openOwnerships();
   return {
     namePeriods,
@@ -297,6 +320,7 @@ export function buildCompanyTimeline(
     currentOwner: currentOwners[currentOwners.length - 1] ?? null,
     currentOwners,
     currentStatus: openStatus().status,
+    isListed,
     informationalEvents,
     stateEvents,
   };

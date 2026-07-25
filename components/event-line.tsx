@@ -129,8 +129,9 @@ export async function EventLine({
         }
       : { name: "?", href: null, country: null };
 
-  // Actor: acquirer / merge partner / new solution owner
-  const actorCompany = event.acquirerCompany ?? event.withCompany ?? event.newOwnerCompany;
+  // Actor: acquirer / merge partner / new solution owner / spin-off parent
+  const actorCompany =
+    event.acquirerCompany ?? event.withCompany ?? event.newOwnerCompany ?? event.parentCompany;
   const actorCompanyState = actorCompany
     ? (market.companies.find((c) => c.id === actorCompany.id) ?? null)
     : null;
@@ -167,6 +168,10 @@ export async function EventLine({
   if (event.type === "ABSORPTION" && !actor) key = "ABSORPTION_NO_ACTOR";
   // HQ_RELOCATION: with a known origin country we show "from X to Y"
   if (event.type === "HQ_RELOCATION" && !event.fromCountry) key = "HQ_RELOCATION_NO_FROM";
+  // ACQUISITION with a free-text target = acquirer-centric ("subject acquires X")
+  if (event.type === "ACQUISITION" && event.acquiredNameRaw) key = "ACQUISITION_RAW";
+  // IPO without a named exchange
+  if (event.type === "IPO" && !event.note) key = "IPO_NO_EXCHANGE";
 
   // HQ_RELOCATION: destination as "City, Country" (localized) or just the country
   const relocationTo =
@@ -184,6 +189,8 @@ export async function EventLine({
     round: event.round ?? "",
     location: relocationTo,
     from: countryName(event.fromCountry, locale),
+    acquiredName: event.acquiredNameRaw ?? "?",
+    exchange: event.note ?? "",
   });
 
   // Company logos involved in the event (subject + actor), de-duplicated,

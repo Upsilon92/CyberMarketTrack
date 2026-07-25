@@ -39,6 +39,8 @@ export interface EditorEvent {
   newName: string | null;
   acquirerCompanyId: string | null;
   acquirerNameRaw: string | null;
+  acquiredNameRaw: string | null;
+  parentCompanyId: string | null;
   outcome: string | null;
   withCompanyId: string | null;
   newOwnerCompanyId: string | null;
@@ -80,9 +82,12 @@ const COMPANY_EVENT_CHOICES = [
   "CO_INVESTMENT",
   "ABSORPTION",
   "DIVESTMENT",
+  "SPINOFF",
   "MERGER",
   "SHUTDOWN",
   "HQ_RELOCATION",
+  "IPO",
+  "DELISTING",
   "FUNDING",
   "OTHER",
 ];
@@ -106,6 +111,8 @@ interface FormState {
   newName: string;
   acquirerCompanyId: string;
   acquirerNameRaw: string;
+  acquiredNameRaw: string;
+  parentCompanyId: string;
   outcome: string;
   withCompanyId: string;
   newOwnerCompanyId: string;
@@ -127,6 +134,8 @@ const EMPTY_FORM: FormState = {
   newName: "",
   acquirerCompanyId: "",
   acquirerNameRaw: "",
+  acquiredNameRaw: "",
+  parentCompanyId: "",
   outcome: "",
   withCompanyId: "",
   newOwnerCompanyId: "",
@@ -169,6 +178,7 @@ export function HistoryEditor({
   const tOutcomes = useTranslations("outcomes");
   const tStatuses = useTranslations("statuses");
   const tImportances = useTranslations("importances");
+  const tDesc = useTranslations("eventTypeDescriptions");
 
   const [editing, setEditing] = useState<string | null>(null); // event id or "new"
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
@@ -220,6 +230,8 @@ export function HistoryEditor({
       newName: form.newName,
       acquirerCompanyId: form.acquirerCompanyId || null,
       acquirerNameRaw: form.acquirerNameRaw,
+      acquiredNameRaw: form.acquiredNameRaw,
+      parentCompanyId: form.parentCompanyId || null,
       outcome: form.outcome || null,
       withCompanyId: form.withCompanyId || null,
       newOwnerCompanyId: form.newOwnerCompanyId || null,
@@ -284,6 +296,8 @@ export function HistoryEditor({
       newName: e.newName ?? "",
       acquirerCompanyId: e.acquirerCompanyId ?? "",
       acquirerNameRaw: e.acquirerNameRaw ?? "",
+      acquiredNameRaw: e.acquiredNameRaw ?? "",
+      parentCompanyId: e.parentCompanyId ?? "",
       outcome: e.outcome ?? "",
       withCompanyId: e.withCompanyId ?? "",
       newOwnerCompanyId: e.newOwnerCompanyId ?? "",
@@ -371,7 +385,14 @@ export function HistoryEditor({
       case "SOLUTION_RENAME":
         return `→ ${e.newName}`;
       case "ACQUISITION":
+        // Acquirer-centric record: the subject acquired a free-text target.
+        if (e.acquiredNameRaw) return `↳ ${e.acquiredNameRaw}`;
         return `→ ${e.acquirerCompanyId ? companyLabel(e.acquirerCompanyId) : e.acquirerNameRaw} (${e.outcome})`;
+      case "SPINOFF":
+        return `⑂ ${companyLabel(e.parentCompanyId)}`;
+      case "IPO":
+      case "DELISTING":
+        return e.note ?? "";
       case "CO_INVESTMENT":
         return `+ ${e.acquirerCompanyId ? companyLabel(e.acquirerCompanyId) : e.acquirerNameRaw}`;
       case "ABSORPTION":
@@ -551,6 +572,13 @@ export function HistoryEditor({
               </div>
             </div>
 
+            {/* Short description of the chosen event type, to guide the choice */}
+            {form.type && (
+              <p className="text-xs text-muted-foreground -mt-2 rounded-md bg-muted/40 px-3 py-2">
+                {tDesc(form.type as Parameters<typeof tDesc>[0])}
+              </p>
+            )}
+
             {/* Type-specific fields */}
             {(form.type === "COMPANY_RENAME" || form.type === "SOLUTION_RENAME") && (
               <div className="space-y-1.5">
@@ -593,6 +621,36 @@ export function HistoryEditor({
                     ))}
                   </select>
                 </div>
+                <div className="space-y-1.5 sm:col-span-2 border-t pt-3">
+                  <Label>{t("fields.acquiredNameRaw")}</Label>
+                  <Input
+                    value={form.acquiredNameRaw}
+                    onChange={(e) => set("acquiredNameRaw", e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {t("fields.acquiredNameRawHint", { name: entityName })}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {form.type === "SPINOFF" && (
+              <div className="space-y-1.5">
+                <Label>{t("fields.parentCompany")} *</Label>
+                <Combobox
+                  value={form.parentCompanyId}
+                  onValueChange={(v) => set("parentCompanyId", v)}
+                  options={otherCompanyOptions}
+                  placeholder={t("fields.companyPlaceholder")}
+                  emptyText={t("noResults")}
+                />
+              </div>
+            )}
+
+            {(form.type === "IPO" || form.type === "DELISTING") && (
+              <div className="space-y-1.5">
+                <Label>{t("fields.exchange")}</Label>
+                <Input value={form.note} onChange={(e) => set("note", e.target.value)} />
               </div>
             )}
 

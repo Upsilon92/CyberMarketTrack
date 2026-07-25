@@ -112,6 +112,8 @@ const eventBase = z.object({
   newName: optionalTrimmed(200),
   acquirerCompanyId: z.string().nullable().optional().or(z.literal("").transform(() => null)),
   acquirerNameRaw: optionalTrimmed(200),
+  acquiredNameRaw: optionalTrimmed(200),
+  parentCompanyId: z.string().nullable().optional().or(z.literal("").transform(() => null)),
   outcome: z.enum(ACQUISITION_OUTCOMES).nullable().optional().or(z.literal("").transform(() => null)),
   withCompanyId: z.string().nullable().optional().or(z.literal("").transform(() => null)),
   newOwnerCompanyId: z.string().nullable().optional().or(z.literal("").transform(() => null)),
@@ -134,6 +136,9 @@ const COMPANY_SUBJECT_TYPES = new Set([
   "SHUTDOWN",
   "FUNDING",
   "HQ_RELOCATION",
+  "SPINOFF",
+  "IPO",
+  "DELISTING",
 ]);
 const SOLUTION_SUBJECT_TYPES = new Set([
   "SOLUTION_RENAME",
@@ -162,9 +167,15 @@ export const eventSchema = eventBase.superRefine((e, ctx) => {
       if (!e.newName) fail("newName", "newNameRequired");
       break;
     case "ACQUISITION":
+      // Acquirer-centric record (target not in the base): the subject IS the
+      // acquirer and the target is free-text — no acquirer/outcome needed.
+      if (e.acquiredNameRaw) break;
       if (!e.acquirerCompanyId && !e.acquirerNameRaw)
         fail("acquirerCompanyId", "acquirerRequired");
       if (!e.outcome) fail("outcome", "outcomeRequired");
+      break;
+    case "SPINOFF":
+      if (!e.parentCompanyId) fail("parentCompanyId", "parentRequired");
       break;
     case "CO_INVESTMENT":
       if (!e.acquirerCompanyId && !e.acquirerNameRaw)

@@ -61,6 +61,7 @@ model Company {
   acquisitionsMade   Event[] @relation("EventAcquirer")
   mergersReceived    Event[] @relation("EventMergedWith")
   solutionsReceived  Event[] @relation("EventNewOwner")
+  spinoffsFrom       Event[] @relation("EventParent")
 
   // Solutions this company originally created (anchor of the transfer chain)
   initialSolutions Solution[]
@@ -163,7 +164,12 @@ model Event {
   acquirerCompanyId String?
   acquirerCompany   Company? @relation("EventAcquirer", fields: [acquirerCompanyId], references: [id])
   acquirerNameRaw   String? // free-text acquirer when not referenced in the base
+  acquiredNameRaw   String? // free-text TARGET (acquirer-centric record: no subject company)
   outcome           String? // INVESTOR_OWNED | AUTONOMOUS | ABSORBED | UNKNOWN
+
+  // SPINOFF — the parent the subject company is carved out of
+  parentCompanyId String?
+  parentCompany   Company? @relation("EventParent", fields: [parentCompanyId], references: [id])
 
   // MERGER
   withCompanyId String?

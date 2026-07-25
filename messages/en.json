@@ -30,7 +30,8 @@
     "theme": "Theme",
     "themeLight": "Light",
     "themeDark": "Dark",
-    "themeSystem": "System"
+    "themeSystem": "System",
+    "listed": "Listed"
   },
   "nav": {
     "home": "Home",
@@ -201,7 +202,10 @@
     "SOLUTION_INTEGRATED": "Solution integration",
     "FUNDING": "Funding round",
     "OTHER": "Other",
-    "HQ_RELOCATION": "HQ relocation"
+    "HQ_RELOCATION": "HQ relocation",
+    "SPINOFF": "Spin-off",
+    "IPO": "IPO",
+    "DELISTING": "Delisting"
   },
   "eventText": {
     "COMPANY_RENAME": "<subject></subject> becomes {newName}",
@@ -221,7 +225,12 @@
     "FUNDING_NO_ROUND": "<subject></subject> raises {amount}M",
     "OTHER": "<subject></subject>",
     "HQ_RELOCATION": "<subject></subject> relocates its headquarters from {from} to {location}",
-    "HQ_RELOCATION_NO_FROM": "<subject></subject> relocates its headquarters to {location}"
+    "HQ_RELOCATION_NO_FROM": "<subject></subject> relocates its headquarters to {location}",
+    "SPINOFF": "<subject></subject> is spun off from <actor></actor>",
+    "IPO": "<subject></subject> goes public ({exchange})",
+    "IPO_NO_EXCHANGE": "<subject></subject> goes public",
+    "DELISTING": "<subject></subject> is delisted",
+    "ACQUISITION_RAW": "<subject></subject> acquires {acquiredName}"
   },
   "search": {
     "title": "Results for “{query}”",
@@ -418,7 +427,8 @@
       "divestmentWithoutOwnership": "Divestment without an ongoing ownership at that date.",
       "absorptionWithoutOwnership": "Absorption without an ongoing ownership at that date (use an Acquisition with the \"Absorbed\" outcome instead).",
       "eventAfterShutdown": "Event dated after the company's shutdown.",
-      "newCountryRequired": "Destination country is required."
+      "newCountryRequired": "Destination country is required.",
+      "parentRequired": "Parent company is required."
     },
     "absorbedProposal": "Absorption: also create the solution transfers to the acquirer?",
     "absorbedProposalHint": "Checked solutions will get a \"Solution transfer\" event at the same date.",
@@ -472,7 +482,11 @@
       "newCity": "City (optional)",
       "countryPlaceholder": "Search a country…",
       "companyPlaceholder": "Search a company…",
-      "fromCountry": "Origin country"
+      "fromCountry": "Origin country",
+      "acquiredNameRaw": "Acquired target (free text)",
+      "acquiredNameRawHint": "If {name} is the BUYER and the target isn't in the base, type its name here. Leave empty otherwise (normal case: this company is the target).",
+      "parentCompany": "Parent company (spun off from)",
+      "exchange": "Exchange (optional)"
     },
     "revenues": {
       "title": "Revenue",
@@ -596,5 +610,25 @@
       "applied": "Earlier history added.",
       "nothing": "Nothing to add (same name)."
     }
+  },
+  "eventTypeDescriptions": {
+    "COMPANY_RENAME": "The company changes name. The current name is recomputed; the old one becomes a past period.",
+    "ACQUISITION": "The company (subject) is acquired by another. Pick the outcome: fund (stays independent), subsidiary (keeps its brand), or absorbed.",
+    "CO_INVESTMENT": "An additional investor enters the capital IN PARALLEL, without closing existing owners (consortium).",
+    "ABSORPTION": "An already-owned subsidiary is absorbed in place by its owner: its brand disappears.",
+    "DIVESTMENT": "The company leaves an owner and becomes independent again (divestiture, MBO, IPO…).",
+    "SPINOFF": "The company is carved out of a parent and becomes independent.",
+    "MERGER": "The company merges with another (status: merged).",
+    "SHUTDOWN": "The company ceases activity (status: defunct).",
+    "HQ_RELOCATION": "Headquarters move to another country. Updates the company's current country.",
+    "IPO": "The company goes public (becomes listed).",
+    "DELISTING": "The company leaves the stock market (no longer listed).",
+    "SOLUTION_RENAME": "The solution changes name.",
+    "SOLUTION_TRANSFER": "The solution changes vendor (new owner).",
+    "SOLUTION_LAUNCH": "Launch (or relaunch) of the solution.",
+    "SOLUTION_DISCONTINUED": "The solution is discontinued.",
+    "SOLUTION_INTEGRATED": "The solution is absorbed into another host solution.",
+    "FUNDING": "Funding round (informational): amount and round.",
+    "OTHER": "Free-form event (informational), no effect on the computed state."
   }
 }

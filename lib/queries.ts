@@ -210,6 +210,7 @@ export type EventWithRelations = Event & {
   acquirerCompany: Company | null;
   withCompany: Company | null;
   newOwnerCompany: Company | null;
+  parentCompany: Company | null;
   intoSolution: Solution | null;
 };
 
@@ -224,8 +225,15 @@ export function companiesInvolved(e: {
   acquirerCompanyId?: string | null;
   withCompanyId?: string | null;
   newOwnerCompanyId?: string | null;
+  parentCompanyId?: string | null;
 }): string[] {
-  const ids = [e.subjectCompanyId, e.acquirerCompanyId, e.withCompanyId, e.newOwnerCompanyId];
+  const ids = [
+    e.subjectCompanyId,
+    e.acquirerCompanyId,
+    e.withCompanyId,
+    e.newOwnerCompanyId,
+    e.parentCompanyId,
+  ];
   return [...new Set(ids.filter((x): x is string => !!x))];
 }
 
@@ -237,6 +245,7 @@ export const loadAllEvents = cache(async (): Promise<EventWithRelations[]> => {
       acquirerCompany: true,
       withCompany: true,
       newOwnerCompany: true,
+      parentCompany: true,
       intoSolution: true,
     },
     // Most recent first; a missing month sorts last within its year (SQLite

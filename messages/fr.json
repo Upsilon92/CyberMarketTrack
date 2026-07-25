@@ -30,7 +30,8 @@
     "theme": "Thème",
     "themeLight": "Clair",
     "themeDark": "Sombre",
-    "themeSystem": "Système"
+    "themeSystem": "Système",
+    "listed": "Cotée"
   },
   "nav": {
     "home": "Accueil",
@@ -201,7 +202,10 @@
     "SOLUTION_INTEGRATED": "Intégration de solution",
     "FUNDING": "Levée de fonds",
     "OTHER": "Autre",
-    "HQ_RELOCATION": "Déménagement du siège"
+    "HQ_RELOCATION": "Déménagement du siège",
+    "SPINOFF": "Scission",
+    "IPO": "Entrée en bourse",
+    "DELISTING": "Retrait de la cote"
   },
   "eventText": {
     "COMPANY_RENAME": "<subject></subject> devient {newName}",
@@ -221,7 +225,12 @@
     "FUNDING_NO_ROUND": "<subject></subject> lève {amount} M",
     "OTHER": "<subject></subject>",
     "HQ_RELOCATION": "<subject></subject> déplace son siège de {from} vers {location}",
-    "HQ_RELOCATION_NO_FROM": "<subject></subject> déplace son siège vers {location}"
+    "HQ_RELOCATION_NO_FROM": "<subject></subject> déplace son siège vers {location}",
+    "SPINOFF": "<subject></subject> est issue de la scission de <actor></actor>",
+    "IPO": "<subject></subject> entre en bourse ({exchange})",
+    "IPO_NO_EXCHANGE": "<subject></subject> entre en bourse",
+    "DELISTING": "<subject></subject> se retire de la cote",
+    "ACQUISITION_RAW": "<subject></subject> rachète {acquiredName}"
   },
   "search": {
     "title": "Résultats pour « {query} »",
@@ -418,7 +427,8 @@
       "divestmentWithoutOwnership": "Reprise d'indépendance sans détention en cours à cette date.",
       "absorptionWithoutOwnership": "Absorption sans détention en cours à cette date (utilisez plutôt un Rachat avec issue « Absorption »).",
       "eventAfterShutdown": "Événement postérieur à la fermeture de la société.",
-      "newCountryRequired": "Le pays de destination est requis."
+      "newCountryRequired": "Le pays de destination est requis.",
+      "parentRequired": "La société mère est requise."
     },
     "absorbedProposal": "Absorption : créer aussi les transferts de solutions vers l'acquéreur ?",
     "absorbedProposalHint": "Les solutions cochées recevront un événement « Transfert de solution » à la même date.",
@@ -472,7 +482,11 @@
       "newCity": "Ville (optionnel)",
       "countryPlaceholder": "Rechercher un pays…",
       "companyPlaceholder": "Rechercher une entreprise…",
-      "fromCountry": "Pays d'origine"
+      "fromCountry": "Pays d'origine",
+      "acquiredNameRaw": "Cible rachetée (texte libre)",
+      "acquiredNameRawHint": "Si {name} est l'ACHETEUR et que la cible n'est pas dans la base, tapez son nom ici. Laissez vide sinon (cas normal : cette société est la cible).",
+      "parentCompany": "Société mère (dont elle est issue)",
+      "exchange": "Place / bourse (optionnel)"
     },
     "revenues": {
       "title": "Chiffre d'affaires",
@@ -596,5 +610,25 @@
       "applied": "Historique antérieur ajouté.",
       "nothing": "Rien à ajouter (nom identique)."
     }
+  },
+  "eventTypeDescriptions": {
+    "COMPANY_RENAME": "L'entreprise change de nom. Le nom courant est recalculé ; l'ancien devient une période passée.",
+    "ACQUISITION": "L'entreprise (sujet) est rachetée par une autre. Choisissez l'issue : fonds (reste indépendante), filiale (garde sa marque) ou absorbée.",
+    "CO_INVESTMENT": "Un investisseur supplémentaire entre au capital EN PARALLÈLE, sans clore les propriétaires existants (consortium).",
+    "ABSORPTION": "Une filiale déjà détenue est absorbée sur place par son propriétaire : sa marque disparaît.",
+    "DIVESTMENT": "L'entreprise sort du giron d'un propriétaire et redevient indépendante (cession, MBO, IPO…).",
+    "SPINOFF": "L'entreprise est issue de la scission d'une société mère et devient indépendante.",
+    "MERGER": "L'entreprise fusionne avec une autre (statut : fusionnée).",
+    "SHUTDOWN": "L'entreprise cesse son activité (statut : disparue).",
+    "HQ_RELOCATION": "Le siège social change de pays. Met à jour le pays courant de l'entreprise.",
+    "IPO": "L'entreprise entre en bourse (devient cotée).",
+    "DELISTING": "L'entreprise quitte la cote (n'est plus cotée).",
+    "SOLUTION_RENAME": "La solution change de nom.",
+    "SOLUTION_TRANSFER": "La solution change d'éditeur (nouveau propriétaire).",
+    "SOLUTION_LAUNCH": "Lancement (ou relancement) de la solution.",
+    "SOLUTION_DISCONTINUED": "La solution est arrêtée.",
+    "SOLUTION_INTEGRATED": "La solution est absorbée dans une autre solution hôte.",
+    "FUNDING": "Levée de fonds (informatif) : montant et tour de table.",
+    "OTHER": "Événement libre (informatif), sans effet sur l'état calculé."
   }
 }
