@@ -81,7 +81,8 @@ async function main() {
     foundedMonth?: number;
     country: string;
     originCountry?: string;
-    description?: string;
+    descriptionFr?: string;
+    descriptionEn?: string;
     website?: string;
   }) {
     const { types, ...rest } = data;
@@ -101,7 +102,7 @@ async function main() {
     types: ["VENDOR"],
     foundedYear: 2017,
     country: "FR",
-    description:
+    descriptionFr:
       "Éditeur français spécialisé dans la sécurité d'Active Directory, fondé par deux anciens de l'ANSSI.",
     website: "https://www.alsid.com",
   });
@@ -110,7 +111,7 @@ async function main() {
     types: ["VENDOR"],
     foundedYear: 2002,
     country: "US",
-    description: "Éditeur américain, leader de la gestion des vulnérabilités (Nessus, Tenable One).",
+    descriptionFr: "Éditeur américain, leader de la gestion des vulnérabilités (Nessus, Tenable One).",
     website: "https://www.tenable.com",
   });
 
@@ -119,7 +120,7 @@ async function main() {
       initialName: "Alsid for AD",
       initialCompanyId: alsid.id,
       launchYear: 2017,
-      description:
+      descriptionFr:
         "Solution de sécurisation d'Active Directory : détection des mauvaises configurations et des attaques en temps réel, sans agent.",
       features:
         "- Audit continu des configurations AD\n- Détection d'attaques (DCSync, DCShadow, Golden Ticket...)\n- Chemins d'attaque\n- Guides de remédiation pas à pas",
@@ -194,7 +195,7 @@ async function main() {
     types: ["VENDOR"],
     foundedYear: 2002,
     country: "US",
-    description: "Éditeur américain spécialisé dans la sécurité de la messagerie et la protection des personnes.",
+    descriptionFr: "Éditeur américain spécialisé dans la sécurité de la messagerie et la protection des personnes.",
     website: "https://www.proofpoint.com",
   });
   const thomaBravo = await company({
@@ -202,7 +203,7 @@ async function main() {
     types: ["INVESTMENT_FUND"],
     foundedYear: 2008,
     country: "US",
-    description: "Fonds d'investissement américain spécialisé dans les logiciels, très actif en cybersécurité.",
+    descriptionFr: "Fonds d'investissement américain spécialisé dans les logiciels, très actif en cybersécurité.",
     website: "https://www.thomabravo.com",
   });
 
@@ -233,14 +234,14 @@ async function main() {
     types: ["VENDOR"],
     foundedYear: 1982,
     country: "US",
-    description: "Éditeur historique de la cybersécurité (division entreprise rachetée par Broadcom en 2019).",
+    descriptionFr: "Éditeur historique de la cybersécurité (division entreprise rachetée par Broadcom en 2019).",
   });
   const broadcom = await company({
     initialName: "Broadcom",
     types: ["VENDOR"],
     foundedYear: 1991,
     country: "US",
-    description: "Groupe américain de semi-conducteurs et de logiciels d'infrastructure.",
+    descriptionFr: "Groupe américain de semi-conducteurs et de logiciels d'infrastructure.",
     website: "https://www.broadcom.com",
   });
 
@@ -268,28 +269,28 @@ async function main() {
     types: ["VENDOR"],
     foundedYear: 2012,
     country: "FR",
-    description: "Société fictive de test : valide la reconstruction d'un historique saisi dans le désordre.",
+    descriptionFr: "Société fictive de test : valide la reconstruction d'un historique saisi dans le désordre.",
   });
   const fondsA = await company({
     initialName: "Fonds A",
     types: ["INVESTMENT_FUND"],
     foundedYear: 2000,
     country: "FR",
-    description: "Fonds fictif de test.",
+    descriptionFr: "Fonds fictif de test.",
   });
   const fondsB = await company({
     initialName: "Fonds B",
     types: ["INVESTMENT_FUND"],
     foundedYear: 2005,
     country: "GB",
-    description: "Fonds fictif de test.",
+    descriptionFr: "Fonds fictif de test.",
   });
   const fondsC = await company({
     initialName: "Fonds C",
     types: ["INVESTMENT_FUND"],
     foundedYear: 2010,
     country: "US",
-    description: "Fonds fictif de test.",
+    descriptionFr: "Fonds fictif de test.",
   });
 
   // Deliberately out of chronological order:
@@ -313,7 +314,7 @@ async function main() {
     types: ["VENDOR"],
     foundedYear: 2005,
     country: "US",
-    description: "Éditeur américain de gouvernance des identités (IGA).",
+    descriptionFr: "Éditeur américain de gouvernance des identités (IGA).",
     website: "https://www.sailpoint.com",
   });
 
@@ -347,7 +348,7 @@ async function main() {
     types: ["VENDOR"],
     foundedYear: 2011,
     country: "US",
-    description: "Éditeur américain, leader de la protection des endpoints (plateforme Falcon).",
+    descriptionFr: "Éditeur américain, leader de la protection des endpoints (plateforme Falcon).",
     website: "https://www.crowdstrike.com",
   });
   const sentinelone = await company({
@@ -356,7 +357,7 @@ async function main() {
     foundedYear: 2013,
     country: "US",
     originCountry: "IL",
-    description: "Éditeur de la plateforme Singularity (EDR/XDR autonome).",
+    descriptionFr: "Éditeur de la plateforme Singularity (EDR/XDR autonome).",
     website: "https://www.sentinelone.com",
   });
   await company({
@@ -364,7 +365,7 @@ async function main() {
     types: ["SERVICE_PROVIDER"],
     foundedYear: 2005,
     country: "FR",
-    description: "Pure player français des services de cybersécurité (SOC, CERT, audit).",
+    descriptionFr: "Pure player français des services de cybersécurité (SOC, CERT, audit).",
     website: "https://www.i-tracing.com",
   });
   await company({
@@ -372,7 +373,7 @@ async function main() {
     types: ["SERVICE_PROVIDER"],
     foundedYear: 2004,
     country: "NL",
-    description: "Intégrateur et fournisseur de services de cybersécurité européen.",
+    descriptionFr: "Intégrateur et fournisseur de services de cybersécurité européen.",
     website: "https://www.nomios.com",
   });
 
@@ -381,7 +382,7 @@ async function main() {
       initialName: "Falcon",
       initialCompanyId: crowdstrike.id,
       launchYear: 2013,
-      description: "Plateforme cloud-native de protection des endpoints.",
+      descriptionFr: "Plateforme cloud-native de protection des endpoints.",
       tags: { connect: [{ id: tags["edr"].id }, { id: tags["xdr"].id }] },
     },
   });
@@ -390,7 +391,7 @@ async function main() {
       initialName: "Singularity Platform",
       initialCompanyId: sentinelone.id,
       launchYear: 2013,
-      description: "Plateforme EDR/XDR autonome.",
+      descriptionFr: "Plateforme EDR/XDR autonome.",
       tags: { connect: [{ id: tags["edr"].id }, { id: tags["xdr"].id }] },
     },
   });

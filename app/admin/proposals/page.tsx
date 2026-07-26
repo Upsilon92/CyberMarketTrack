@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { loadMarket } from "@/lib/queries";
 import { ProposalsReview, type ReviewProposal } from "@/components/admin/proposals-review";
+import { RssAnalyze } from "@/components/admin/rss-analyze";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +41,7 @@ export default async function AdminProposals() {
         <h1 className="text-xl font-bold">{t("reviewTitle")}</h1>
         <span className="text-sm text-muted-foreground">({proposals.length})</span>
       </div>
+      <RssAnalyze />
       <ProposalsReview
         proposals={proposals}
         companies={companies}

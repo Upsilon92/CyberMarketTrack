@@ -170,16 +170,22 @@ export default async function SolutionPage({ params }: { params: Promise<{ id: s
       </div>
 
       {/* Description & features */}
-      {solution.description && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("description")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Markdown>{solution.description}</Markdown>
-          </CardContent>
-        </Card>
-      )}
+      {(() => {
+        const desc =
+          locale === "fr"
+            ? solution.descriptionFr || solution.descriptionEn
+            : solution.descriptionEn || solution.descriptionFr;
+        return desc ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("description")}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Markdown>{desc}</Markdown>
+            </CardContent>
+          </Card>
+        ) : null;
+      })()}
       {solution.features && (
         <Card>
           <CardHeader>

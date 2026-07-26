@@ -46,7 +46,8 @@ export default async function EditSolutionPage({ params }: { params: Promise<{ i
         initial={{
           initialName: solution.initialName,
           initialCompanyId: solution.initialCompanyId,
-          description: solution.description ?? "",
+          descriptionFr: solution.descriptionFr ?? "",
+          descriptionEn: solution.descriptionEn ?? "",
           features: solution.features ?? "",
           launchYear: solution.launchYear == null ? "" : String(solution.launchYear),
           launchMonth: solution.launchMonth == null ? "" : String(solution.launchMonth),

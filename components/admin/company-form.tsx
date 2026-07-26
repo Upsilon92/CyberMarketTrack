@@ -23,7 +23,8 @@ export interface CompanyFormValues {
   foundedMonth: string;
   country: string;
   originCountry: string;
-  description: string;
+  descriptionFr: string;
+  descriptionEn: string;
   website: string;
   logoUrl: string;
 }
@@ -61,7 +62,8 @@ export function CompanyForm({
     foundedMonth: initial?.foundedMonth ?? "",
     country: initial?.country ?? "",
     originCountry: initial?.originCountry ?? "",
-    description: initial?.description ?? "",
+    descriptionFr: initial?.descriptionFr ?? "",
+    descriptionEn: initial?.descriptionEn ?? "",
     website: initial?.website ?? "",
     logoUrl: initial?.logoUrl ?? "",
   });
@@ -85,7 +87,8 @@ export function CompanyForm({
         foundedMonth: values.foundedMonth === "" ? null : values.foundedMonth,
         country: values.country,
         originCountry: values.originCountry === "" ? null : values.originCountry,
-        description: values.description,
+        descriptionFr: values.descriptionFr,
+        descriptionEn: values.descriptionEn,
         website: values.website,
         logoUrl: values.logoUrl,
       };
@@ -211,15 +214,27 @@ export function CompanyForm({
         </div>
       </div>
 
-      <div className="space-y-1.5">
-        <Label htmlFor="description">{tf("description")}</Label>
-        <Textarea
-          id="description"
-          rows={5}
-          value={values.description}
-          onChange={(e) => set("description", e.target.value)}
-          className={errCls("description")}
-        />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label htmlFor="descriptionFr">{tf("descriptionFr")}</Label>
+          <Textarea
+            id="descriptionFr"
+            rows={5}
+            value={values.descriptionFr}
+            onChange={(e) => set("descriptionFr", e.target.value)}
+            className={errCls("descriptionFr")}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="descriptionEn">{tf("descriptionEn")}</Label>
+          <Textarea
+            id="descriptionEn"
+            rows={5}
+            value={values.descriptionEn}
+            onChange={(e) => set("descriptionEn", e.target.value)}
+            className={errCls("descriptionEn")}
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">

@@ -95,10 +95,11 @@ export const CSV_TEMPLATES: Record<string, { headers: string[]; example: string[
       "foundedMonth",
       "country",
       "originCountry",
-      "description",
+      "descriptionFr",
+      "descriptionEn",
       "website",
     ],
-    example: ["Acme Security", "VENDOR|SERVICE_PROVIDER", "2015", "", "FR", "", "Éditeur français", "https://acme.example"],
+    example: ["Acme Security", "VENDOR|SERVICE_PROVIDER", "2015", "", "FR", "", "Éditeur français", "French vendor", "https://acme.example"],
   },
   solutions: {
     headers: [
@@ -106,11 +107,12 @@ export const CSV_TEMPLATES: Record<string, { headers: string[]; example: string[
       "initialCompany",
       "launchYear",
       "launchMonth",
-      "description",
+      "descriptionFr",
+      "descriptionEn",
       "website",
       "tags",
     ],
-    example: ["Acme Shield", "Acme Security", "2018", "", "EDR nouvelle génération", "", "edr|active-directory"],
+    example: ["Acme Shield", "Acme Security", "2018", "", "EDR nouvelle génération", "Next-gen EDR", "", "edr|active-directory"],
   },
   tags: {
     headers: ["slug", "family", "labelFr", "labelEn", "descriptionFr", "descriptionEn", "category"],

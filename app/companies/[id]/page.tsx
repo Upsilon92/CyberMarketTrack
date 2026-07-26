@@ -197,7 +197,13 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
                 </a>
               )}
             </div>
-            {company.description && <Markdown>{company.description}</Markdown>}
+            {(() => {
+              const desc =
+                locale === "fr"
+                  ? company.descriptionFr || company.descriptionEn
+                  : company.descriptionEn || company.descriptionFr;
+              return desc ? <Markdown>{desc}</Markdown> : null;
+            })()}
           </CardContent>
         </Card>
 

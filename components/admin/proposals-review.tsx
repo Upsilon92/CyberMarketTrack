@@ -80,7 +80,8 @@ export function ProposalsReview({
             foundedMonth: d.foundedMonth != null ? String(d.foundedMonth) : "",
             country: d.country ?? "",
             originCountry: d.originCountry ?? "",
-            description: d.description ?? "",
+            descriptionFr: d.descriptionFr ?? "",
+            descriptionEn: d.descriptionEn ?? "",
             website: d.website ?? "",
             logoUrl: d.logoUrl ?? "",
           }}
@@ -98,7 +99,8 @@ export function ProposalsReview({
           initial={{
             initialName: d.initialName ?? "",
             initialCompanyId: d.initialCompanyId ?? "",
-            description: d.description ?? "",
+            descriptionFr: d.descriptionFr ?? "",
+            descriptionEn: d.descriptionEn ?? "",
             features: d.features ?? "",
             launchYear: d.launchYear != null ? String(d.launchYear) : "",
             launchMonth: d.launchMonth != null ? String(d.launchMonth) : "",

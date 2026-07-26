@@ -94,7 +94,8 @@ const companySchema = z.object({
   foundedMonth: z.number().int().nullable(),
   country: z.string().max(2),
   originCountry: z.string().max(2).nullable(),
-  description: z.string().max(50_000).nullable(),
+  descriptionFr: z.string().max(50_000).nullable(),
+  descriptionEn: z.string().max(50_000).nullable(),
   website: z.string().max(500).nullable(),
   // Uploaded logos are stored as data URIs (base64), so this can be large:
   // the upload cap is 512 KB, which is ~700 K chars once base64-encoded.
@@ -110,7 +111,8 @@ const solutionSchema = z.object({
   id,
   initialName: z.string().max(300),
   initialCompanyId: id,
-  description: z.string().max(50_000).nullable(),
+  descriptionFr: z.string().max(50_000).nullable(),
+  descriptionEn: z.string().max(50_000).nullable(),
   features: z.string().max(50_000).nullable(),
   launchYear: z.number().int().nullable(),
   launchMonth: z.number().int().nullable(),

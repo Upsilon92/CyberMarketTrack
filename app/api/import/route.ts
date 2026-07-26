@@ -105,7 +105,8 @@ export async function POST(req: NextRequest) {
             foundedMonth: orNull(row.foundedMonth),
             country: row.country,
             originCountry: orNull(row.originCountry),
-            description: orNull(row.description),
+            descriptionFr: orNull(row.descriptionFr ?? row.description),
+            descriptionEn: orNull(row.descriptionEn),
             website: orNull(row.website),
           });
           if (!parsed.success) {
@@ -174,7 +175,8 @@ export async function POST(req: NextRequest) {
             initialCompanyId: companyId,
             launchYear: orNull(row.launchYear),
             launchMonth: orNull(row.launchMonth),
-            description: orNull(row.description),
+            descriptionFr: orNull(row.descriptionFr ?? row.description),
+            descriptionEn: orNull(row.descriptionEn),
             website: orNull(row.website),
             tagIds: tags.map((t) => t.id),
           });

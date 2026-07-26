@@ -16,7 +16,8 @@ import { TAG_FAMILIES } from "@/lib/constants";
 export interface SolutionFormValues {
   initialName: string;
   initialCompanyId: string;
-  description: string;
+  descriptionFr: string;
+  descriptionEn: string;
   features: string;
   launchYear: string;
   launchMonth: string;
@@ -60,7 +61,8 @@ export function SolutionForm({
   const [values, setValues] = useState<SolutionFormValues>({
     initialName: initial?.initialName ?? "",
     initialCompanyId: initial?.initialCompanyId ?? "",
-    description: initial?.description ?? "",
+    descriptionFr: initial?.descriptionFr ?? "",
+    descriptionEn: initial?.descriptionEn ?? "",
     features: initial?.features ?? "",
     launchYear: initial?.launchYear ?? "",
     launchMonth: initial?.launchMonth ?? "",
@@ -83,7 +85,8 @@ export function SolutionForm({
       const payload = {
         initialName: values.initialName,
         initialCompanyId: values.initialCompanyId,
-        description: values.description,
+        descriptionFr: values.descriptionFr,
+        descriptionEn: values.descriptionEn,
         features: values.features,
         launchYear: values.launchYear === "" ? null : values.launchYear,
         launchMonth: values.launchMonth === "" ? null : values.launchMonth,
@@ -182,14 +185,25 @@ export function SolutionForm({
         </div>
       </div>
 
-      <div className="space-y-1.5">
-        <Label htmlFor="description">{tf("description")}</Label>
-        <Textarea
-          id="description"
-          rows={4}
-          value={values.description}
-          onChange={(e) => set("description", e.target.value)}
-        />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label htmlFor="descriptionFr">{tf("descriptionFr")}</Label>
+          <Textarea
+            id="descriptionFr"
+            rows={4}
+            value={values.descriptionFr}
+            onChange={(e) => set("descriptionFr", e.target.value)}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="descriptionEn">{tf("descriptionEn")}</Label>
+          <Textarea
+            id="descriptionEn"
+            rows={4}
+            value={values.descriptionEn}
+            onChange={(e) => set("descriptionEn", e.target.value)}
+          />
+        </div>
       </div>
 
       <div className="space-y-1.5">

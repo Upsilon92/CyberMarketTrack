@@ -182,7 +182,7 @@ export async function searchAll(q: string): Promise<{
       c.timeline.currentName,
       c.timeline.namePeriods.slice(0, -1).map((p) => p.name),
       c.aliases.map((a) => a.name),
-      c.description
+      [c.descriptionFr, c.descriptionEn].filter(Boolean).join(" ")
     );
     if (match) companies.push({ company: c, match });
   }
@@ -194,7 +194,7 @@ export async function searchAll(q: string): Promise<{
       s.timeline.currentName,
       s.timeline.namePeriods.slice(0, -1).map((p) => p.name),
       s.aliases.map((a) => a.name),
-      s.description
+      [s.descriptionFr, s.descriptionEn].filter(Boolean).join(" ")
     );
     if (match) solutions.push({ solution: s, match });
   }

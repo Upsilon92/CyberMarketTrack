@@ -41,7 +41,8 @@ export default async function EditCompanyPage({ params }: { params: Promise<{ id
           foundedMonth: company.foundedMonth == null ? "" : String(company.foundedMonth),
           country: company.country,
           originCountry: company.originCountry ?? "",
-          description: company.description ?? "",
+          descriptionFr: company.descriptionFr ?? "",
+          descriptionEn: company.descriptionEn ?? "",
           website: company.website ?? "",
           logoUrl: company.logoUrl ?? "",
         }}

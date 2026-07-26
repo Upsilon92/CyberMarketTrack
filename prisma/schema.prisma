@@ -42,7 +42,8 @@ model Company {
   foundedMonth Int? // 1-12, optional (variable-precision date)
   country       String // ISO 3166-1 alpha-2 (current HQ country)
   originCountry String? // ISO code, if different from current country
-  description String? // markdown
+  descriptionFr String? // markdown (FR)
+  descriptionEn String? // markdown (EN)
   website     String?
   logoUrl     String?
 
@@ -87,7 +88,8 @@ model Solution {
   initialName      String // name at launch — anchor of the rename chain
   initialCompanyId String // original vendor — anchor of the transfer chain
   initialCompany   Company @relation(fields: [initialCompanyId], references: [id])
-  description String? // markdown
+  descriptionFr String? // markdown (FR)
+  descriptionEn String? // markdown (EN)
   features    String? // markdown
   launchYear  Int?
   launchMonth Int? // 1-12, optional
@@ -308,4 +310,21 @@ model Proposal {
 
   @@index([status, createdAt])
   @@index([sourceIp, createdAt])
+}
+
+// RSS analysis backlog (Phase 2): one row per feed item ever seen, so items are
+// analyzed exactly once and accumulate while the LLM machine is off.
+model FeedItem {
+  id          String    @id @default(cuid())
+  url         String    @unique
+  title       String
+  source      String?
+  status      String    @default("PENDING") // PENDING | PROCESSED | ERROR
+  relevant    Boolean? // LLM gating result
+  proposalId  String? // the AUTO proposal created from this item, if any
+  error       String?
+  createdAt   DateTime  @default(now())
+  processedAt DateTime?
+
+  @@index([status, createdAt])
 }

@@ -50,7 +50,8 @@ export default async function ProposePage({
                 foundedMonth: c.foundedMonth != null ? String(c.foundedMonth) : "",
                 country: c.country,
                 originCountry: c.originCountry ?? "",
-                description: c.description ?? "",
+                descriptionFr: c.descriptionFr ?? "",
+                descriptionEn: c.descriptionEn ?? "",
                 website: c.website ?? "",
                 logoUrl: c.logoUrl ?? "",
               }
@@ -74,7 +75,8 @@ export default async function ProposePage({
             ? {
                 initialName: s.initialName,
                 initialCompanyId: s.initialCompanyId,
-                description: s.description ?? "",
+                descriptionFr: s.descriptionFr ?? "",
+                descriptionEn: s.descriptionEn ?? "",
                 features: s.features ?? "",
                 launchYear: s.launchYear != null ? String(s.launchYear) : "",
                 launchMonth: s.launchMonth != null ? String(s.launchMonth) : "",

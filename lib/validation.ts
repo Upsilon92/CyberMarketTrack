@@ -59,7 +59,8 @@ export const companySchema = z.object({
   foundedMonth: monthSchema,
   country: countryCode,
   originCountry: countryCode.nullable().optional().or(z.literal("").transform(() => null)),
-  description: optionalTrimmed(10_000),
+  descriptionFr: optionalTrimmed(10_000),
+  descriptionEn: optionalTrimmed(10_000),
   website: optionalUrl,
   logoUrl: optionalUrl,
 });
@@ -70,7 +71,8 @@ export type CompanyInput = z.infer<typeof companySchema>;
 export const solutionSchema = z.object({
   initialName: trimmed(200),
   initialCompanyId: z.string().min(1),
-  description: optionalTrimmed(10_000),
+  descriptionFr: optionalTrimmed(10_000),
+  descriptionEn: optionalTrimmed(10_000),
   features: optionalTrimmed(10_000),
   launchYear: yearSchema.nullable().optional(),
   launchMonth: monthSchema,

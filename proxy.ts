@@ -25,11 +25,15 @@ export default auth((req) => {
   // Public proposal submission (rate-limited by IP). The review actions on
   // /api/proposals/[id] enforce requireAdmin themselves.
   const isProposalsApi = nextUrl.pathname === "/api/proposals";
+  // RSS analysis trigger: authorizes itself (admin session OR X-Cron-Secret),
+  // so a NAS scheduler can call it without a browser session.
+  const isRssAnalyze = nextUrl.pathname === "/api/rss/analyze";
   const isApiMutation =
     nextUrl.pathname.startsWith("/api") &&
     !isAuthApi &&
     !isSetupApi &&
     !isProposalsApi &&
+    !isRssAnalyze &&
     req.method !== "GET";
 
   if (isAdminArea && !isLoggedIn) {
