@@ -548,14 +548,21 @@
       "importLogosTitle": "Import logos (ZIP)",
       "importLogosHint": "Import a ZIP of images: each file is matched to a company by its filename (the company name). Ideal to re-import a logo export.",
       "importLogos": "Import logos (ZIP)…",
-      "importLogosReport": "{applied} applied, {skipped} skipped (no match), {errors} errored.",
+      "importLogosReport": "{applied} applied, {skipped} skipped (no match), {errors} failed.",
       "restoreTitle": "Restore",
       "restoreWarning": "Restoring FULLY REPLACES the current database with the file's content. Export first. The operation is atomic: on error, nothing changes.",
       "restoreConfirm": "All current data will be replaced by the file's content. Continue?",
       "restore": "Restore from a JSON export…",
       "restored": "Database restored.",
       "invalidFile": "Invalid file: not a recognized CyberMarketTrack export.",
-      "tooBig": "File too large (max 50 MB)."
+      "tooBig": "File too large (max 50 MB).",
+      "importLogosNotApplied": "Files not imported:",
+      "logoReason": {
+        "noMatch": "no matching company (by filename)",
+        "notImage": "unsupported format (not an image)",
+        "invalid": "invalid or too large image (max 512 KB)",
+        "unknown": "unknown reason"
+      }
     },
     "importPage": {
       "title": "Bulk import (CSV)",

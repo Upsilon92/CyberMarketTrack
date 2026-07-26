@@ -21,6 +21,7 @@ export function BackupManager() {
     applied: number;
     skipped: number;
     errors: number;
+    results: { file: string; status: string; reason?: string }[];
   } | null>(null);
 
   async function onImportLogos(e: React.ChangeEvent<HTMLInputElement>) {
@@ -36,7 +37,12 @@ export function BackupManager() {
       const res = await fetch("/api/backup/logos", { method: "POST", body: fd });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new ApiError(res.status, data);
-      setLogoReport({ applied: data.applied, skipped: data.skipped, errors: data.errors });
+      setLogoReport({
+        applied: data.applied,
+        skipped: data.skipped,
+        errors: data.errors,
+        results: data.results ?? [],
+      });
       router.refresh();
     } catch (err) {
       setError(
@@ -109,13 +115,34 @@ export function BackupManager() {
           onChange={onImportLogos}
         />
         {logoReport && (
-          <p className="text-sm text-emerald-600">
-            {t("importLogosReport", {
-              applied: logoReport.applied,
-              skipped: logoReport.skipped,
-              errors: logoReport.errors,
-            })}
-          </p>
+          <div className="space-y-1">
+            <p className="text-sm text-emerald-600">
+              {t("importLogosReport", {
+                applied: logoReport.applied,
+                skipped: logoReport.skipped,
+                errors: logoReport.errors,
+              })}
+            </p>
+            {logoReport.results.some((r) => r.status !== "applied") && (
+              <>
+                <p className="text-xs font-medium text-muted-foreground">
+                  {t("importLogosNotApplied")}
+                </p>
+                <ul className="text-xs text-muted-foreground max-h-40 overflow-auto space-y-0.5 border rounded-md p-2">
+                  {logoReport.results
+                    .filter((r) => r.status !== "applied")
+                    .map((r, i) => (
+                      <li key={i}>
+                        <span className="font-medium text-amber-600 dark:text-amber-400">
+                          {r.file}
+                        </span>{" "}
+                        — {t(`logoReason.${r.reason ?? "unknown"}` as Parameters<typeof t>[0])}
+                      </li>
+                    ))}
+                </ul>
+              </>
+            )}
+          </div>
         )}
       </div>
 

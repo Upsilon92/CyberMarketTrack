@@ -555,7 +555,14 @@
       "restore": "Restaurer depuis un export JSON…",
       "restored": "Base restaurée.",
       "invalidFile": "Fichier invalide : ce n'est pas un export CyberMarketTrack reconnu.",
-      "tooBig": "Fichier trop volumineux (max 50 Mo)."
+      "tooBig": "Fichier trop volumineux (max 50 Mo).",
+      "importLogosNotApplied": "Fichiers non importés :",
+      "logoReason": {
+        "noMatch": "aucune entreprise correspondante (nom de fichier)",
+        "notImage": "format non pris en charge (pas une image)",
+        "invalid": "image invalide ou trop volumineuse (max 512 Ko)",
+        "unknown": "raison inconnue"
+      }
     },
     "importPage": {
       "title": "Import en masse (CSV)",
