@@ -47,11 +47,11 @@ export default async function HomePage() {
       </section>
 
       {/* Stats */}
-      <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <section className="grid grid-cols-3 gap-2 sm:gap-4">
         {statCards.map((s) => (
           <Link key={s.href} href={s.href}>
             <Card className="card-hover h-full">
-              <CardContent className="py-3 flex items-center gap-3">
+              <CardContent className="py-3 flex flex-col items-center text-center gap-1 sm:flex-row sm:text-left sm:gap-3">
                 <span className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10 text-primary shrink-0">
                   <StatIcon name={s.icon} />
                 </span>
@@ -99,7 +99,7 @@ export default async function HomePage() {
                 />
                 {col.title}
               </div>
-              <CardContent className="divide-y [&>*]:py-2.5">
+              <CardContent className="divide-y [&>*]:py-2.5 max-h-[460px] overflow-y-auto">
                 {col.items.length === 0 && (
                   <p className="text-sm text-muted-foreground py-4">{t("colEmpty")}</p>
                 )}

@@ -31,7 +31,8 @@
     "themeLight": "Light",
     "themeDark": "Dark",
     "themeSystem": "System",
-    "listed": "Listed"
+    "listed": "Listed",
+    "lastLlmAnalysis": "Last LLM analysis: {date}"
   },
   "nav": {
     "home": "Home",

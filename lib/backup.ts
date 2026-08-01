@@ -103,6 +103,7 @@ const companySchema = z.object({
   logoUrl: z.string().max(2_000_000).nullable(),
   createdAt: dateLike,
   updatedAt: dateLike,
+  lastAnalyzedAt: dateLike.nullable().optional(),
 });
 
 const companyTypeSchema = z.object({ id, type: z.string().max(50), companyId: id });
@@ -151,6 +152,7 @@ const eventSchema = z.object({
   acquiredNameRaw: z.string().max(300).nullable().optional(),
   createdAt: dateLike,
   updatedAt: dateLike,
+  lastAnalyzedAt: dateLike.nullable().optional(),
 });
 
 const revenueSchema = z.object({

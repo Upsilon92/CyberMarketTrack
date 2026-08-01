@@ -1,177 +1,191 @@
+<div align="center">
+
+<img src="./public/logo-icon.png" alt="CyberMarketTrack logo" width="96" height="96" />
+
 # CyberMarketTrack
 
-Base de connaissances du marché de la cybersécurité : entreprises, solutions,
-historique complet des rachats/fusions/renommages, et comparateurs
-personnalisés. Voir [ARCHITECTURE.md](./ARCHITECTURE.md) pour les principes
-techniques (notamment le modèle à événements).
+**A self-hosted knowledge base of the cybersecurity market** — vendors, solutions,
+and the full history of acquisitions, mergers and renamings, with custom comparators.
 
-Ce guide est écrit **pas à pas pour un non-développeur**.
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=nextdotjs)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Prisma](https://img.shields.io/badge/Prisma-7-2D3748?logo=prisma&logoColor=white)](https://www.prisma.io/)
+[![SQLite](https://img.shields.io/badge/SQLite-embedded-003B57?logo=sqlite&logoColor=white)](https://www.sqlite.org/)
+[![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 
----
+[Getting Started](#-getting-started) · [Configuration](#-configuration) · [Usage](#-usage) · [Architecture](./ARCHITECTURE.md) · [Roadmap](#-roadmap)
 
-## 1. Installation locale (Windows, macOS ou Linux)
-
-### Prérequis : Node.js 22
-
-Vérifier dans un terminal :
-
-```
-node --version
-```
-
-Si la commande échoue, installer Node.js LTS depuis https://nodejs.org
-
-### Étapes
-
-1. Ouvrir un terminal **à la racine du projet** (là où se trouve `package.json`).
-2. Installer les dépendances (une seule fois, ~2 minutes) :
-   ```
-   npm install
-   ```
-3. Créer le fichier de configuration :
-   ```
-   copier .env.example vers .env    (copy .env.example .env)
-   ```
-   puis **ouvrir `.env` et définir `AUTH_SECRET`** (n'importe quelle longue
-   chaîne aléatoire). Aucun mot de passe admin à mettre : il sera choisi à la
-   première connexion.
-4. Créer la base de données et la remplir avec les données d'exemple :
-   ```
-   npx prisma migrate dev
-   npx prisma db seed
-   ```
-5. Lancer le site :
-   ```
-   npm run dev
-   ```
-   → http://localhost:3000. Aller sur http://localhost:3000/login : la base
-   étant vierge, un formulaire vous invite à **créer le compte administrateur**
-   (identifiant + mot de passe de votre choix).
-
-> Note : `npm run dev` recompile chaque page à la demande et peut être lent au
-> premier chargement. Pour évaluer rapidement le rendu, préférez un build de
-> production : `npm run build` puis `npm start`.
-
-### Variables d'environnement (`.env`)
-
-| Variable | Rôle |
-|---|---|
-| `DATABASE_URL` | Emplacement du fichier SQLite (laisser `file:./data/cybermarkettrack.db`) |
-| `AUTH_SECRET` | Secret de chiffrement des sessions — **longue chaîne aléatoire, unique par instance** |
-| `AUTH_TRUST_HOST` | Laisser `"true"` en auto-hébergement |
-| `FRESHNESS_MONTHS` | Seuil (mois) du badge « à revérifier » (défaut 12) |
+</div>
 
 ---
 
-## 2. Lancement avec Docker (serveur)
+## 📖 About
 
-Prérequis : Docker + Docker Compose installés.
+CyberMarketTrack turns the messy, fast-moving cybersecurity market into a queryable,
+history-aware knowledge base. Companies get **bought, renamed, spun off, merged and
+delisted** constantly; this app records those facts as dated **events** and *derives*
+the present state from them — so "who owns product X today?" and "what was it called in
+2019?" are answered from the same source of truth.
 
-**Aucun `.env` à préparer.** Le seul secret réellement sensible (`AUTH_SECRET`,
-chiffrement des sessions) est généré automatiquement au premier démarrage et
-persisté dans `./data/.auth_secret` ; les autres valeurs ont des défauts dans
-le `docker-compose.yml`.
+It runs as a **single container** with an embedded SQLite database — ideal for a NAS or a
+small VPS — and needs no external services.
 
-1. Copier le projet sur le serveur.
-2. Construire et démarrer :
-   ```
-   docker compose up -d --build
-   ```
-3. Ouvrir **immédiatement** http://serveur:3000/login : la base étant vierge,
-   un formulaire vous invite à **créer le compte administrateur** (identifiant
-   + mot de passe fort de votre choix). Faites-le tout de suite — tant que le
-   compte n'existe pas, quiconque accède au site peut le créer.
-4. Importer les données : soit l'import CSV (`/admin/import`), soit la
-   restauration d'un export JSON (`/admin/backup`).
+### ✨ Features
 
-La base vit dans `./data` **sur le serveur hôte** (volume Docker) : elle
-survit aux reconstructions du conteneur.
+- **Companies & solutions** — vendors, service providers, distributors and funds, each
+  with bilingual (FR/EN) descriptions, logos, country, and a derived timeline.
+- **Event-sourced history** — acquisitions (with outcome), mergers, spin-offs, IPOs,
+  delistings, HQ relocations, renamings, funding rounds… current names, owners and
+  statuses are **always computed**, never stored ([why?](./ARCHITECTURE.md)).
+- **Tag taxonomy** — solution types, capabilities and scopes, with fast multi-select
+  searchable filters.
+- **Comparators** — build side-by-side coverage/feature matrices and export them.
+- **Market news** — a live RSS feed of cyber M&A headlines on the home page.
+- **Contribution workflow** — non-admins can propose additions/edits; an admin reviews
+  them in a queue (accept / edit-then-accept / reject).
+- **LLM enrichment (optional)** — on-demand analysis of a company that produces a
+  reviewable proposal (company + solutions + M&A), plus automatic proposals from the RSS
+  feed. Works with a **local**, a **remote**, or a **hosted** LLM — switchable by config.
+- **Import / Export / Backup** — CSV import with dry-run, a ZIP logo import, and a
+  full-database JSON backup/restore.
+- **Bilingual UI (FR/EN)**, light/dark themes, responsive, first-run admin setup.
 
-> **Personnalisation (facultatif).** Pour fixer un `AUTH_SECRET` précis (au lieu
-> de celui généré automatiquement), exportez-le dans le shell ou créez un
-> fichier `.env` à côté du `docker-compose.yml` (voir [`.env.example`](./.env.example)).
-> Le mot de passe admin, lui, se change ensuite dans l'interface via `/admin/account`.
+### 🛠️ Built with
 
-### 2 bis. Construire directement depuis GitHub (sans cloner)
+[Next.js 16](https://nextjs.org/) (App Router) · [React 19](https://react.dev/) ·
+[TypeScript](https://www.typescriptlang.org/) · [Prisma 7](https://www.prisma.io/) +
+[SQLite](https://www.sqlite.org/) · [Auth.js v5](https://authjs.dev/) ·
+[next-intl](https://next-intl.dev/) · [Tailwind CSS 4](https://tailwindcss.com/) +
+[shadcn/ui](https://ui.shadcn.com/) · [Vitest](https://vitest.dev/)
 
-Le fichier [`docker-compose.github.yml`](./docker-compose.github.yml) construit
-l'image **directement depuis le dépôt GitHub** — inutile de cloner. Copier ce
-**seul fichier** sur le serveur puis :
+---
 
-```
+## 🚀 Getting Started
+
+### Option A — Docker (recommended for deployment)
+
+Everything (build, database migrations, admin bootstrap) is handled by the container.
+
+```bash
 docker compose -f docker-compose.github.yml up -d --build
 ```
 
-Là aussi, aucun `.env` : mêmes défauts + `AUTH_SECRET` auto-généré. Pour
-**mettre à jour** après un push sur GitHub, relancer la même commande (ajouter
-`--pull` / `--no-cache` pour forcer la reconstruction). Les données sont
-préservées (volume `./data`).
+Then open **http://localhost:3000** (or your host's address). On the very first visit,
+an empty database prompts you to **create the admin account** — you choose the username
+and password there; no default password is ever stored.
+
+> The SQLite database lives in `/app/data` — mount it as a volume (already configured in
+> the compose file) so your data survives rebuilds. `AUTH_SECRET` is auto-generated on
+> first start and persisted.
+
+### Option B — Local development
+
+**Prerequisite:** Node.js 22.
+
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Configure the environment
+cp .env.example .env          # then set AUTH_SECRET to any long random string
+
+# 3. Create the database (+ demo data)
+npx prisma migrate dev
+
+# 4. Run
+npm run dev                   # http://localhost:3000
+```
+
+Useful scripts:
+
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start the dev server |
+| `npm run build` / `npm start` | Production build / serve (much faster per page than dev) |
+| `npm stop` | Free port 3000 (kills whatever is holding it) |
+| `npm test` | Run the unit test suite (Vitest) |
+| `npm run backup` | Write a JSON backup of the database |
 
 ---
 
-## 3. Sauvegarde et restauration
+## ⚙️ Configuration
 
-Trois moyens complémentaires :
+All configuration is via environment variables (see [`.env.example`](./.env.example)).
 
-1. **Page `/admin/backup`** : export JSON complet (ré-importable), export des
-   logos en ZIP, et téléchargement du fichier SQLite en un clic. La
-   restauration depuis un export JSON remplace toute la base (confirmation
-   demandée, opération atomique).
-2. **Script** :
-   ```
-   npm run backup
-   ```
-   crée `data/backups/cybermarkettrack-<horodatage>.db` + `.json`.
-3. **Copie de fichier** : la base est UN fichier — copier
-   `data/cybermarkettrack.db` suffit (de préférence quand le site est arrêté).
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `DATABASE_URL` | `file:./data/cybermarkettrack.db` | SQLite location |
+| `AUTH_SECRET` | *(auto in Docker)* | Session encryption key |
+| `AUTH_TRUST_HOST` | `true` | Required when self-hosting behind a proxy |
+| `FRESHNESS_MONTHS` | `12` | Age after which an entry gets a "to re-check" badge |
 
-### Stratégie recommandée (serveur Linux + Docker)
+### LLM enrichment (optional)
 
-Une sauvegarde par nuit + rétention : sur l'hôte, `crontab -e` puis :
+Switch between the three modes by changing variables only — no code change:
 
-```
-0 3 * * * cp /chemin/projet/data/cybermarkettrack.db /chemin/backups/cmt-$(date +\%F).db && find /chemin/backups -name "cmt-*.db" -mtime +30 -delete
-```
+| Mode | Variables |
+| --- | --- |
+| **Local** (Ollama, same host) | `LLM_PROVIDER=ollama` · `LLM_BASE_URL=http://localhost:11434` · `LLM_MODEL=qwen2.5:7b` |
+| **Remote** (Ollama on another machine) | `LLM_PROVIDER=ollama` · `LLM_BASE_URL=http://<ip>:11434` · `LLM_MODEL=qwen2.5:7b` |
+| **Hosted** (Anthropic) | `LLM_PROVIDER=anthropic` · `LLM_MODEL=claude-haiku-4-5-20251001` · `LLM_API_KEY=…` |
 
-(copie quotidienne à 3 h, suppression des copies de plus de 30 jours).
-Penser à copier régulièrement ces sauvegardes **hors du serveur**.
-
-Sous Windows : Planificateur de tâches → exécuter `npm run backup` chaque nuit.
+> On GPUs too old for Ollama's CUDA build (e.g. GTX 900-series), set `OLLAMA_NUM_GPU=0`
+> to force CPU inference. A scheduler can trigger the RSS analysis by POSTing to
+> `/api/rss/analyze` with the `X-Cron-Secret` header (`CRON_SECRET`).
 
 ---
 
-## 4. Mise à jour des dépendances
+## 📚 Usage
 
-Tous les 1 à 3 mois :
-
-```
-npm audit             # liste les vulnérabilités connues
-npm update            # met à jour dans les bornes autorisées
-npm test              # les tests unitaires doivent rester verts
-npm run build         # le build doit passer
-```
-
-Si `npm audit` signale une faille sans correctif compatible, noter le paquet
-et surveiller ; ne lancer `npm audit fix --force` qu'en dernier recours (peut
-casser des versions majeures — faire un backup et un test complet après).
+- **First login** → create the admin account, then head to the gear icon → admin area.
+- **Add data** → create companies/solutions/tags/events by hand, or bulk-import CSV
+  (Admin → Import, with a downloadable template and a dry-run preview).
+- **History** → on a company's *History* screen, add dated events; the timeline and all
+  current values recompute automatically. An "add an earlier past" assistant lets you
+  ingest history you learn about later.
+- **LLM analysis** → the **Analyse (LLM)** button on a company (or a news event) creates
+  a reviewable *proposal bundle* (company + solutions + M&A). Approve it to apply
+  everything atomically. The last analysis date is shown on the page.
+- **Review** → Admin → Proposals lists user and automatic proposals to accept/reject.
+- **Backup** → Admin → Backup exports/restores the whole database as one JSON file.
 
 ---
 
-## 5. Ce que le dépôt ne contient pas
+## 🧠 The event-sourced model (in one paragraph)
 
-Le `.gitignore` exclut : `.env` (secrets), `data/` (base + backups),
-`node_modules` (réinstallé par `npm install`), `lib/generated/` (client Prisma
-régénéré par `npx prisma generate`) et `.next/` (cache de build). Ces éléments
-sont recréés localement par les commandes d'installation.
+The single source of truth is the **`Event`** table. No current name, owner, status,
+period or country is ever stored on a company or solution — they are all **derived at
+read time** from the ordered events (`lib/timeline.ts`). This keeps history consistent
+by construction and makes "as of any date" trivial. See **[ARCHITECTURE.md](./ARCHITECTURE.md)**
+for the full rationale and data model.
 
-## 6. Commandes utiles
+---
 
-| Commande | Effet |
-|---|---|
-| `npm run dev` | Site en mode développement (http://localhost:3000) |
-| `npm run build` puis `npm start` | Build + serveur de production local |
-| `npm test` | Tests unitaires du cœur temporel |
-| `npm run backup` | Sauvegarde horodatée (SQLite + JSON) dans `data/backups/` |
-| `npx prisma migrate dev` | Applique le schéma de base de données |
-| `npx prisma db seed` | (Re)charge les données d'exemple — **écrase les données** |
-| `npx prisma studio` | Explorateur graphique de la base (dev uniquement) |
+## 🗺️ Roadmap
+
+- [x] Core model, public browsing, admin, comparators, backup
+- [x] Contribution/proposal workflow with admin review
+- [x] Bilingual (FR/EN) descriptions, searchable multi-select filters
+- [x] LLM abstraction (local / remote / hosted) + on-demand company analysis
+- [ ] Automatic M&A capture from the RSS feed (LLM), tuned prompts
+- [ ] Batch enrichment of the whole base (grounded LLM)
+- [ ] SAML multi-user auth with roles
+
+---
+
+## 🤝 Contributing
+
+Issues and pull requests are welcome. For development, please keep the test suite green
+(`npm test`) and follow the existing conventions (Zod validation as the single source of
+truth, state always derived from events).
+
+## 📄 License
+
+No license has been declared yet — all rights reserved by the author until a `LICENSE`
+file is added. If you intend to open-source it, consider [MIT](https://choosealicense.com/licenses/mit/).
+
+## 🙏 Acknowledgments
+
+Built with the open-source projects listed under [Built with](#️-built-with). README
+structure inspired by [Best-README-Template](https://github.com/othneildrew/Best-README-Template)
+and [awesome-readme](https://github.com/matiassingers/awesome-readme).

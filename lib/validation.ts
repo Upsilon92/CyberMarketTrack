@@ -213,6 +213,60 @@ export const revenueSchema = z.object({
 });
 export type RevenueInput = z.infer<typeof revenueSchema>;
 
+// --- Company research bundle (Phase 2 on-demand LLM analysis) -------------------------
+// One proposal carrying a company + its solutions + its M&A events, linked by
+// name and applied atomically — so a not-yet-existing company AND events about
+// it can be proposed together. Lenient (tolerates messy LLM output); applyProposal
+// re-validates each entity with its real schema.
+const upper2 = z.string().trim().toUpperCase().nullable().optional().or(z.literal("").transform(() => null));
+const looseUrl = z.string().trim().max(500).nullable().optional().or(z.literal("").transform(() => null));
+
+export const bundleSchema = z.object({
+  company: z.object({
+    initialName: trimmed(200),
+    existingId: z.string().nullable().optional(),
+    types: z.array(z.enum(COMPANY_TYPES)).optional(),
+    foundedYear: yearSchema.nullable().optional().or(z.literal("").transform(() => null)),
+    foundedMonth: monthSchema,
+    country: upper2,
+    originCountry: upper2,
+    descriptionFr: optionalTrimmed(10_000),
+    descriptionEn: optionalTrimmed(10_000),
+    website: looseUrl,
+  }),
+  solutions: z
+    .array(
+      z.object({
+        initialName: trimmed(200),
+        descriptionFr: optionalTrimmed(10_000),
+        descriptionEn: optionalTrimmed(10_000),
+        launchYear: yearSchema.nullable().optional().or(z.literal("").transform(() => null)),
+        website: looseUrl,
+        tags: z.array(z.string()).optional(),
+      })
+    )
+    .optional(),
+  events: z
+    .array(
+      z.object({
+        type: z.enum(EVENT_TYPES),
+        year: yearSchema,
+        month: monthSchema,
+        role: z.enum(["subject", "acquirer"]).optional(), // bundle company = subject or acquirer?
+        counterpartyName: optionalTrimmed(200), // the other company involved
+        outcome: z.enum(ACQUISITION_OUTCOMES).nullable().optional().or(z.literal("").transform(() => null)),
+        amount: z.coerce.number().positive().nullable().optional(),
+        round: optionalTrimmed(80),
+        newName: optionalTrimmed(200),
+        newCountry: upper2,
+        note: optionalTrimmed(500),
+        description: optionalTrimmed(10_000),
+      })
+    )
+    .optional(),
+});
+export type BundleInput = z.infer<typeof bundleSchema>;
+
 // --- Alias ----------------------------------------------------------------------------
 
 export const aliasSchema = z

@@ -3,7 +3,7 @@
 // Multi-select tag filters (one group per tag family) + vendor select.
 // State lives in the URL: each family has its own comma-separated param.
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
+import { MultiCombobox } from "@/components/ui/multi-combobox";
 
 interface TagGroup {
   param: string;
@@ -32,10 +32,7 @@ export function MultiTagFilter({
     router.push(qs ? `${pathname}?${qs}` : pathname);
   }
 
-  function toggleTag(param: string, selected: string[], value: string) {
-    const next = selected.includes(value)
-      ? selected.filter((v) => v !== value)
-      : [...selected, value];
+  function setTag(param: string, next: string[]) {
     update((p) => {
       if (next.length) p.set(param, next.join(","));
       else p.delete(param);
@@ -46,26 +43,19 @@ export function MultiTagFilter({
 
   return (
     <div className="space-y-2">
-      {groups.map((g) =>
-        g.options.length === 0 ? null : (
-          <div key={g.param} className="flex flex-wrap items-center gap-1.5">
-            <span className="text-xs text-muted-foreground w-28 shrink-0">{g.label}</span>
-            {g.options.map((o) => {
-              const active = g.selected.includes(o.value);
-              return (
-                <button key={o.value} type="button" onClick={() => toggleTag(g.param, g.selected, o.value)}>
-                  <Badge
-                    variant={active ? "default" : "outline"}
-                    className="cursor-pointer select-none"
-                  >
-                    {o.label}
-                  </Badge>
-                </button>
-              );
-            })}
-          </div>
-        )
-      )}
+      <div className="flex flex-wrap items-center gap-2">
+        {groups.map((g) =>
+          g.options.length === 0 ? null : (
+            <MultiCombobox
+              key={g.param}
+              label={g.label}
+              options={g.options}
+              selected={g.selected}
+              onChange={(next) => setTag(g.param, next)}
+            />
+          )
+        )}
+      </div>
       <div className="flex flex-wrap items-center gap-3">
         <label className="flex items-center gap-2 text-xs text-muted-foreground">
           {vendor.label}

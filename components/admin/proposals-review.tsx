@@ -167,9 +167,12 @@ export function ProposalsReview({
               <Button size="sm" disabled={busy === p.id} onClick={() => decide(p, "approve")}>
                 {t("approve")}
               </Button>
-              <Button size="sm" variant="outline" onClick={() => setEditing(p.id)}>
-                {t("modifyApprove")}
-              </Button>
+              {/* Bundle proposals have no single edit form — approve/reject only */}
+              {p.entityType !== "Bundle" && (
+                <Button size="sm" variant="outline" onClick={() => setEditing(p.id)}>
+                  {t("modifyApprove")}
+                </Button>
+              )}
               <Button
                 size="sm"
                 variant="destructive"

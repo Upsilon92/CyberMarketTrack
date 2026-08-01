@@ -3,10 +3,10 @@
 // through the SAME create/update logic as the admin routes.
 import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { companySchema, solutionSchema, tagSchema, eventSchema } from "@/lib/validation";
+import { companySchema, solutionSchema, tagSchema, eventSchema, bundleSchema } from "@/lib/validation";
 import { checkEventCoherence } from "@/lib/event-checks";
 
-export const PROPOSAL_ENTITY_TYPES = ["Company", "Solution", "Event", "Tag"] as const;
+export const PROPOSAL_ENTITY_TYPES = ["Company", "Solution", "Event", "Tag", "Bundle"] as const;
 export type ProposalEntityType = (typeof PROPOSAL_ENTITY_TYPES)[number];
 
 export const PROPOSAL_MAX_PER_IP = 10;
@@ -30,6 +30,8 @@ export function validateProposalPayload(entityType: string, payload: unknown) {
       return tagSchema.safeParse(payload);
     case "Event":
       return eventSchema.safeParse(payload);
+    case "Bundle":
+      return bundleSchema.safeParse(payload);
     default:
       return companySchema.safeParse(undefined); // guaranteed failure
   }
@@ -112,5 +114,151 @@ export async function applyProposal(p: {
     return e.id;
   }
 
+  if (p.entityType === "Bundle") {
+    return applyBundle(d);
+  }
+
   throw new Error("unknown-entityType");
+}
+
+const norm = (s: string) =>
+  s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
+
+/**
+ * Apply a research bundle atomically: create/update the company, then its
+ * solutions, then its M&A events (referencing companies by name, resolved to
+ * existing ids or the just-created company; unknown targets become free text).
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function applyBundle(b: any): Promise<string> {
+  const companies = await prisma.company.findMany({ select: { id: true, initialName: true } });
+  const byName = new Map(companies.map((c) => [norm(c.initialName), c.id]));
+  const resolve = (name?: string | null) => (name ? byName.get(norm(name)) ?? null : null);
+  const tagRows = await prisma.tag.findMany({ select: { id: true, slug: true } });
+  const tagBySlug = new Map(tagRows.map((t) => [t.slug.toLowerCase(), t.id]));
+
+  return prisma.$transaction(async (tx) => {
+    const co = b.company;
+    const country = co.country && /^[A-Z]{2}$/.test(co.country) ? co.country : "XX";
+
+    // 1) company (update existing, else create)
+    let companyId: string;
+    if (co.existingId) {
+      companyId = co.existingId;
+      await tx.company.update({
+        where: { id: companyId },
+        data: {
+          descriptionFr: co.descriptionFr ?? undefined,
+          descriptionEn: co.descriptionEn ?? undefined,
+          foundedYear: co.foundedYear ?? undefined,
+          foundedMonth: co.foundedMonth ?? undefined,
+          country: co.country && /^[A-Z]{2}$/.test(co.country) ? co.country : undefined,
+          originCountry: co.originCountry ?? undefined,
+          website: co.website ?? undefined,
+        },
+      });
+    } else {
+      const created = await tx.company.create({
+        data: {
+          initialName: co.initialName,
+          types: { create: (co.types?.length ? co.types : ["VENDOR"]).map((type: string) => ({ type })) },
+          foundedYear: co.foundedYear ?? null,
+          foundedMonth: co.foundedMonth ?? null,
+          country,
+          originCountry: co.originCountry ?? null,
+          descriptionFr: co.descriptionFr ?? null,
+          descriptionEn: co.descriptionEn ?? null,
+          website: co.website ?? null,
+        },
+      });
+      companyId = created.id;
+      byName.set(norm(co.initialName), companyId);
+    }
+
+    // 2) solutions
+    for (const s of b.solutions ?? []) {
+      const tagIds = (s.tags ?? [])
+        .map((sl: string) => tagBySlug.get(sl.toLowerCase()))
+        .filter(Boolean) as string[];
+      await tx.solution.create({
+        data: {
+          initialName: s.initialName,
+          initialCompanyId: companyId,
+          descriptionFr: s.descriptionFr ?? null,
+          descriptionEn: s.descriptionEn ?? null,
+          launchYear: s.launchYear ?? null,
+          website: s.website ?? null,
+          tags: { connect: tagIds.map((id) => ({ id })) },
+        },
+      });
+    }
+
+    // 3) events (relative to the bundle company)
+    for (const ev of b.events ?? []) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data: any = {
+        type: ev.type,
+        year: ev.year,
+        month: ev.month ?? null,
+        importance: "MEDIUM",
+        description: ev.description ?? null,
+      };
+      const cpId = resolve(ev.counterpartyName);
+
+      if (ev.role === "acquirer") {
+        // The bundle company ACQUIRED the counterparty.
+        data.type = "ACQUISITION";
+        if (cpId) {
+          data.subjectCompanyId = cpId;
+          data.acquirerCompanyId = companyId;
+          data.outcome = ev.outcome ?? "UNKNOWN";
+        } else {
+          // target not in base -> acquirer-centric record on the bundle company
+          data.subjectCompanyId = companyId;
+          data.acquiredNameRaw = ev.counterpartyName ?? "?";
+        }
+      } else {
+        data.subjectCompanyId = companyId;
+        switch (ev.type) {
+          case "ACQUISITION":
+            data.outcome = ev.outcome ?? "UNKNOWN";
+            if (cpId) data.acquirerCompanyId = cpId;
+            else if (ev.counterpartyName) data.acquirerNameRaw = ev.counterpartyName;
+            break;
+          case "MERGER":
+            if (cpId) data.withCompanyId = cpId;
+            else data.type = "OTHER";
+            break;
+          case "SPINOFF":
+            if (cpId) data.parentCompanyId = cpId;
+            else data.type = "OTHER";
+            break;
+          case "FUNDING":
+            if (ev.amount) data.amount = ev.amount;
+            if (ev.round) data.round = ev.round;
+            break;
+          case "HQ_RELOCATION":
+            data.newCountry = ev.newCountry ?? null;
+            break;
+          case "COMPANY_RENAME":
+            if (!ev.newName) continue;
+            data.newName = ev.newName;
+            break;
+          case "IPO":
+          case "DELISTING":
+            if (ev.note) data.note = ev.note;
+            break;
+          default:
+            break;
+        }
+      }
+
+      await tx.event.create({ data });
+      if (data.type === "HQ_RELOCATION" && data.newCountry) {
+        await tx.company.update({ where: { id: companyId }, data: { country: data.newCountry } });
+      }
+    }
+
+    return companyId;
+  });
 }

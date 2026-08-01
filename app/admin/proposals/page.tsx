@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { loadMarket } from "@/lib/queries";
 import { ProposalsReview, type ReviewProposal } from "@/components/admin/proposals-review";
 import { RssAnalyze } from "@/components/admin/rss-analyze";
+import { LlmResearch } from "@/components/admin/llm-research";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +43,10 @@ export default async function AdminProposals() {
         <span className="text-sm text-muted-foreground">({proposals.length})</span>
       </div>
       <RssAnalyze />
+      <div className="border rounded-md p-3 bg-muted/20 space-y-2">
+        <p className="text-sm font-medium">Analyse d&apos;une entreprise (LLM)</p>
+        <LlmResearch />
+      </div>
       <ProposalsReview
         proposals={proposals}
         companies={companies}

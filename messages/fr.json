@@ -31,7 +31,8 @@
     "themeLight": "Clair",
     "themeDark": "Sombre",
     "themeSystem": "Système",
-    "listed": "Cotée"
+    "listed": "Cotée",
+    "lastLlmAnalysis": "Dernière analyse LLM : {date}"
   },
   "nav": {
     "home": "Accueil",
