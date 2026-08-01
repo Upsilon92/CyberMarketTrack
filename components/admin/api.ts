@@ -6,6 +6,7 @@ export class ApiError extends Error {
   fields?: Record<string, string>;
   codes?: string[];
   code?: string;
+  detail?: string;
 
   constructor(status: number, data: Record<string, unknown>) {
     super((data.error as string) ?? "API error");
@@ -13,6 +14,7 @@ export class ApiError extends Error {
     this.fields = data.fields as Record<string, string> | undefined;
     this.codes = data.codes as string[] | undefined;
     this.code = data.code as string | undefined;
+    this.detail = data.detail as string | undefined;
   }
 }
 

@@ -99,8 +99,28 @@ export default async function NewsPage({
             <div key={e.id} className="flex items-start gap-3">
               <div className="flex-1 min-w-0">
                 <EventLine event={e} logoSide="right" />
-                {e.description && (
-                  <p className="text-xs text-muted-foreground mt-1 sm:ml-28">{e.description}</p>
+                {(() => {
+                  const desc = locale.startsWith("fr")
+                    ? e.descriptionFr ?? e.descriptionEn
+                    : e.descriptionEn ?? e.descriptionFr;
+                  return desc ? (
+                    <p className="text-xs text-muted-foreground mt-1 sm:ml-28">{desc}</p>
+                  ) : null;
+                })()}
+                {(e.url1 || e.url2) && (
+                  <p className="text-[11px] mt-0.5 sm:ml-28 flex flex-wrap gap-x-3">
+                    {[e.url1, e.url2].filter(Boolean).map((u, i) => (
+                      <a
+                        key={i}
+                        href={u!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary underline underline-offset-2 truncate max-w-[20rem]"
+                      >
+                        {tCommon("source")} {i + 1}
+                      </a>
+                    ))}
+                  </p>
                 )}
                 {e.lastAnalyzedAt && (
                   <p className="text-[11px] text-muted-foreground mt-0.5 sm:ml-28">

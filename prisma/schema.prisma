@@ -151,8 +151,11 @@ model Event {
   type  String
   year  Int
   month Int? // 1-12, optional
-  importance String @default("MEDIUM") // MAJOR | MEDIUM | MINOR (news prioritization)
-  description String? // markdown — the narrative/context of the fact
+  importance String @default("MEDIUM") // MAJOR | MEDIUM | MINOR (app default = MINOR, see validation)
+  descriptionFr String? // markdown — the narrative/context of the fact (FR)
+  descriptionEn String? // markdown (EN)
+  url1 String? // source URL describing the event (article, press release…)
+  url2 String? // second source URL
 
   // Subject: the entity whose state changes (company and/or solution)
   subjectCompanyId  String?

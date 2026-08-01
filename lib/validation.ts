@@ -107,8 +107,11 @@ const eventBase = z.object({
   type: z.enum(EVENT_TYPES),
   year: yearSchema,
   month: monthSchema,
-  importance: z.enum(EVENT_IMPORTANCES).optional().default("MEDIUM").or(z.literal("").transform(() => "MEDIUM" as const)),
-  description: optionalTrimmed(10_000),
+  importance: z.enum(EVENT_IMPORTANCES).optional().default("MINOR").or(z.literal("").transform(() => "MINOR" as const)),
+  descriptionFr: optionalTrimmed(10_000),
+  descriptionEn: optionalTrimmed(10_000),
+  url1: optionalUrl,
+  url2: optionalUrl,
   subjectCompanyId: z.string().nullable().optional(),
   subjectSolutionId: z.string().nullable().optional(),
   newName: optionalTrimmed(200),
@@ -252,6 +255,7 @@ export const bundleSchema = z.object({
         type: z.enum(EVENT_TYPES),
         year: yearSchema,
         month: monthSchema,
+        importance: z.enum(EVENT_IMPORTANCES).nullable().optional().or(z.literal("").transform(() => null)),
         role: z.enum(["subject", "acquirer"]).optional(), // bundle company = subject or acquirer?
         counterpartyName: optionalTrimmed(200), // the other company involved
         outcome: z.enum(ACQUISITION_OUTCOMES).nullable().optional().or(z.literal("").transform(() => null)),
@@ -260,7 +264,10 @@ export const bundleSchema = z.object({
         newName: optionalTrimmed(200),
         newCountry: upper2,
         note: optionalTrimmed(500),
-        description: optionalTrimmed(10_000),
+        descriptionFr: optionalTrimmed(10_000),
+        descriptionEn: optionalTrimmed(10_000),
+        url1: looseUrl,
+        url2: looseUrl,
       })
     )
     .optional(),

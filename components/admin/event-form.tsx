@@ -51,7 +51,7 @@ export function EventForm({
     type: initial?.type ?? "ACQUISITION",
     year: initial?.year != null ? String(initial.year) : "",
     month: initial?.month != null ? String(initial.month) : "",
-    importance: initial?.importance ?? "MEDIUM",
+    importance: initial?.importance ?? "MINOR",
     newName: initial?.newName ?? "",
     acquirerCompanyId: initial?.acquirerCompanyId ?? "",
     outcome: initial?.outcome ?? "",
@@ -61,7 +61,10 @@ export function EventForm({
     amount: initial?.amount != null ? String(initial.amount) : "",
     round: initial?.round ?? "",
     note: initial?.note ?? "",
-    description: initial?.description ?? "",
+    descriptionFr: initial?.descriptionFr ?? "",
+    descriptionEn: initial?.descriptionEn ?? "",
+    url1: initial?.url1 ?? "",
+    url2: initial?.url2 ?? "",
   });
   const set = (k: keyof typeof f, v: string) => setF((p) => ({ ...p, [k]: v }));
 
@@ -82,7 +85,10 @@ export function EventForm({
         year: f.year === "" ? null : Number(f.year),
         month: f.month === "" ? null : Number(f.month),
         importance: f.importance,
-        description: f.description || null,
+        descriptionFr: f.descriptionFr || null,
+        descriptionEn: f.descriptionEn || null,
+        url1: f.url1 || null,
+        url2: f.url2 || null,
         subjectCompanyId: isSolutionSubject ? null : f.subjectCompanyId || null,
         subjectSolutionId: isSolutionSubject ? f.subjectSolutionId || null : null,
         newName: f.newName || null,
@@ -238,9 +244,26 @@ export function EventForm({
       {f.type === "MERGER" && companySelect(f.withCompanyId, (v) => set("withCompanyId", v), tf("withCompany"))}
       {f.type === "SOLUTION_TRANSFER" && companySelect(f.newOwnerCompanyId, (v) => set("newOwnerCompanyId", v), tf("newOwner"))}
 
-      <div className="space-y-1.5">
-        <Label>{tf("description")}</Label>
-        <Textarea rows={3} value={f.description} onChange={(e) => set("description", e.target.value)} />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label>{tf("descriptionFr")}</Label>
+          <Textarea rows={3} value={f.descriptionFr} onChange={(e) => set("descriptionFr", e.target.value)} />
+        </div>
+        <div className="space-y-1.5">
+          <Label>{tf("descriptionEn")}</Label>
+          <Textarea rows={3} value={f.descriptionEn} onChange={(e) => set("descriptionEn", e.target.value)} />
+        </div>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label>{tf("url1")}</Label>
+          <Input type="url" value={f.url1} onChange={(e) => set("url1", e.target.value)} placeholder="https://…" />
+        </div>
+        <div className="space-y-1.5">
+          <Label>{tf("url2")}</Label>
+          <Input type="url" value={f.url2} onChange={(e) => set("url2", e.target.value)} placeholder="https://…" />
+        </div>
       </div>
 
       {proposalMode && (

@@ -32,7 +32,8 @@
     "themeDark": "Sombre",
     "themeSystem": "Système",
     "listed": "Cotée",
-    "lastLlmAnalysis": "Dernière analyse LLM : {date}"
+    "lastLlmAnalysis": "Dernière analyse LLM : {date}",
+    "source": "Source"
   },
   "nav": {
     "home": "Accueil",
@@ -341,7 +342,10 @@
     "approve": "Valider",
     "reject": "Refuser",
     "modifyApprove": "Modifier puis valider",
-    "confirmReject": "Refuser cette proposition ?"
+    "confirmReject": "Refuser cette proposition ?",
+    "enrich": "Enrichir (LLM)",
+    "enriching": "Enrichissement…",
+    "enrichFailed": "L'enrichissement LLM a échoué."
   },
   "setup": {
     "title": "Créer le compte administrateur",
@@ -478,6 +482,8 @@
       "amount": "Montant (M)",
       "round": "Tour (ex : Series A)",
       "note": "Note (ex : IPO Nasdaq)",
+      "url1": "URL source 1 (article / communiqué)",
+      "url2": "URL source 2",
       "none": "—",
       "newCountry": "Nouveau pays (siège)",
       "newCity": "Ville (optionnel)",

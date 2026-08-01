@@ -60,6 +60,7 @@ Format JSON EXACT :
     {
       "type": "ACQUISITION"|"MERGER"|"FUNDING"|"IPO"|"DELISTING"|"SPINOFF"|"HQ_RELOCATION"|"COMPANY_RENAME"|"OTHER",
       "year": number,
+      "importance": "MAJOR"|"MEDIUM"|"MINOR",  // MAJOR = rachat/fusion structurant ; MINOR par défaut
       "role": "subject"|"acquirer",        // "subject" = l'événement concerne l'entreprise (elle est rachetée/levée/renommée) ; "acquirer" = l'entreprise a RACHETÉ quelqu'un
       "counterpartyName": string|null,     // l'autre société (acheteur si role=subject, cible si role=acquirer, partenaire pour MERGER, parent pour SPINOFF)
       "outcome": "INVESTOR_OWNED"|"AUTONOMOUS"|"ABSORBED"|"UNKNOWN"|null,  // pour ACQUISITION
@@ -68,7 +69,8 @@ Format JSON EXACT :
       "newName": string|null,              // COMPANY_RENAME
       "newCountry": string|null,           // HQ_RELOCATION (code ISO)
       "note": string|null,
-      "description": string|null
+      "descriptionFr": string|null,        // 1 phrase en français décrivant le fait
+      "descriptionEn": string|null         // même phrase en anglais
     }
   ]
 }

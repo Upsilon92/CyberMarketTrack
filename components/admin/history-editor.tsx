@@ -35,7 +35,10 @@ export interface EditorEvent {
   year: number;
   month: number | null;
   importance: string;
-  description: string | null;
+  descriptionFr: string | null;
+  descriptionEn: string | null;
+  url1: string | null;
+  url2: string | null;
   newName: string | null;
   acquirerCompanyId: string | null;
   acquirerNameRaw: string | null;
@@ -107,7 +110,10 @@ interface FormState {
   year: string;
   month: string;
   importance: string;
-  description: string;
+  descriptionFr: string;
+  descriptionEn: string;
+  url1: string;
+  url2: string;
   newName: string;
   acquirerCompanyId: string;
   acquirerNameRaw: string;
@@ -129,8 +135,11 @@ const EMPTY_FORM: FormState = {
   type: "",
   year: "",
   month: "",
-  importance: "MEDIUM",
-  description: "",
+  importance: "MINOR",
+  descriptionFr: "",
+  descriptionEn: "",
+  url1: "",
+  url2: "",
   newName: "",
   acquirerCompanyId: "",
   acquirerNameRaw: "",
@@ -223,8 +232,11 @@ export function HistoryEditor({
       type: form.type,
       year: form.year,
       month: form.month === "" ? null : form.month,
-      importance: form.importance || "MEDIUM",
-      description: form.description,
+      importance: form.importance || "MINOR",
+      descriptionFr: form.descriptionFr,
+      descriptionEn: form.descriptionEn,
+      url1: form.url1,
+      url2: form.url2,
       subjectCompanyId: kind === "company" ? entityId : null,
       subjectSolutionId: kind === "solution" ? entityId : null,
       newName: form.newName,
@@ -291,8 +303,11 @@ export function HistoryEditor({
       type: e.type,
       year: String(e.year),
       month: e.month == null ? "" : String(e.month),
-      importance: e.importance || "MEDIUM",
-      description: e.description ?? "",
+      importance: e.importance || "MINOR",
+      descriptionFr: e.descriptionFr ?? "",
+      descriptionEn: e.descriptionEn ?? "",
+      url1: e.url1 ?? "",
+      url2: e.url2 ?? "",
       newName: e.newName ?? "",
       acquirerCompanyId: e.acquirerCompanyId ?? "",
       acquirerNameRaw: e.acquirerNameRaw ?? "",
@@ -365,7 +380,6 @@ export function HistoryEditor({
           month: proposal.month === "" ? null : proposal.month,
           subjectSolutionId: s.id,
           newOwnerCompanyId: proposal.acquirerId,
-          description: null,
         });
       }
       setProposal(null);
@@ -773,13 +787,44 @@ export function HistoryEditor({
               </div>
             )}
 
-            <div className="space-y-1.5">
-              <Label>{t("fields.description")}</Label>
-              <Textarea
-                rows={2}
-                value={form.description}
-                onChange={(e) => set("description", e.target.value)}
-              />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label>{t("fields.descriptionFr")}</Label>
+                <Textarea
+                  rows={2}
+                  value={form.descriptionFr}
+                  onChange={(e) => set("descriptionFr", e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>{t("fields.descriptionEn")}</Label>
+                <Textarea
+                  rows={2}
+                  value={form.descriptionEn}
+                  onChange={(e) => set("descriptionEn", e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label>{t("fields.url1")}</Label>
+                <Input
+                  type="url"
+                  placeholder="https://…"
+                  value={form.url1}
+                  onChange={(e) => set("url1", e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>{t("fields.url2")}</Label>
+                <Input
+                  type="url"
+                  placeholder="https://…"
+                  value={form.url2}
+                  onChange={(e) => set("url2", e.target.value)}
+                />
+              </div>
             </div>
 
             {/* Live preview of the recalculated history */}

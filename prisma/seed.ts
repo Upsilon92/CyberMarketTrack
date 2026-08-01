@@ -150,7 +150,7 @@ async function main() {
         subjectCompanyId: alsid.id,
         acquirerCompanyId: tenable.id,
         outcome: "ABSORBED",
-        description: "Tenable rachète Alsid pour 98 M$ ; la marque Alsid disparaît, équipes et technologie intégrées.",
+        descriptionFr: "Tenable rachète Alsid pour 98 M$ ; la marque Alsid disparaît, équipes et technologie intégrées.",
       },
       {
         type: "SOLUTION_TRANSFER",
@@ -158,21 +158,21 @@ async function main() {
         month: 2,
         subjectSolutionId: alsidForAd.id,
         newOwnerCompanyId: tenable.id,
-        description: "La solution passe dans le portefeuille Tenable suite à l'absorption d'Alsid.",
+        descriptionFr: "La solution passe dans le portefeuille Tenable suite à l'absorption d'Alsid.",
       },
       {
         type: "SOLUTION_RENAME",
         year: 2021,
         subjectSolutionId: alsidForAd.id,
         newName: "Tenable.AD",
-        description: "Renommage dans la gamme Tenable.",
+        descriptionFr: "Renommage dans la gamme Tenable.",
       },
       {
         type: "SOLUTION_RENAME",
         year: 2024,
         subjectSolutionId: alsidForAd.id,
         newName: "Tenable Identity Exposure",
-        description: "Renommage lors de l'harmonisation de la gamme (fin des noms « Tenable.X »).",
+        descriptionFr: "Renommage lors de l'harmonisation de la gamme (fin des noms « Tenable.X »).",
       },
       // Informational event (no state effect) — shows up in the news feed
       {
@@ -182,7 +182,7 @@ async function main() {
         subjectCompanyId: alsid.id,
         amount: 13,
         round: "Series A",
-        description: "Levée de fonds de 13 M€ menée par Idinvest Partners.",
+        descriptionFr: "Levée de fonds de 13 M€ menée par Idinvest Partners.",
       },
     ],
   });
@@ -214,7 +214,7 @@ async function main() {
       subjectCompanyId: proofpoint.id,
       acquirerCompanyId: thomaBravo.id,
       outcome: "INVESTOR_OWNED",
-      description:
+      descriptionFr:
         "Thoma Bravo acquiert Proofpoint pour 12,3 Md$ (sortie de bourse). L'organisation reste totalement indépendante, seul l'actionnariat change.",
     },
   });
@@ -253,7 +253,7 @@ async function main() {
       subjectCompanyId: symantec.id,
       acquirerCompanyId: broadcom.id,
       outcome: "AUTONOMOUS",
-      description: "Broadcom rachète l'activité entreprise de Symantec pour 10,7 Md$ ; la marque est conservée.",
+      descriptionFr: "Broadcom rachète l'activité entreprise de Symantec pour 10,7 Md$ ; la marque est conservée.",
     },
   });
 
@@ -327,7 +327,7 @@ async function main() {
         subjectCompanyId: sailpoint.id,
         acquirerCompanyId: thomaBravo.id,
         outcome: "INVESTOR_OWNED",
-        description: "Thoma Bravo acquiert SailPoint pour 6,9 Md$ (sortie de bourse).",
+        descriptionFr: "Thoma Bravo acquiert SailPoint pour 6,9 Md$ (sortie de bourse).",
       },
       {
         type: "DIVESTMENT",
@@ -335,7 +335,7 @@ async function main() {
         month: 2,
         subjectCompanyId: sailpoint.id,
         note: "IPO Nasdaq",
-        description: "SailPoint retourne en bourse (Nasdaq : SAIL) ; fin de la détention par Thoma Bravo.",
+        descriptionFr: "SailPoint retourne en bourse (Nasdaq : SAIL) ; fin de la détention par Thoma Bravo.",
       },
     ],
   });

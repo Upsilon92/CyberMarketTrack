@@ -264,9 +264,14 @@ export default async function SolutionPage({ params }: { params: Promise<{ id: s
                 {solutionEvents.map((e) => (
                   <div key={e.id}>
                     <EventLine event={e} />
-                    {e.description && (
-                      <p className="text-xs text-muted-foreground mt-1 ml-28">{e.description}</p>
-                    )}
+                    {(() => {
+                      const desc = locale.startsWith("fr")
+                        ? e.descriptionFr ?? e.descriptionEn
+                        : e.descriptionEn ?? e.descriptionFr;
+                      return desc ? (
+                        <p className="text-xs text-muted-foreground mt-1 ml-28">{desc}</p>
+                      ) : null;
+                    })()}
                   </div>
                 ))}
               </div>

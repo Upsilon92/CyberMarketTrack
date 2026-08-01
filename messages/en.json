@@ -32,7 +32,8 @@
     "themeDark": "Dark",
     "themeSystem": "System",
     "listed": "Listed",
-    "lastLlmAnalysis": "Last LLM analysis: {date}"
+    "lastLlmAnalysis": "Last LLM analysis: {date}",
+    "source": "Source"
   },
   "nav": {
     "home": "Home",
@@ -333,7 +334,10 @@
     "approve": "Approve",
     "reject": "Reject",
     "modifyApprove": "Modify then approve",
-    "confirmReject": "Reject this proposal?"
+    "confirmReject": "Reject this proposal?",
+    "enrich": "Enrich (LLM)",
+    "enriching": "Enriching…",
+    "enrichFailed": "LLM enrichment failed."
   },
   "setup": {
     "title": "Create the admin account",
@@ -478,6 +482,8 @@
       "amount": "Amount (M)",
       "round": "Round (e.g. Series A)",
       "note": "Note (e.g. Nasdaq IPO)",
+      "url1": "Source URL 1 (article / press release)",
+      "url2": "Source URL 2",
       "none": "—",
       "newCountry": "New country (HQ)",
       "newCity": "City (optional)",

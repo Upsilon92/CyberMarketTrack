@@ -193,6 +193,20 @@ async function applyBundle(b: any): Promise<string> {
       });
     }
 
+    // Resolve a counterparty name to an existing company id, or CREATE a minimal
+    // company for it (so an M&A event links two real, browsable entities rather
+    // than free text). Cached so the same name isn't created twice in a bundle.
+    const resolveOrCreate = async (name?: string | null): Promise<string | null> => {
+      if (!name || !name.trim()) return null;
+      const existing = resolve(name);
+      if (existing) return existing;
+      const created = await tx.company.create({
+        data: { initialName: name.trim(), types: { create: [{ type: "VENDOR" }] }, country: "XX" },
+      });
+      byName.set(norm(name), created.id);
+      return created.id;
+    };
+
     // 3) events (relative to the bundle company)
     for (const ev of b.events ?? []) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -200,39 +214,47 @@ async function applyBundle(b: any): Promise<string> {
         type: ev.type,
         year: ev.year,
         month: ev.month ?? null,
-        importance: "MEDIUM",
-        description: ev.description ?? null,
+        importance: ev.importance ?? "MINOR",
+        descriptionFr: ev.descriptionFr ?? null,
+        descriptionEn: ev.descriptionEn ?? null,
+        url1: ev.url1 ?? null,
+        url2: ev.url2 ?? null,
       };
-      const cpId = resolve(ev.counterpartyName);
 
       if (ev.role === "acquirer") {
-        // The bundle company ACQUIRED the counterparty.
+        // The bundle company ACQUIRED the counterparty (create it if unknown).
         data.type = "ACQUISITION";
+        const cpId = await resolveOrCreate(ev.counterpartyName);
         if (cpId) {
           data.subjectCompanyId = cpId;
           data.acquirerCompanyId = companyId;
           data.outcome = ev.outcome ?? "UNKNOWN";
         } else {
-          // target not in base -> acquirer-centric record on the bundle company
           data.subjectCompanyId = companyId;
           data.acquiredNameRaw = ev.counterpartyName ?? "?";
         }
       } else {
         data.subjectCompanyId = companyId;
         switch (ev.type) {
-          case "ACQUISITION":
+          case "ACQUISITION": {
             data.outcome = ev.outcome ?? "UNKNOWN";
+            const cpId = await resolveOrCreate(ev.counterpartyName);
             if (cpId) data.acquirerCompanyId = cpId;
             else if (ev.counterpartyName) data.acquirerNameRaw = ev.counterpartyName;
             break;
-          case "MERGER":
+          }
+          case "MERGER": {
+            const cpId = await resolveOrCreate(ev.counterpartyName);
             if (cpId) data.withCompanyId = cpId;
             else data.type = "OTHER";
             break;
-          case "SPINOFF":
+          }
+          case "SPINOFF": {
+            const cpId = await resolveOrCreate(ev.counterpartyName);
             if (cpId) data.parentCompanyId = cpId;
             else data.type = "OTHER";
             break;
+          }
           case "FUNDING":
             if (ev.amount) data.amount = ev.amount;
             if (ev.round) data.round = ev.round;

@@ -129,8 +129,14 @@ const eventSchema = z.object({
   type: z.string().max(50),
   year: z.number().int(),
   month: z.number().int().nullable(),
-  importance: z.string().max(20).optional().default("MEDIUM"),
-  description: z.string().max(50_000).nullable(),
+  importance: z.string().max(20).optional().default("MINOR"),
+  // Bilingual narratives + source URLs. `description` (legacy single field) is
+  // still accepted from older backups and folded into descriptionFr on restore.
+  description: z.string().max(50_000).nullable().optional(),
+  descriptionFr: z.string().max(50_000).nullable().optional(),
+  descriptionEn: z.string().max(50_000).nullable().optional(),
+  url1: z.string().max(500).nullable().optional(),
+  url2: z.string().max(500).nullable().optional(),
   subjectCompanyId: id.nullable(),
   subjectSolutionId: id.nullable(),
   newName: z.string().max(300).nullable(),
@@ -238,7 +244,15 @@ export async function restoreDatabase(backup: BackupFile) {
         data: { tags: { connect: { id: st.tagId } } },
       });
     }
-    if (t.events.length) await tx.event.createMany({ data: t.events });
+    if (t.events.length) {
+      // Fold the legacy single `description` into descriptionFr and drop the
+      // now-removed column so createMany matches the current schema.
+      const events = t.events.map((e) => {
+        const { description, ...rest } = e as typeof e & { description?: string | null };
+        return { ...rest, descriptionFr: rest.descriptionFr ?? description ?? null };
+      });
+      await tx.event.createMany({ data: events });
+    }
     if (t.revenues.length) await tx.revenue.createMany({ data: t.revenues });
     if (t.aliases.length) await tx.alias.createMany({ data: t.aliases });
     if (t.comparators.length) await tx.comparator.createMany({ data: t.comparators });

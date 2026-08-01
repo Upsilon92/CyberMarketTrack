@@ -3,12 +3,12 @@
 // Admin review queue: each PENDING proposal shows its origin, a payload preview,
 // and Reject / Approve / "Modify then approve" (expands the matching form in
 // review mode, which approves with the edited values).
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { api } from "@/components/admin/api";
+import { api, ApiError } from "@/components/admin/api";
 import { CompanyForm } from "@/components/admin/company-form";
 import { SolutionForm, type TagOption } from "@/components/admin/solution-form";
 import { TagForm } from "@/components/admin/tag-form";
@@ -45,6 +45,40 @@ export function ProposalsReview({
   const router = useRouter();
   const [editing, setEditing] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [enriching, setEnriching] = useState<string | null>(null);
+
+  // #4 — resolve entity IDs to human names for a readable preview.
+  const companyLabel = useMemo(() => new Map(companies.map((c) => [c.id, c.label])), [companies]);
+  const solutionLabel = useMemo(() => new Map(solutions.map((s) => [s.id, s.label])), [solutions]);
+
+  // Rename *Id keys and swap their value for the entity name, so an event
+  // proposal shows "acquirer: Bank of America" instead of a raw cuid.
+  const COMPANY_KEYS: Record<string, string> = {
+    subjectCompanyId: "subject",
+    acquirerCompanyId: "acquirer",
+    withCompanyId: "mergedWith",
+    newOwnerCompanyId: "newOwner",
+    parentCompanyId: "parent",
+  };
+  const SOLUTION_KEYS: Record<string, string> = {
+    subjectSolutionId: "subjectSolution",
+    intoSolutionId: "intoSolution",
+  };
+
+  function displayPayload(p: ReviewProposal): Record<string, unknown> {
+    const src = p.payload as Record<string, unknown>;
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(src)) {
+      if (v === null || v === "" || (Array.isArray(v) && v.length === 0)) continue;
+      if (typeof v === "string" && COMPANY_KEYS[k]) out[COMPANY_KEYS[k]] = companyLabel.get(v) ?? v;
+      else if (typeof v === "string" && SOLUTION_KEYS[k]) out[SOLUTION_KEYS[k]] = solutionLabel.get(v) ?? v;
+      else out[k] = v;
+    }
+    return out;
+  }
+
+  const canEnrich = (p: ReviewProposal) =>
+    p.entityType === "Company" || p.entityType === "Bundle" || p.entityType === "Event";
 
   async function decide(p: ReviewProposal, action: "approve" | "reject") {
     if (action === "reject" && !window.confirm(t("confirmReject"))) return;
@@ -56,6 +90,19 @@ export function ProposalsReview({
       window.alert(tAdmin("genericError"));
     } finally {
       setBusy(null);
+    }
+  }
+
+  async function enrich(p: ReviewProposal) {
+    setEnriching(p.id);
+    try {
+      await api(`/api/proposals/${p.id}/enrich`, "POST", {});
+      router.refresh();
+    } catch (e) {
+      const detail = e instanceof ApiError && e.detail ? ` (${e.detail})` : "";
+      window.alert(t("enrichFailed") + detail);
+    } finally {
+      setEnriching(null);
     }
   }
 
@@ -153,18 +200,14 @@ export function ProposalsReview({
           {p.note && <p className="text-xs italic text-muted-foreground">“{p.note}”</p>}
 
           <pre className="text-xs bg-muted/40 rounded p-2 overflow-x-auto max-h-40">
-            {JSON.stringify(
-              Object.fromEntries(Object.entries(p.payload).filter(([, v]) => v !== null && v !== "" && !(Array.isArray(v) && v.length === 0))),
-              null,
-              2
-            )}
+            {JSON.stringify(displayPayload(p), null, 2)}
           </pre>
 
           {editing === p.id ? (
             <div className="border-t pt-3 mt-1">{editForm(p)}</div>
           ) : (
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" disabled={busy === p.id} onClick={() => decide(p, "approve")}>
+              <Button size="sm" disabled={busy === p.id || enriching === p.id} onClick={() => decide(p, "approve")}>
                 {t("approve")}
               </Button>
               {/* Bundle proposals have no single edit form — approve/reject only */}
@@ -173,10 +216,21 @@ export function ProposalsReview({
                   {t("modifyApprove")}
                 </Button>
               )}
+              {/* #1 — enrich a (thin) proposal into a complete LLM bundle */}
+              {canEnrich(p) && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={busy === p.id || enriching === p.id}
+                  onClick={() => enrich(p)}
+                >
+                  {enriching === p.id ? t("enriching") : t("enrich")}
+                </Button>
+              )}
               <Button
                 size="sm"
                 variant="destructive"
-                disabled={busy === p.id}
+                disabled={busy === p.id || enriching === p.id}
                 onClick={() => decide(p, "reject")}
               >
                 {t("reject")}

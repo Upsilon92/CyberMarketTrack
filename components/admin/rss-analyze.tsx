@@ -25,6 +25,7 @@ interface Report {
   processed: number;
   proposalsCreated: number;
   notRelevant: number;
+  duplicates: number;
   errors: number;
 }
 
@@ -89,7 +90,7 @@ export function RssAnalyze() {
         <p className="text-xs text-muted-foreground">
           {report.skipped
             ? `Sauté — LLM indisponible : ${report.skipped}. Les ${report.newItems} nouveaux items attendent la prochaine analyse.`
-            : `${report.newItems} nouveaux items · ${report.processed} analysés · ${report.proposalsCreated} propositions créées · ${report.notRelevant} non pertinents · ${report.errors} erreurs.`}
+            : `${report.newItems} nouveaux items · ${report.processed} analysés · ${report.proposalsCreated} propositions créées · ${report.notRelevant} non pertinents · ${report.duplicates} doublons ignorés · ${report.errors} erreurs.`}
         </p>
       )}
     </div>

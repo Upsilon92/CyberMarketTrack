@@ -1,7 +1,7 @@
 // Visual vertical timeline: a rail with colored dots (by event category) and
 // connectors, each event rendered as a sentence + optional narrative.
 // MAJOR events get a highlighted dot. Server component (reuses EventLine).
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { EventLine } from "@/components/event-line";
 import type { EventWithRelations } from "@/lib/queries";
 
@@ -32,6 +32,8 @@ export async function EventTimeline({
 }) {
   if (events.length === 0) return null;
   const t = await getTranslations("company");
+  const tCommon = await getTranslations("common");
+  const locale = await getLocale();
   const hasAcquisitionsMade =
     !!highlightAcquirerId &&
     events.some((e) => ACQUISITION_TYPES.includes(e.type) && e.acquirerCompanyId === highlightAcquirerId);
@@ -73,8 +75,28 @@ export async function EventTimeline({
               logoSide="right"
               excludeCompanyId={highlightAcquirerId}
             />
-            {e.description && (
-              <p className="text-xs text-muted-foreground mt-1 leading-snug">{e.description}</p>
+            {(() => {
+              const desc = locale.startsWith("fr")
+                ? e.descriptionFr ?? e.descriptionEn
+                : e.descriptionEn ?? e.descriptionFr;
+              return desc ? (
+                <p className="text-xs text-muted-foreground mt-1 leading-snug">{desc}</p>
+              ) : null;
+            })()}
+            {(e.url1 || e.url2) && (
+              <p className="text-[11px] mt-0.5 flex flex-wrap gap-x-3">
+                {[e.url1, e.url2].filter(Boolean).map((u, i) => (
+                  <a
+                    key={i}
+                    href={u!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary underline underline-offset-2 truncate max-w-[16rem]"
+                  >
+                    {tCommon("source")} {i + 1}
+                  </a>
+                ))}
+              </p>
             )}
           </li>
         );
