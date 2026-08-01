@@ -14,7 +14,7 @@
 // skips gracefully (nothing is written, work is retried on the next run).
 // =============================================================================
 
-export type LlmProvider = "ollama" | "anthropic";
+export type LlmProvider = "ollama" | "anthropic" | "mistral";
 
 export interface LlmConfig {
   provider: LlmProvider;
@@ -27,15 +27,23 @@ export interface LlmConfig {
   numGpu?: number;
 }
 
+const DEFAULT_BASE: Record<LlmProvider, string> = {
+  ollama: "http://localhost:11434",
+  anthropic: "https://api.anthropic.com",
+  mistral: "https://api.mistral.ai",
+};
+const DEFAULT_MODEL: Record<LlmProvider, string> = {
+  ollama: "qwen2.5:7b",
+  anthropic: "claude-haiku-4-5-20251001",
+  mistral: "mistral-small-latest",
+};
+
 export function getLlmConfig(): LlmConfig {
   const provider = (process.env.LLM_PROVIDER as LlmProvider) || "ollama";
-  const isOllama = provider === "ollama";
   return {
     provider,
-    baseUrl:
-      process.env.LLM_BASE_URL ||
-      (isOllama ? "http://localhost:11434" : "https://api.anthropic.com"),
-    model: process.env.LLM_MODEL || (isOllama ? "qwen2.5:7b" : "claude-haiku-4-5-20251001"),
+    baseUrl: process.env.LLM_BASE_URL || DEFAULT_BASE[provider] || DEFAULT_BASE.ollama,
+    model: process.env.LLM_MODEL || DEFAULT_MODEL[provider] || DEFAULT_MODEL.ollama,
     apiKey: process.env.LLM_API_KEY || undefined,
     timeoutMs: Number(process.env.LLM_TIMEOUT_MS) || 60_000,
     numGpu: process.env.OLLAMA_NUM_GPU != null && process.env.OLLAMA_NUM_GPU !== ""
@@ -54,10 +62,10 @@ function withTimeout(ms: number): { signal: AbortSignal; done: () => void } {
 export async function llmHealthCheck(
   cfg: LlmConfig = getLlmConfig()
 ): Promise<{ ok: boolean; detail: string }> {
-  if (cfg.provider === "anthropic") {
+  if (cfg.provider === "anthropic" || cfg.provider === "mistral") {
     return cfg.apiKey
-      ? { ok: true, detail: `anthropic:${cfg.model} (clé configurée)` }
-      : { ok: false, detail: "LLM_API_KEY manquante pour le fournisseur anthropic" };
+      ? { ok: true, detail: `${cfg.provider}:${cfg.model} (clé configurée)` }
+      : { ok: false, detail: `LLM_API_KEY manquante pour le fournisseur ${cfg.provider}` };
   }
   // Ollama: list local models — fast, no inference, proves the host is up.
   const { signal, done } = withTimeout(5_000);
@@ -119,6 +127,31 @@ export async function llmExtractJson<T = unknown>(
       if (!r.ok) throw new Error(`Ollama HTTP ${r.status}: ${(await r.text()).slice(0, 200)}`);
       const j = await r.json();
       return JSON.parse(j.message?.content ?? "{}") as T;
+    }
+
+    if (cfg.provider === "mistral") {
+      // Mistral La Plateforme — OpenAI-style chat completions + native JSON mode.
+      if (!cfg.apiKey) throw new Error("LLM_API_KEY manquante");
+      const r = await fetch(`${cfg.baseUrl}/v1/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${cfg.apiKey}`,
+        },
+        body: JSON.stringify({
+          model: cfg.model,
+          temperature: 0,
+          response_format: { type: "json_object" },
+          messages: [
+            { role: "system", content: system },
+            { role: "user", content: user },
+          ],
+        }),
+        signal,
+      });
+      if (!r.ok) throw new Error(`Mistral HTTP ${r.status}: ${(await r.text()).slice(0, 200)}`);
+      const j = await r.json();
+      return JSON.parse(stripJson(j.choices?.[0]?.message?.content ?? "{}")) as T;
     }
 
     // anthropic

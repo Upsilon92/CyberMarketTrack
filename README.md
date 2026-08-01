@@ -127,6 +127,7 @@ Switch between the three modes by changing variables only — no code change:
 | --- | --- |
 | **Local** (Ollama, same host) | `LLM_PROVIDER=ollama` · `LLM_BASE_URL=http://localhost:11434` · `LLM_MODEL=qwen2.5:7b` |
 | **Remote** (Ollama on another machine) | `LLM_PROVIDER=ollama` · `LLM_BASE_URL=http://<ip>:11434` · `LLM_MODEL=qwen2.5:7b` |
+| **Hosted** (Mistral) | `LLM_PROVIDER=mistral` · `LLM_MODEL=mistral-small-latest` · `LLM_API_KEY=…` |
 | **Hosted** (Anthropic) | `LLM_PROVIDER=anthropic` · `LLM_MODEL=claude-haiku-4-5-20251001` · `LLM_API_KEY=…` |
 
 > On GPUs too old for Ollama's CUDA build (e.g. GTX 900-series), set `OLLAMA_NUM_GPU=0`
