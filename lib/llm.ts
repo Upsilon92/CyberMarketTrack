@@ -14,6 +14,9 @@
 // skips gracefully (nothing is written, work is retried on the next run).
 // =============================================================================
 
+import { readSetting, writeSetting } from "@/lib/settings";
+import { safeDecrypt } from "@/lib/crypto";
+
 export type LlmProvider = "ollama" | "anthropic" | "mistral";
 
 export interface LlmConfig {
@@ -27,12 +30,12 @@ export interface LlmConfig {
   numGpu?: number;
 }
 
-const DEFAULT_BASE: Record<LlmProvider, string> = {
+export const DEFAULT_BASE: Record<LlmProvider, string> = {
   ollama: "http://localhost:11434",
   anthropic: "https://api.anthropic.com",
   mistral: "https://api.mistral.ai",
 };
-const DEFAULT_MODEL: Record<LlmProvider, string> = {
+export const DEFAULT_MODEL: Record<LlmProvider, string> = {
   ollama: "qwen2.5:7b",
   anthropic: "claude-haiku-4-5-20251001",
   mistral: "mistral-small-latest",
@@ -52,6 +55,47 @@ export function getLlmConfig(): LlmConfig {
   };
 }
 
+// --- DB-backed configuration (admin settings page) --------------------------
+// The LLM config is managed from /admin/llm and stored in the Setting table
+// (key "llm"), the API key ENCRYPTED (lib/crypto). When a provider has been
+// saved there, it fully governs; otherwise we fall back to the env vars above
+// (backward compatible). getLlmConfig() = env only; loadLlmConfig() = DB→env.
+
+const LLM_SETTINGS_KEY = "llm";
+
+export interface StoredLlmSettings {
+  provider?: LlmProvider;
+  baseUrl?: string;
+  model?: string;
+  apiKeyEnc?: string; // AES-GCM ciphertext, never the plaintext
+  timeoutMs?: number;
+  numGpu?: number | null;
+}
+
+export async function readLlmSettings(): Promise<StoredLlmSettings> {
+  return (await readSetting<StoredLlmSettings>(LLM_SETTINGS_KEY)) ?? {};
+}
+
+export async function writeLlmSettings(s: StoredLlmSettings): Promise<void> {
+  await writeSetting(LLM_SETTINGS_KEY, s);
+}
+
+/** Effective config: DB settings when a provider is saved, else env/defaults. */
+export async function loadLlmConfig(): Promise<LlmConfig> {
+  const s = await readLlmSettings();
+  if (!s.provider) return getLlmConfig();
+  const provider = s.provider;
+  const key = safeDecrypt(s.apiKeyEnc);
+  return {
+    provider,
+    baseUrl: s.baseUrl || DEFAULT_BASE[provider] || DEFAULT_BASE.ollama,
+    model: s.model || DEFAULT_MODEL[provider] || DEFAULT_MODEL.ollama,
+    apiKey: key || undefined,
+    timeoutMs: s.timeoutMs || Number(process.env.LLM_TIMEOUT_MS) || 60_000,
+    numGpu: s.numGpu ?? undefined,
+  };
+}
+
 function withTimeout(ms: number): { signal: AbortSignal; done: () => void } {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), ms);
@@ -63,9 +107,25 @@ export async function llmHealthCheck(
   cfg: LlmConfig = getLlmConfig()
 ): Promise<{ ok: boolean; detail: string }> {
   if (cfg.provider === "anthropic" || cfg.provider === "mistral") {
-    return cfg.apiKey
-      ? { ok: true, detail: `${cfg.provider}:${cfg.model} (clé configurée)` }
-      : { ok: false, detail: `LLM_API_KEY manquante pour le fournisseur ${cfg.provider}` };
+    if (!cfg.apiKey) return { ok: false, detail: `Clé API manquante pour ${cfg.provider}` };
+    // Probe GET /v1/models — proves connectivity + a VALID key, and consumes
+    // NO tokens (it lists models, no generation).
+    const { signal, done } = withTimeout(6_000);
+    try {
+      const headers: Record<string, string> =
+        cfg.provider === "anthropic"
+          ? { "x-api-key": cfg.apiKey, "anthropic-version": "2023-06-01" }
+          : { Authorization: `Bearer ${cfg.apiKey}` };
+      const r = await fetch(`${cfg.baseUrl}/v1/models`, { headers, signal });
+      if (r.ok) return { ok: true, detail: `${cfg.provider}:${cfg.model} (clé valide)` };
+      if (r.status === 401 || r.status === 403)
+        return { ok: false, detail: `${cfg.provider} : clé refusée (HTTP ${r.status})` };
+      return { ok: false, detail: `${cfg.provider} HTTP ${r.status} @ ${cfg.baseUrl}` };
+    } catch (e) {
+      return { ok: false, detail: `${cfg.provider} injoignable @ ${cfg.baseUrl} (${(e as Error).name})` };
+    } finally {
+      done();
+    }
   }
   // Ollama: list local models — fast, no inference, proves the host is up.
   const { signal, done } = withTimeout(5_000);

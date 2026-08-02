@@ -5,7 +5,7 @@
 // becomes a single AUTO proposal for admin review. Facts are grounded on the
 // fetched text; the model is told NOT to invent precise facts.
 // =============================================================================
-import { getLlmConfig, llmExtractJson, type LlmConfig } from "@/lib/llm";
+import { loadLlmConfig, llmExtractJson, type LlmConfig } from "@/lib/llm";
 import { bundleSchema } from "@/lib/validation";
 
 async function fetchWikiIntro(name: string, lang: "en" | "fr"): Promise<string> {
@@ -85,8 +85,9 @@ export interface ResearchResult {
 export async function researchCompany(
   name: string,
   existingId: string | null,
-  cfg: LlmConfig = getLlmConfig()
+  cfgArg?: LlmConfig
 ): Promise<ResearchResult> {
+  const cfg = cfgArg ?? (await loadLlmConfig());
   const [en, fr] = await Promise.all([fetchWikiIntro(name, "en"), fetchWikiIntro(name, "fr")]);
   const grounding =
     [en && `[Wikipedia EN]\n${en}`, fr && `[Wikipedia FR]\n${fr}`].filter(Boolean).join("\n\n") ||

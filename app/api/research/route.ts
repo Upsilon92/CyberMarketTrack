@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { researchCompany } from "@/lib/company-research";
-import { getLlmConfig, llmHealthCheck } from "@/lib/llm";
+import { loadLlmConfig, llmHealthCheck } from "@/lib/llm";
 import { requireAdmin, unauthorized, validationError, serverError } from "@/lib/api-utils";
 
 const bodySchema = z.object({
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     }
     if (!companyName) return NextResponse.json({ error: "companyName required", code: "nameRequired" }, { status: 400 });
 
-    const cfg = getLlmConfig();
+    const cfg = await loadLlmConfig();
     const health = await llmHealthCheck(cfg);
     if (!health.ok) {
       return NextResponse.json({ error: "LLM offline", code: "llmOffline", detail: health.detail }, { status: 503 });

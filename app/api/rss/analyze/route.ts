@@ -4,8 +4,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { analyzeFeed } from "@/lib/rss-analyze";
-import { getLlmConfig, llmHealthCheck } from "@/lib/llm";
+import { analyzeFeed, RSS_LASTRUN_KEY } from "@/lib/rss-analyze";
+import { loadLlmConfig, llmHealthCheck } from "@/lib/llm";
+import { readSetting } from "@/lib/settings";
 import { unauthorized, serverError } from "@/lib/api-utils";
 
 async function authorized(req: NextRequest): Promise<boolean> {
@@ -28,11 +29,12 @@ export async function POST(req: NextRequest) {
 export async function GET() {
   const session = await auth();
   if (session?.user?.role !== "ADMIN") return unauthorized();
-  const cfg = getLlmConfig();
-  const [health, pending, processed] = await Promise.all([
+  const cfg = await loadLlmConfig();
+  const [health, pending, processed, lastRun] = await Promise.all([
     llmHealthCheck(cfg),
     prisma.feedItem.count({ where: { status: "PENDING" } }),
     prisma.feedItem.count({ where: { status: "PROCESSED" } }),
+    readSetting<{ at: string }>(RSS_LASTRUN_KEY),
   ]);
   return NextResponse.json({
     provider: cfg.provider,
@@ -42,5 +44,6 @@ export async function GET() {
     detail: health.detail,
     backlog: pending,
     processed,
+    lastRunAt: lastRun?.at ?? null,
   });
 }

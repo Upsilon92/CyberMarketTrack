@@ -14,10 +14,28 @@
 // =============================================================================
 import { prisma } from "@/lib/prisma";
 import { getMarketNews } from "@/lib/rss";
-import { getLlmConfig, llmHealthCheck, llmExtractJson, type LlmConfig } from "@/lib/llm";
+import { loadLlmConfig, llmHealthCheck, llmExtractJson, type LlmConfig } from "@/lib/llm";
+import { writeSetting } from "@/lib/settings";
 
 const MAX_PER_RUN = Number(process.env.RSS_MAX_PER_RUN) || 12;
 const MIN_CONFIDENCE = 0.55;
+
+export const RSS_LASTRUN_KEY = "rss.lastRun";
+
+// Progress events streamed to the admin UI while an analysis runs (no extra
+// tokens — this narrates the single in-flight run, it does not re-analyze).
+export type AnalyzeProgress =
+  | { type: "start"; total: number; newItems: number; online: boolean; detail: string }
+  | { type: "skipped"; detail: string }
+  | {
+      type: "item";
+      index: number;
+      total: number;
+      title: string;
+      outcome: "proposal" | "duplicate" | "notRelevant" | "error";
+      detail?: string;
+    }
+  | { type: "done"; report: AnalyzeReport };
 
 type ExEventType = "ACQUISITION" | "MERGER" | "FUNDING" | "IPO" | "RENAME";
 type ExImportance = "MAJOR" | "MEDIUM" | "MINOR";
@@ -110,7 +128,18 @@ async function resolveArticleUrl(googleUrl: string): Promise<string> {
   return googleUrl;
 }
 
-export async function analyzeFeed(cfg: LlmConfig = getLlmConfig()): Promise<AnalyzeReport> {
+export async function analyzeFeed(
+  cfgArg?: LlmConfig,
+  onProgress?: (e: AnalyzeProgress) => void
+): Promise<AnalyzeReport> {
+  const emit = (e: AnalyzeProgress) => {
+    try {
+      onProgress?.(e);
+    } catch {
+      /* a broken client stream must not abort the analysis */
+    }
+  };
+  const cfg = cfgArg ?? (await loadLlmConfig());
   const health = await llmHealthCheck(cfg);
 
   // 1-2. Fetch + record backlog (even when the LLM is offline).
@@ -138,9 +167,14 @@ export async function analyzeFeed(cfg: LlmConfig = getLlmConfig()): Promise<Anal
     errors: 0,
   };
 
+  const stampLastRun = () =>
+    writeSetting(RSS_LASTRUN_KEY, { at: new Date().toISOString(), report }).catch(() => {});
+
   // 3. LLM offline -> stop gracefully; the backlog waits.
   if (!health.ok) {
     report.skipped = health.detail;
+    emit({ type: "skipped", detail: health.detail });
+    await stampLastRun();
     return report;
   }
 
@@ -150,6 +184,7 @@ export async function analyzeFeed(cfg: LlmConfig = getLlmConfig()): Promise<Anal
     orderBy: { createdAt: "asc" },
     take: MAX_PER_RUN,
   });
+  emit({ type: "start", total: pending.length, newItems, online: true, detail: health.detail });
 
   const companies = await prisma.company.findMany({ select: { id: true, initialName: true } });
   const byName = new Map(companies.map((c) => [norm(c.initialName), c.id]));
@@ -190,7 +225,9 @@ export async function analyzeFeed(cfg: LlmConfig = getLlmConfig()): Promise<Anal
     }
   }
 
+  let index = 0;
   for (const item of pending) {
+    index++;
     try {
       const ex = await llmExtractJson<Extraction>(SYSTEM, item.title, cfg);
       report.processed++;
@@ -203,6 +240,7 @@ export async function analyzeFeed(cfg: LlmConfig = getLlmConfig()): Promise<Anal
           data: { status: "PROCESSED", relevant: false, processedAt: new Date() },
         });
         report.notRelevant++;
+        emit({ type: "item", index, total: pending.length, title: item.title, outcome: "notRelevant" });
         continue;
       }
 
@@ -217,6 +255,14 @@ export async function analyzeFeed(cfg: LlmConfig = getLlmConfig()): Promise<Anal
           data: { status: "PROCESSED", relevant: true, processedAt: new Date() },
         });
         report.duplicates++;
+        emit({
+          type: "item",
+          index,
+          total: pending.length,
+          title: item.title,
+          outcome: "duplicate",
+          detail: subjectName,
+        });
         continue;
       }
 
@@ -294,14 +340,32 @@ export async function analyzeFeed(cfg: LlmConfig = getLlmConfig()): Promise<Anal
         },
       });
       report.proposalsCreated++;
+      emit({
+        type: "item",
+        index,
+        total: pending.length,
+        title: item.title,
+        outcome: "proposal",
+        detail: `${subjectName}${ex.acquirer ? ` ← ${ex.acquirer}` : ""} (${eventType})`,
+      });
     } catch (e) {
       report.errors++;
       await prisma.feedItem.update({
         where: { id: item.id },
         data: { status: "ERROR", error: (e as Error).message.slice(0, 300) },
       });
+      emit({
+        type: "item",
+        index,
+        total: pending.length,
+        title: item.title,
+        outcome: "error",
+        detail: (e as Error).message.slice(0, 120),
+      });
     }
   }
 
+  await stampLastRun();
+  emit({ type: "done", report });
   return report;
 }

@@ -44,7 +44,7 @@ export default async function AdminProposals() {
       </div>
       <RssAnalyze />
       <div className="border rounded-md p-3 bg-muted/20 space-y-2">
-        <p className="text-sm font-medium">Analyse d&apos;une entreprise (LLM)</p>
+        <p className="text-sm font-medium">{t("companyAnalysisTitle")}</p>
         <LlmResearch />
       </div>
       <ProposalsReview

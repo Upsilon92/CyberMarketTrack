@@ -333,3 +333,12 @@ model FeedItem {
 
   @@index([status, createdAt])
 }
+
+// Generic key/value app settings (JSON strings). Used for the LLM configuration
+// (key "llm", API keys stored ENCRYPTED, see lib/crypto.ts) and the RSS
+// last-run marker (key "rss.lastRun").
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}

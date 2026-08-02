@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { researchCompany } from "@/lib/company-research";
-import { getLlmConfig, llmHealthCheck } from "@/lib/llm";
+import { loadLlmConfig, llmHealthCheck } from "@/lib/llm";
 import { logAudit } from "@/lib/audit";
 import { requireAdmin, unauthorized, notFound, serverError } from "@/lib/api-utils";
 
@@ -53,7 +53,7 @@ export async function POST(_req: NextRequest, ctx: { params: Promise<{ id: strin
       );
     }
 
-    const cfg = getLlmConfig();
+    const cfg = await loadLlmConfig();
     const health = await llmHealthCheck(cfg);
     if (!health.ok) {
       return NextResponse.json(

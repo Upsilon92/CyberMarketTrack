@@ -16,6 +16,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const links = [
     { href: "/admin", label: t("dashboard") },
     { href: "/admin/proposals", label: tProp("navLabel") },
+    { href: "/admin/llm", label: t("llm") },
     { href: "/admin/import", label: t("import") },
     { href: "/admin/audit", label: t("audit") },
     { href: "/admin/review", label: t("review") },
