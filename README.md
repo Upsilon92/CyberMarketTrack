@@ -44,8 +44,11 @@ small VPS — and needs no external services.
 - **Contribution workflow** — non-admins can propose additions/edits; an admin reviews
   them in a queue (accept / edit-then-accept / reject).
 - **LLM enrichment (optional)** — on-demand analysis of a company that produces a
-  reviewable proposal (company + solutions + M&A), plus automatic proposals from the RSS
-  feed. Works with a **local**, a **remote**, or a **hosted** LLM — switchable by config.
+  reviewable proposal (company + solutions + M&A), an **"Enrich"** button that turns a
+  thin proposal into a complete one, plus **automatic proposals from the RSS feed** with
+  a **live progress view** and de-duplication. Works with a **local**, **remote**, or
+  **hosted** LLM, all configured from an **admin page** (encrypted API keys, no code, no
+  restart) — see [Configuration](#-configuration).
 - **Import / Export / Backup** — CSV import with dry-run, a ZIP logo import, and a
   full-database JSON backup/restore.
 - **Bilingual UI (FR/EN)**, light/dark themes, responsive, first-run admin setup.
@@ -121,18 +124,26 @@ All configuration is via environment variables (see [`.env.example`](./.env.exam
 
 ### LLM enrichment (optional)
 
-Switch between the three modes by changing variables only — no code change:
+The LLM is configured from the UI at **Admin → LLM** (`/admin/llm`): pick the
+provider and model, and **test availability** (online/offline) — the check lists models
+only, so it **never consumes tokens**. **API keys are encrypted at rest** (AES-256-GCM,
+derived from `AUTH_SECRET`) and are never sent back to the browser. Four modes:
 
-| Mode | Variables |
+| Mode | Provider · model |
 | --- | --- |
-| **Local** (Ollama, same host) | `LLM_PROVIDER=ollama` · `LLM_BASE_URL=http://localhost:11434` · `LLM_MODEL=qwen2.5:7b` |
-| **Remote** (Ollama on another machine) | `LLM_PROVIDER=ollama` · `LLM_BASE_URL=http://<ip>:11434` · `LLM_MODEL=qwen2.5:7b` |
-| **Hosted** (Mistral) | `LLM_PROVIDER=mistral` · `LLM_MODEL=mistral-small-latest` · `LLM_API_KEY=…` |
-| **Hosted** (Anthropic) | `LLM_PROVIDER=anthropic` · `LLM_MODEL=claude-haiku-4-5-20251001` · `LLM_API_KEY=…` |
+| **Local** (Ollama, same host) | `ollama` · `qwen2.5:7b` @ `http://localhost:11434` |
+| **Remote** (Ollama on another machine) | `ollama` · `qwen2.5:7b` @ `http://<ip>:11434` |
+| **Hosted** (Mistral) | `mistral` · `mistral-small-latest` + API key |
+| **Hosted** (Anthropic) | `anthropic` · `claude-haiku-4-5-20251001` + API key |
 
-> On GPUs too old for Ollama's CUDA build (e.g. GTX 900-series), set `OLLAMA_NUM_GPU=0`
-> to force CPU inference. A scheduler can trigger the RSS analysis by POSTing to
-> `/api/rss/analyze` with the `X-Cron-Secret` header (`CRON_SECRET`).
+The same settings can be **bootstrapped from environment variables**
+(`LLM_PROVIDER`, `LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY`, `OLLAMA_NUM_GPU`) — used as
+the default until you save a provider in the admin page, which then takes over.
+
+> On GPUs too old for Ollama's CUDA build (e.g. GTX 900-series), set GPU layers to `0`
+> (or `OLLAMA_NUM_GPU=0`) to force CPU inference. A scheduler can trigger the RSS
+> analysis by POSTing to `/api/rss/analyze` with the `X-Cron-Secret` header
+> (`CRON_SECRET`).
 
 ---
 
@@ -147,7 +158,12 @@ Switch between the three modes by changing variables only — no code change:
 - **LLM analysis** → the **Analyse (LLM)** button on a company (or a news event) creates
   a reviewable *proposal bundle* (company + solutions + M&A). Approve it to apply
   everything atomically. The last analysis date is shown on the page.
-- **Review** → Admin → Proposals lists user and automatic proposals to accept/reject.
+- **Review** → Admin → Proposals lists user and automatic proposals to accept/reject,
+  with an **Enrich (LLM)** action per proposal. The **RSS analysis** panel there runs
+  the feed on demand with a **live progress bar** and per-item results, and shows the
+  last-run date.
+- **Configure the LLM** → Admin → LLM: choose the provider/model, test availability
+  (no tokens), and store the API key encrypted.
 - **Backup** → Admin → Backup exports/restores the whole database as one JSON file.
 
 ---
@@ -168,7 +184,8 @@ for the full rationale and data model.
 - [x] Contribution/proposal workflow with admin review
 - [x] Bilingual (FR/EN) descriptions, searchable multi-select filters
 - [x] LLM abstraction (local / remote / hosted) + on-demand company analysis
-- [ ] Automatic M&A capture from the RSS feed (LLM), tuned prompts
+- [x] In-app LLM configuration with encrypted keys and a token-free availability check
+- [x] Automatic M&A capture from the RSS feed (LLM) with de-dup and live progress
 - [ ] Batch enrichment of the whole base (grounded LLM)
 - [ ] SAML multi-user auth with roles
 

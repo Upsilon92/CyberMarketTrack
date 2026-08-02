@@ -1,274 +1,417 @@
+<div align="center">
+
 # CyberMarketTrack — Architecture
 
-> Ce document décrit les principes de fonctionnement de l'application. **Il doit
-> être mis à jour à chaque évolution significative du code.**
+**How the app is built and why** — the event-sourced data model, the LLM
+enrichment subsystem, and the conventions that keep it consistent.
 
-## 1. Vue d'ensemble
+[← Back to the README](./README.md)
 
-CyberMarketTrack est une base de connaissances du marché de la cybersécurité :
-entreprises (éditeurs, sociétés de services, fonds), solutions, **historique
-daté et complet de leurs évolutions** (rachats, fusions, renommages,
-transferts), et comparateurs personnalisés.
+</div>
 
-Monolithe **Next.js 16** (App Router, TypeScript) — pas de backend séparé, pas
-de microservices, pas de cache externe.
+> [!NOTE]
+> This document is the source of truth for the app's design. **Keep it in sync
+> with the code** — update it whenever a significant change lands.
 
-## 2. Stack
+---
 
-| Rôle              | Choix                                   | Pourquoi |
-|-------------------|------------------------------------------|----------|
-| Framework         | Next.js 16 (App Router, TypeScript)      | Un seul projet, un seul langage, Server Components par défaut |
-| Base de données   | SQLite via Prisma 7                      | Un fichier unique `data/cybermarkettrack.db` → backup trivial |
-| Accès BDD         | Prisma + adapter `better-sqlite3`        | Prisma 7 n'a plus de moteur Rust : le client utilise un driver adapter |
-| UI                | Tailwind CSS 4 + shadcn/ui               | Composants accessibles, responsive, dark mode |
-| i18n              | next-intl (mode « sans routing »)        | FR/EN par cookie `NEXT_LOCALE`, URLs propres |
-| Thème             | next-themes                              | light/dark, préférence système par défaut |
-| Validation        | Zod (formulaires ET API)                 | Jamais de confiance au client |
-| Authentification  | Auth.js v5 (NextAuth), provider Credentials | Sessions JWT, CSRF natif, prêt pour SAML/RBAC |
-| Tests             | Vitest                                   | Tests unitaires des fonctions pures (36 tests) |
-| Déploiement       | Docker multi-stage + volume `data/`      | Voir README |
+## Table of contents
 
-### Particularités Prisma 7 (≠ tutoriels antérieurs)
+- [1. Overview](#1-overview)
+- [2. Tech stack](#2-tech-stack)
+- [3. The event-sourced model (the core)](#3-the-event-sourced-model-the-core)
+- [4. Contribution & proposal workflow](#4-contribution--proposal-workflow)
+- [5. LLM subsystem](#5-llm-subsystem)
+- [6. Directory layout](#6-directory-layout)
+- [7. Security](#7-security)
+- [8. Data interchange formats](#8-data-interchange-formats)
+- [9. Evolution path](#9-evolution-path)
+- [10. Maintenance](#10-maintenance)
 
-- La configuration CLI est dans **`prisma.config.ts`** (plus de bloc dans
-  `package.json`, plus d'`url` dans le `datasource` du schéma).
-- Le client est généré dans **`lib/generated/prisma/`** (gitignoré,
-  régénéré par `npx prisma generate`).
-- Le client runtime reçoit un **adapter** : `new PrismaClient({ adapter: new PrismaBetterSqlite3(...) })`
-  (voir `lib/prisma.ts`).
-- SQLite ne supporte pas les enums Prisma : toutes les valeurs énumérées sont
-  des `String` validées par Zod, définies une seule fois dans
-  **`lib/constants.ts`**. Une migration PostgreSQL pourra les convertir en
-  enums natifs sans remodeler les données.
+---
 
-## 3. Le modèle temporel — cœur de l'application
+## 1. Overview
 
-### Règle non négociable
+CyberMarketTrack is a knowledge base of the cybersecurity market: **companies**
+(vendors, service providers, distributors, investment funds), their
+**solutions**, and the **complete dated history** of how both evolve
+(acquisitions, mergers, renamings, spin-offs, transfers…), plus custom
+comparators and an optional LLM enrichment pipeline.
 
-**Les événements (`Event`) sont l'unique source de vérité de tout ce qui évolue
-dans le temps.** Il n'existe aucune table de périodes, et l'entité ne stocke
-aucun champ « courant » :
+It is a single **Next.js 16** monolith (App Router, TypeScript) — no separate
+backend, no microservices, no external cache. It runs as **one container** with
+an embedded SQLite database, so it fits a NAS or a small VPS and backs up by
+copying a single file.
 
-- `Company` n'a **ni** `name`, **ni** `status`, **ni** `parentCompanyId` —
-  seulement `initialName` (le nom à la création, point d'ancrage immuable) et
-  les champs intrinsèques (année de création, pays…).
-- `Solution` n'a ni `name` ni `companyId` courant — seulement `initialName` et
-  `initialCompanyId` (l'éditeur d'origine).
+---
 
-### Dérivation (lecture)
+## 2. Tech stack
 
-Les **périodes sont calculées à la lecture** par des fonctions pures, sans
-accès base, dans **`lib/timeline.ts`** :
+| Role | Choice | Why |
+| --- | --- | --- |
+| Framework | Next.js 16 (App Router, TypeScript) | One project, one language, Server Components by default |
+| Database | SQLite via Prisma 7 | A single file `data/cybermarkettrack.db` → trivial backup |
+| DB access | Prisma + `better-sqlite3` driver adapter | Prisma 7 dropped the Rust engine; the client runs on a driver adapter |
+| UI | Tailwind CSS 4 + shadcn/ui | Accessible, responsive components; light/dark themes |
+| i18n | next-intl (no-routing mode) | FR/EN via the `NEXT_LOCALE` cookie, clean URLs |
+| Theme | next-themes | Light/dark, system preference by default |
+| Validation | Zod (forms **and** API) | The client is never trusted; one schema serves both sides |
+| Auth | Auth.js v5 (NextAuth), Credentials provider | JWT sessions, built-in CSRF, ready for SAML/RBAC |
+| LLM | Pluggable: Ollama / Mistral / Anthropic | Local, remote, or hosted — switched from the admin UI |
+| Tests | Vitest | Unit tests for the pure temporal functions (47 tests) |
+| Deploy | Docker multi-stage + `data/` volume | See the [README](./README.md) |
 
-```
+### Prisma 7 specifics (differ from older tutorials)
+
+- CLI configuration lives in **`prisma.config.ts`** — no `package.json` block,
+  no `url` inside the schema `datasource`.
+- The client is generated into **`lib/generated/prisma/`** (git-ignored,
+  regenerated by `npx prisma generate`).
+- The runtime client takes a **driver adapter**:
+  `new PrismaClient({ adapter: new PrismaBetterSQLite3(...) })` (see
+  `lib/prisma.ts`).
+- SQLite has no native Prisma enums, so every enumerated value is a validated
+  `String`, declared once in **`lib/constants.ts`**. A future PostgreSQL
+  migration can convert them to native enums without reshaping data.
+
+> [!IMPORTANT]
+> After any schema change, run `npx prisma generate` before type-checking —
+> otherwise the client types lag the schema and `tsc` fails.
+
+---
+
+## 3. The event-sourced model (the core)
+
+### The non-negotiable rule
+
+**The `Event` table is the single source of truth for everything that changes
+over time.** There is no periods table, and entities store **no "current"
+field**:
+
+- `Company` has **no** `name`, **no** `status`, **no** `parentCompanyId` — only
+  `initialName` (the immutable creation-time anchor) and intrinsic fields
+  (founded year/month, country, bilingual descriptions, logo…).
+- `Solution` has no current `name` or `companyId` — only `initialName` and
+  `initialCompanyId` (the original vendor).
+
+### Derivation (on read)
+
+Periods are **computed at read time** by pure, database-free functions in
+**`lib/timeline.ts`**:
+
+```text
 buildCompanyTimeline(company, events) → {
-  namePeriods:      [{ name, start, end|null }]     // end null = en cours
+  namePeriods:      [{ name, start, end|null }]        // end null = open
   ownershipPeriods: [{ ownerCompanyId, ownershipType, start, end|null }]
   statusPeriods:    [{ status, start, end|null }]
-  currentName, currentOwner, currentStatus          // = les périodes ouvertes
-  informationalEvents                               // FUNDING, OTHER
+  currentName, currentOwner, currentOwners[], currentStatus
+  informationalEvents                                  // FUNDING, IPO, OTHER…
 }
 ```
 
-Algorithme : trier les événements par date (**la saisie dans le désordre est
-donc gérée nativement**), initialiser l'état depuis l'entité, puis chaque
-événement clôture la période en cours de la dimension qu'il modifie et en
-ouvre une nouvelle. `periodAt(periods, date)` donne l'état « à telle date »
-(la vue `?at=YYYY` des fiches).
+The algorithm sorts events by date (**so out-of-order entry is handled
+natively**), seeds the state from the entity, then each event closes the open
+period of the dimension it changes and opens a new one. `periodAt(periods,
+date)` yields the "as of a date" state.
 
-Statuts dérivés : `INDEPENDENT` par défaut ; `INVESTOR_OWNED` / `SUBSIDIARY` /
-`ABSORBED` selon l'`outcome` de la dernière acquisition non suivie d'un
-`DIVESTMENT` ; `MERGED` après `MERGER` ; `DEFUNCT` après `SHUTDOWN`.
-Un `DIVESTMENT` clôture la détention sans en ouvrir de nouvelle.
+Derived statuses: `INDEPENDENT` by default; `INVESTOR_OWNED` / `SUBSIDIARY` /
+`ABSORBED` per the `outcome` of the last acquisition not followed by a
+`DIVESTMENT`; `INVESTOR_UNKNOWN` when that outcome is unknown (instead of
+forcing `SUBSIDIARY`); `MERGED` after a `MERGER`; `DEFUNCT` after a `SHUTDOWN`.
+A `DIVESTMENT` closes ownership without opening a new one.
 
-Les **trous d'information sont autorisés** : une période à `start = null`
-s'affiche « période inconnue » sans bloquer.
+> Information gaps are allowed: a period with `start = null` renders as "unknown
+> period" without blocking.
 
-### Types d'événements
+### Event types
 
-| Type | Effet sur l'état | Champs spécifiques |
-|---|---|---|
-| `COMPANY_RENAME` | nom de la société | `newName` |
-| `ACQUISITION` | rachat total : ferme TOUS les propriétaires ouverts, en ouvre un seul | `acquirerCompanyId`/`acquirerNameRaw`, `outcome` |
-| `CO_INVESTMENT` | ajoute un propriétaire EN PARALLÈLE sans fermer les autres (consortium) | `acquirerCompanyId`/`acquirerNameRaw` |
-| `ABSORPTION` | filiale déjà détenue → absorption totale (même propriétaire, statut `ABSORBED`) | `acquirerCompanyId` (déf. propriétaire courant) |
-| `DIVESTMENT` | ferme TOUTES les détentions → `INDEPENDENT` | `note` |
-| `MERGER` | statut `MERGED` | `withCompanyId` |
-| `SHUTDOWN` | statut `DEFUNCT` | — |
-| `SOLUTION_RENAME` | nom de la solution | `newName` |
-| `SOLUTION_TRANSFER` | éditeur de la solution | `newOwnerCompanyId` |
-| `SOLUTION_LAUNCH` | solution active | — |
-| `SOLUTION_DISCONTINUED` | solution arrêtée | — |
-| `SOLUTION_INTEGRATED` | solution absorbée dans une autre (statut `INTEGRATED`) | `intoSolutionId` |
-| `FUNDING`, `OTHER` | aucun (informatif) | `amount`, `round` |
+| Type | Effect on state | Specific fields |
+| --- | --- | --- |
+| `COMPANY_RENAME` | company name | `newName` |
+| `ACQUISITION` | full buyout: closes **all** open owners, opens one | `acquirerCompanyId` / `acquirerNameRaw`, `outcome` |
+| `CO_INVESTMENT` | adds a **parallel** owner without closing the others (consortium) | `acquirerCompanyId` / `acquirerNameRaw`, `outcome` |
+| `ABSORPTION` | already-owned subsidiary fully absorbed (brand disappears → `ABSORBED`) | `acquirerCompanyId` (defaults to current owner) |
+| `DIVESTMENT` | closes **all** ownership → `INDEPENDENT` | `note` |
+| `SPINOFF` | carve-out from a parent → `INDEPENDENT` | `parentCompanyId` |
+| `MERGER` | status → `MERGED` | `withCompanyId` |
+| `SHUTDOWN` | status → `DEFUNCT` | — |
+| `HQ_RELOCATION` | moves the HQ country (updates the stored `country`) | `fromCountry`, `newCountry`, `newCity` |
+| `IPO` / `DELISTING` | informational; drive the derived "listed" flag | `note` (exchange) |
+| `SOLUTION_RENAME` | solution name | `newName` |
+| `SOLUTION_TRANSFER` | solution vendor | `newOwnerCompanyId` |
+| `SOLUTION_LAUNCH` / `SOLUTION_DISCONTINUED` | solution active / stopped | — |
+| `SOLUTION_INTEGRATED` | absorbed into another solution (→ `INTEGRATED`) | `intoSolutionId` |
+| `FUNDING`, `OTHER` | none (informational) | `amount`, `round` |
 
-Chaque événement porte aussi une **`importance`** (`MAJOR` / `MEDIUM` / `MINOR`)
-utilisée pour prioriser l'affichage (l'accueil range les derniers événements en
-3 colonnes par importance). Un `CompanyTimeline` expose `currentOwners[]` (tous
-les propriétaires ouverts, > 1 en cas de co-investissement) en plus de
-`currentOwner` (dernier ouvert, pour l'affichage simple). Le statut dérivé
-`INVESTOR_UNKNOWN` distingue une acquisition d'issue inconnue (au lieu de la
-forcer en `SUBSIDIARY`). Les logos d'entreprise sont stockés en **data URI**
-dans `logoUrl` (upload via `/api/companies/[id]/logo`), donc inclus dans les
-sauvegardes JSON. Les `Tag` portent `descriptionFr/En` (explicitent les
-abréviations : tooltip sur les badges + annuaire).
+Every event also carries:
 
-**Intégration solution-dans-solution (`SOLUTION_INTEGRATED`).** Symétrique du
-`MERGER` des sociétés : une solution cesse d'exister de façon autonome parce
-qu'elle est absorbée dans une autre (ex : *ITDR Spotlight* et *ITDR Shadow*
-intégrées dans *SIPM* chez Proofpoint). La solution absorbée passe au statut
-dérivé `INTEGRATED` (distinct de `DISCONTINUED`) avec un lien vers la solution
-hôte ; la fiche hôte affiche une section **« Intègre : … »** dérivée
-(`solutionsIntegratedInto` dans `lib/queries.ts`). Un `SOLUTION_LAUNCH`
-ultérieur ré-extrait la solution (retour à `ACTIVE`). À ne PAS utiliser quand
-les modules restent vendables séparément : dans ce cas on garde deux solutions
-actives.
+- an **`importance`** (`MAJOR` / `MEDIUM` / `MINOR`) used to prioritize display
+  — the home page groups the latest events into three columns by importance.
+  The application default is **`MINOR`** (only a deliberate choice, or an LLM
+  analysis, promotes an event).
+- **bilingual narratives** `descriptionFr` / `descriptionEn` and up to two
+  **source URLs** `url1` / `url2` (article, press release), surfaced as
+  "Source 1 / 2" links in the feed and timelines.
 
-### Validation à la saisie
+`CompanyTimeline` exposes `currentOwners[]` (all open owners, `> 1` under
+co-investment) alongside `currentOwner` (the last open one, for simple display).
 
-Puisque l'état est calculé, la validation ne porte que sur la **cohérence de
-la suite d'événements** (`validateCompanyEvents` / `validateSolutionEvents`) :
+**Solution-into-solution integration (`SOLUTION_INTEGRATED`)** mirrors company
+`MERGER`: a solution stops existing on its own because it is absorbed into
+another (e.g. *ITDR Spotlight* / *ITDR Shadow* folded into *SIPM*). The absorbed
+solution moves to the derived `INTEGRATED` status (distinct from
+`DISCONTINUED`) with a link to the host, whose page shows a derived
+**"Integrates: …"** section. A later `SOLUTION_LAUNCH` re-extracts it. Do **not**
+use it when the modules stay separately sold — keep two active solutions then.
 
-- événement antérieur à la création → **erreur** ;
-- deux événements de même dimension à exactement la même date → **erreur**
-  (ordre ambigu) ;
-- `DIVESTMENT` sans détention en cours → **erreur** ;
-- `SOLUTION_INTEGRATED` d'une solution dans elle-même → **erreur** ;
-- événement postérieur à un `SHUTDOWN` → **avertissement** (non bloquant).
+### Validation on write
 
-L'éditeur d'historique de l'admin appelle `/api/events/preview` à chaque
-saisie : l'utilisateur voit la frise recalculée **avant** d'enregistrer.
+Because state is computed, validation only checks the **coherence of the event
+sequence** (`validateCompanyEvents` / `validateSolutionEvents`):
 
-### Ingérer un historique antérieur (ancre reculée)
+- an event before creation → **error**;
+- two events on the same dimension at the exact same date → **error** (ambiguous
+  order);
+- a `DIVESTMENT` with no open ownership → **error**;
+- a `SOLUTION_INTEGRATED` into itself → **error**;
+- an event after a `SHUTDOWN` → **warning** (non-blocking).
 
-Les champs « à la création » d'une entité (`initialName`, `initialCompanyId`,
-date de lancement) sont l'**ancre** des chaînes dérivées. Découvrir un passé
-plus ancien = reculer l'ancre + insérer les événements correspondants.
-L'assistant **« Ajouter un historique antérieur »** (`PrependHistoryForm` +
-`POST /api/solutions/[id]/prepend-history`) automatise ce geste pour les
-solutions : il déplace l'ancre vers les anciennes valeurs et crée les
-`SOLUTION_RENAME` / `SOLUTION_TRANSFER` datés, le tout dans une transaction.
+The admin history editor calls `/api/events/preview` on every keystroke, so the
+recomputed timeline is shown **before** saving.
 
-### Dates à précision variable
+### Ingesting an earlier history (moving the anchor back)
 
-Toutes les dates sont `year` (obligatoire) + `month` (1-12, optionnel) —
-jamais un type `Date`. Helpers dans `lib/date.ts` (comparaison : un mois
-absent = début d'année ; formatage `"2021"` / `"mars 2021"` / `"March 2021"` ;
-plages `"2015 – 2019"` / `"depuis 2023"`).
+An entity's creation-time fields (`initialName`, `initialCompanyId`, launch
+date) anchor the derived chains. Discovering an older past means **moving the
+anchor back** and inserting the matching events. The **"Add an earlier history"**
+assistant (`prepend-history` routes) automates this for companies and solutions
+in a single transaction.
+
+### Variable-precision dates
+
+All dates are `year` (required) + `month` (1–12, optional) — never a `Date`.
+Helpers in `lib/date.ts` (comparison treats a missing month as start-of-year;
+formatting `"2021"` / `"March 2021"`; ranges `"2015 – 2019"` / `"since 2023"`).
 
 ### Performance
 
-La dérivation se fait en mémoire à la lecture (`lib/queries.ts` :
-`loadMarket()` charge entités **avec** leurs événements en une requête,
-`React.cache` la partage dans la requête HTTP — pas de N+1). Si le volume
-l'exigeait un jour : dénormaliser les champs dérivés dans des colonnes
-recalculées à chaque écriture d'événement (jamais éditables). Non nécessaire
-en v1.
+Derivation runs in memory on read (`lib/queries.ts`: `loadMarket()` loads
+entities **with** their events in one query; `React.cache` shares it across the
+request — no N+1). If volume ever demanded it, the derived fields could be
+denormalized into columns recomputed on each event write. Not needed in v1.
 
-## 4. Arborescence
+---
 
-Le dépôt contient directement le projet Next.js (pas de sous-dossier) :
+## 4. Contribution & proposal workflow
 
-```
-├── app/              # pages (App Router)
-│   ├── (public)     : /, /companies, /solutions, /tags, /news, /search,
-│   │                  /comparators
-│   ├── admin/       : CRUD, éditeur d'historique, import CSV, audit,
-│   │                  fiches à revoir, backup
-│   ├── api/         : routes de mutation (Zod + session + AuditLog)
+Non-admin users can **propose** additions/edits; an admin reviews each one
+(reject / approve / **modify-then-approve**). Automatic proposals from the RSS
+pipeline flow through the exact same queue.
+
+- A generic **`Proposal`** row: `kind` (`CREATE` | `UPDATE`), `entityType`
+  (`Company` | `Solution` | `Event` | `Tag` | `Bundle`), a JSON `payload`,
+  `origin` (`USER` | `AUTO`), `status` (`PENDING` | `APPROVED` | `REJECTED`),
+  and review metadata. Public submissions are **rate-limited by IP**
+  (`sourceIp`, 10 / 24 h), enforced server-side so it survives restarts.
+- **`applyProposal`** (`lib/proposals.ts`) re-validates the payload against the
+  entity's Zod schema and applies it through the **same** create/update logic as
+  the admin routes.
+- A **`Bundle`** is a company + its solutions + its M&A events, applied
+  **atomically** in one transaction (`applyBundle`). Events reference companies
+  by name; an unknown counterparty (acquirer, merge partner, parent) is
+  **created on the fly** as a minimal company, so an acquisition always links two
+  real, browsable entities rather than free text.
+- **Enrich (LLM)**: a button on any pending proposal
+  (`POST /api/proposals/[id]/enrich`) runs a company analysis and **replaces** a
+  thin proposal (e.g. `{ initialName, types }` that would fail approval for
+  missing required fields) with a complete, approvable bundle.
+
+Forms are reused in three modes (`components/proposal-submit.ts`): public
+proposal, admin review (`approveProposalId`), and normal admin create/update.
+
+---
+
+## 5. LLM subsystem
+
+Optional, entirely pluggable, and controlled from the admin UI. It powers
+**on-demand company research** and **automatic proposals from the RSS feed**.
+
+### Providers & configuration
+
+`lib/llm.ts` exposes one interface over three providers:
+
+| Mode | Provider | Notes |
+| --- | --- | --- |
+| Local | `ollama` | Ollama on the same host |
+| Remote | `ollama` | Ollama on another machine (may be off) |
+| Hosted | `mistral` | OpenAI-style `/v1/chat/completions`, JSON mode |
+| Hosted | `anthropic` | Messages API `/v1/messages` |
+
+Configuration is managed at **Admin → LLM** (`/admin/llm`) and stored in the
+generic **`Setting`** key/value table (key `"llm"`). `loadLlmConfig()` resolves
+the effective config: **DB settings win** once a provider is saved there (with
+per-provider defaults for empty fields); otherwise it falls back to environment
+variables (`LLM_PROVIDER`, `LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY`,
+`OLLAMA_NUM_GPU`…), which keeps older deployments working.
+
+> [!IMPORTANT]
+> **API keys are encrypted at rest.** `lib/crypto.ts` uses AES-256-GCM with a
+> key derived from `AUTH_SECRET`. Only the ciphertext lives in the DB; the
+> plaintext is **never returned to the browser** (the form shows `••••` and a
+> "remove key" option). If `AUTH_SECRET` changes, the stored key can no longer be
+> decrypted — just re-enter it on the settings page.
+
+### Availability check (no tokens)
+
+`llmHealthCheck()` proves a provider is reachable **without any token cost**:
+Ollama lists local models (`GET /api/tags`); hosted providers list models
+(`GET /v1/models`), which validates connectivity **and** a working key without
+any generation. The settings page's **"Test availability"** button runs it on
+the *unsaved* form values.
+
+### Company research
+
+`lib/company-research.ts` fetches grounding text (Wikipedia EN + FR), asks the
+model for a structured bundle (company + solutions + M&A events with bilingual
+descriptions and importance), and validates it with a lenient schema. The model
+is instructed never to invent precise facts (`null` when unsure).
+
+### RSS → proposals pipeline
+
+`lib/rss-analyze.ts` runs on any schedule (admin button or a NAS cron via the
+`X-Cron-Secret` header):
+
+1. Fetch the market-news RSS (`lib/rss.ts`) and record every unseen item as a
+   `FeedItem` (backlog that accumulates while the LLM host is off).
+2. Health-check the LLM; if offline, stop gracefully — the backlog waits.
+3. For each pending item: extract a structured M&A/funding event, **gate out**
+   irrelevant headlines, **deduplicate** against existing events *and* pending
+   proposals (`subject | type | year`), resolve the **real article URL** behind
+   the Google News redirect (`resolveArticleUrl`), and create one **`Bundle`**
+   proposal carrying both companies + the event.
+
+**Live progress, no extra tokens.** `analyzeFeed(cfg, onProgress)` emits
+`start` / `item` / `done` events. The route `POST /api/rss/analyze/stream`
+returns a **NDJSON `ReadableStream`**; the admin panel renders a progress bar and
+a live per-item log (proposal / duplicate / not-relevant / error). This narrates
+the **single** in-flight run — it does not re-analyze, so it costs nothing extra.
+The last run's timestamp is persisted (`Setting["rss.lastRun"]`) and shown in the
+panel.
+
+---
+
+## 6. Directory layout
+
+The repository **is** the Next.js project (no sub-folder):
+
+```text
+├── app/                # App Router pages + API routes
+│   ├── (public)        : /, /companies, /solutions, /tags, /news, /search, /comparators
+│   ├── admin/          : CRUD, history editor, import, audit, proposals, LLM config, backup
+│   ├── api/            : mutation routes (Zod + session + AuditLog)
 │   └── login/
-├── components/       # composants React (ui/ = shadcn, admin/, comparator/)
-├── lib/              # cœur : timeline.ts, date.ts, queries.ts, backup.ts,
-│   │                 # comparator.ts, validation.ts, auth.ts, csv.ts…
-│   └── generated/    # client Prisma généré (gitignoré)
-├── prisma/           # schema.prisma, migrations/, seed.ts
-├── messages/         # fr.json / en.json (toutes les chaînes UI)
-├── i18n/             # config next-intl (locale par cookie)
-├── scripts/          # backup.ts (npm run backup)
-├── data/             # cybermarkettrack.db + backups/ (gitignoré)
-├── proxy.ts          # middleware Next 16 : protection /admin + API
-├── Dockerfile        # image multi-stage (voir README)
-└── auth.config.ts    # config Auth.js edge-safe (sans Prisma)
+├── components/         # React components (ui/ = shadcn, admin/, comparator/)
+├── lib/                # core: timeline, date, queries, validation, llm, crypto,
+│   │                   #       settings, proposals, rss-analyze, company-research…
+│   └── generated/      # generated Prisma client (git-ignored)
+├── prisma/             # schema.prisma, migrations/, seed.ts
+├── messages/           # fr.json / en.json (all UI strings)
+├── i18n/               # next-intl config (cookie locale)
+├── scripts/            # backup.ts (npm run backup), stop.mjs
+├── data/               # cybermarkettrack.db + backups/ (git-ignored)
+├── proxy.ts            # Next 16 middleware: /admin + API guards
+├── auth.config.ts      # edge-safe Auth.js config (no Prisma)
+└── Dockerfile          # multi-stage image (see README)
 ```
 
-## 5. Sécurité
+---
 
-1. Zod sur **toutes** les entrées, côté serveur (les formulaires réutilisent
-   les mêmes schémas — `lib/validation.ts`).
-2. Markdown assaini par `rehype-sanitize` (aucun HTML brut ne passe).
-3. Prisma uniquement, pas de SQL brut.
-4. Auth : bcrypt (12 rounds), sessions JWT `HttpOnly`/`SameSite=Lax`, CSRF
-   natif Auth.js, rate limiting login 5/min (`lib/rate-limit.ts`).
-5. Headers (dans `next.config.ts`) : CSP stricte (`unsafe-eval` uniquement en
-   dev), `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`, HSTS.
-6. Défense en profondeur : le proxy filtre `/admin` et les mutations API, ET
-   chaque route de mutation re-vérifie la session (`requireAdmin`).
-7. Aucun secret en dur : `.env` (gitignoré) + `.env.example` documenté.
-8. Imports (CSV, JSON) : validation stricte de schéma avant toute écriture,
-   limites de taille (CSV 1 Mo, restauration 50 Mo, comparateur borné).
-9. Erreurs génériques côté client, détail dans les logs serveur.
+## 7. Security
 
-## 6. Formats d'échange
+1. **Zod on every input, server-side** — forms reuse the same schemas
+   (`lib/validation.ts`).
+2. **Markdown sanitized** by `rehype-sanitize` (no raw HTML passes).
+3. **Prisma only**, no raw SQL.
+4. **Auth**: bcrypt (12 rounds), `HttpOnly` / `SameSite=Lax` JWT sessions,
+   built-in CSRF, login rate limiting.
+5. **Secrets encrypted at rest**: LLM API keys via AES-256-GCM
+   (`lib/crypto.ts`), never sent back to the client.
+6. **Headers** (`next.config.ts`): strict CSP (`unsafe-eval` only in dev),
+   `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`, HSTS.
+7. **Defense in depth**: the proxy filters `/admin` and API mutations, **and**
+   every mutation route re-checks the session (`requireAdmin`).
+8. **Imports** (CSV, JSON): strict schema validation before any write, with size
+   caps.
+9. **Generic client errors**, details in the server logs only.
 
-### Export JSON complet (backup)
+---
 
-`{ "version": 1, "exportedAt": "...", "tables": { users, tags, companies,
-companyTypes, solutions, solutionTags, events, revenues, aliases, comparators,
-auditLogs } }` — produit par `/api/backup/export` et `npm run backup`,
-ré-importable via `/admin/backup` (validation stricte, transaction atomique).
-Le many-to-many solution↔tag est aplati en paires `solutionTags`.
+## 8. Data interchange formats
 
-### Comparateurs
+### Full JSON backup
 
-`Comparator.content` est un JSON versionné :
+```json
+{ "version": 1, "exportedAt": "…", "tables": { "users": [], "tags": [],
+  "companies": [], "companyTypes": [], "solutions": [], "solutionTags": [],
+  "events": [], "revenues": [], "aliases": [], "comparators": [],
+  "auditLogs": [] } }
+```
+
+Produced by `/api/backup/export` and `npm run backup`; restorable via
+`/admin/backup` (strict validation, single atomic transaction). The
+solution↔tag many-to-many is flattened into `solutionTags` pairs. Legacy event
+`description` from older backups is folded into `descriptionFr` on restore.
+
+### Comparators
+
+`Comparator.content` is a versioned JSON document:
 
 ```json
 {
   "version": 1,
   "orientation": "itemsAsRows | itemsAsColumns",
   "items": [{ "kind": "company|solution", "id": "…" }],
-  "defaultAttributes": ["logo", "country", …],
-  "categories": [{ "id", "name" }],
-  "criteria": [{ "id", "name", "type": "boolean|text|rating|number|solution", "categoryId" }],
-  "values": { "<kind>:<id>|<criterionId>": { "t": "…", … } }
+  "defaultAttributes": ["logo", "country"],
+  "categories": [{ "id": "", "name": "" }],
+  "criteria": [{ "id": "", "name": "", "type": "boolean|text|rating|number|solution", "categoryId": "" }],
+  "values": { "<kind>:<id>|<criterionId>": { "t": "…" } }
 }
 ```
 
-Les valeurs des critères personnalisés sont **figées** ; les
-`defaultAttributes` sont **recalculés** à l'affichage (noms dérivés compris).
-Les cellules `solution` contiguës identiques d'une même ligne fusionnent en
-barre de couverture au rendu. Export/import JSON = `{ "name": …, ...contenu }`.
+Custom criterion values are **frozen**; `defaultAttributes` are **recomputed** on
+render (derived names included). Contiguous identical `solution` cells on a row
+merge into a coverage bar.
 
-### Modèles CSV (import en masse)
+### CSV import templates
 
-Un modèle téléchargeable par type dans `/admin/import` (`lib/csv.ts`) :
+One downloadable template per type in `/admin/import` (`lib/csv.ts`), entities
+referenced **by name** (current name, derived historical name, or alias); rows in
+any order; `,` or `;` delimiter (auto-detected); dry-run preview before writing.
 
-- `companies` : `initialName,types,foundedYear,foundedMonth,country,originCountry,description,website` (types séparés par `|`)
-- `solutions` : `initialName,initialCompany,launchYear,launchMonth,description,website,tags` (tags = slugs séparés par `|`)
-- `tags` : `slug,family,labelFr,labelEn,category`
-- `events` : `type,subjectCompany,subjectSolution,year,month,newName,acquirer,outcome,withCompany,newOwner,intoSolution,amount,round,note,description` (`intoSolution` = solution hôte pour `SOLUTION_INTEGRATED`, référencée par son nom)
+- `companies`: `initialName,types,foundedYear,foundedMonth,country,originCountry,descriptionFr,descriptionEn,website`
+- `solutions`: `initialName,initialCompany,launchYear,launchMonth,descriptionFr,descriptionEn,website,tags`
+- `tags`: `slug,family,labelFr,labelEn,descriptionFr,descriptionEn,category`
+- `events`: `type,subjectCompany,subjectSolution,year,month,importance,newName,acquirer,outcome,withCompany,newOwner,intoSolution,amount,round,note,descriptionFr,descriptionEn,url1,url2`
 
-Les entités sont référencées **par nom** (nom courant, nom historique dérivé
-ou alias). Les lignes peuvent être dans n'importe quel ordre. Délimiteur `,`
-ou `;` (auto-détecté). Prévisualisation (dry-run) avant écriture.
+---
 
-## 7. Chemin d'évolution prévu
+## 9. Evolution path
 
-| Évolution | Préparé par |
-|---|---|
-| PostgreSQL | Schéma sans spécificité SQLite ; `String` → enums natifs ; changer l'adapter + `prisma.config.ts` |
-| Multi-utilisateurs | Table `User` + champ `role` déjà en place ; `AuditLog.userId` trace déjà l'auteur |
-| SAML / OIDC | Auth.js : ajouter un provider dans `lib/auth.ts` ; les callbacks JWT/session sont déjà factorisés |
-| RBAC | Étendre `USER_ROLES` (`lib/constants.ts`) et les tests de rôle (`requireAdmin`) |
-| Mode collaboratif | AuditLog par utilisateur = fondation de la traçabilité |
-| Volumétrie | Dénormalisation des champs dérivés (voir §3 Performance) |
+| Evolution | Prepared by |
+| --- | --- |
+| PostgreSQL | Schema free of SQLite specifics; `String` → native enums; swap the adapter + `prisma.config.ts` |
+| Multi-user | `User` table + `role` field already present; `AuditLog.userId` already records the author |
+| SAML / OIDC | Auth.js: add a provider in `lib/auth.ts`; JWT/session callbacks are already factored out |
+| RBAC | Extend `USER_ROLES` (`lib/constants.ts`) and the role checks (`requireAdmin`) |
+| Higher volume | Denormalize derived fields (see [§3 Performance](#performance)) |
 
-## 8. Maintenance
+---
 
-- `npm test` : 36 tests unitaires du cœur temporel (à faire tourner avant
-  toute modification de `lib/timeline.ts` ou `lib/date.ts`).
-- `npm run build` : doit passer avant tout déploiement.
-- `npm audit` : vérifier régulièrement les vulnérabilités des dépendances
-  (voir README §Mise à jour).
-- Le badge « à revérifier » et la page admin « Fiches à revoir » servent de
-  liste de travail pour la fraîcheur des données (seuil `FRESHNESS_MONTHS`).
+## 10. Maintenance
+
+- `npm test` — unit tests for the temporal core (run before touching
+  `lib/timeline.ts` or `lib/date.ts`).
+- `npm run build` — must pass before any deploy.
+- `npm audit` — check dependency vulnerabilities periodically.
+- The "to re-check" badge and **Admin → Pages to review** act as a freshness
+  work list (`FRESHNESS_MONTHS` threshold).
