@@ -354,7 +354,12 @@
     "outcome_duplicate": "Duplicate",
     "outcome_notRelevant": "Not relevant",
     "outcome_error": "Error",
-    "companyAnalysisTitle": "Company analysis (LLM)"
+    "companyAnalysisTitle": "Company analysis (LLM)",
+    "editJson": "Edit JSON",
+    "jsonSave": "Save",
+    "jsonSaveApprove": "Save and approve",
+    "jsonInvalid": "Invalid JSON.",
+    "confirmApprove": "Approve this proposal?"
   },
   "setup": {
     "title": "Create the admin account",

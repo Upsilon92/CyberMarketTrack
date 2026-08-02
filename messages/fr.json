@@ -362,7 +362,12 @@
     "outcome_duplicate": "Doublon",
     "outcome_notRelevant": "Non pertinent",
     "outcome_error": "Erreur",
-    "companyAnalysisTitle": "Analyse d'une entreprise (LLM)"
+    "companyAnalysisTitle": "Analyse d'une entreprise (LLM)",
+    "editJson": "Éditer le JSON",
+    "jsonSave": "Enregistrer",
+    "jsonSaveApprove": "Enregistrer et valider",
+    "jsonInvalid": "JSON invalide.",
+    "confirmApprove": "Valider cette proposition ?"
   },
   "setup": {
     "title": "Créer le compte administrateur",

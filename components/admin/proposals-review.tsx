@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { api, ApiError } from "@/components/admin/api";
 import { CompanyForm } from "@/components/admin/company-form";
 import { SolutionForm, type TagOption } from "@/components/admin/solution-form";
@@ -46,6 +47,9 @@ export function ProposalsReview({
   const [editing, setEditing] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [enriching, setEnriching] = useState<string | null>(null);
+  const [jsonEditing, setJsonEditing] = useState<string | null>(null);
+  const [jsonText, setJsonText] = useState("");
+  const [jsonError, setJsonError] = useState<string | null>(null);
 
   // #4 — resolve entity IDs to human names for a readable preview.
   const companyLabel = useMemo(() => new Map(companies.map((c) => [c.id, c.label])), [companies]);
@@ -103,6 +107,45 @@ export function ProposalsReview({
       window.alert(t("enrichFailed") + detail);
     } finally {
       setEnriching(null);
+    }
+  }
+
+  // Raw-JSON editing — works for EVERY proposal type, and is the way to edit a
+  // Bundle (which has no single entity form).
+  function openJson(p: ReviewProposal) {
+    setEditing(null);
+    setJsonError(null);
+    setJsonText(JSON.stringify(p.payload, null, 2));
+    setJsonEditing(p.id);
+  }
+
+  async function saveJson(p: ReviewProposal, andApprove: boolean) {
+    let payload: unknown;
+    try {
+      payload = JSON.parse(jsonText);
+    } catch {
+      setJsonError(t("jsonInvalid"));
+      return;
+    }
+    if (andApprove && !window.confirm(t("confirmApprove"))) return;
+    setBusy(p.id);
+    setJsonError(null);
+    try {
+      await api(`/api/proposals/${p.id}`, "PUT", { action: andApprove ? "approve" : "update", payload });
+      setJsonEditing(null);
+      router.refresh();
+    } catch (e) {
+      // Schema validation errors come back as { fields }; show them raw.
+      const fields = e instanceof ApiError && e.fields ? Object.entries(e.fields) : null;
+      setJsonError(
+        fields && fields.length
+          ? fields.map(([k, v]) => `${k}: ${v}`).join(" · ")
+          : e instanceof ApiError
+            ? e.message
+            : tAdmin("genericError")
+      );
+    } finally {
+      setBusy(null);
     }
   }
 
@@ -205,17 +248,42 @@ export function ProposalsReview({
 
           {editing === p.id ? (
             <div className="border-t pt-3 mt-1">{editForm(p)}</div>
+          ) : jsonEditing === p.id ? (
+            <div className="border-t pt-3 mt-1 space-y-2">
+              <Textarea
+                className="font-mono text-xs min-h-[16rem]"
+                value={jsonText}
+                onChange={(e) => setJsonText(e.target.value)}
+                spellCheck={false}
+              />
+              {jsonError && <p className="text-xs text-destructive">{jsonError}</p>}
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" disabled={busy === p.id} onClick={() => saveJson(p, false)}>
+                  {t("jsonSave")}
+                </Button>
+                <Button size="sm" variant="secondary" disabled={busy === p.id} onClick={() => saveJson(p, true)}>
+                  {t("jsonSaveApprove")}
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setJsonEditing(null)}>
+                  {tAdmin("cancel")}
+                </Button>
+              </div>
+            </div>
           ) : (
             <div className="flex flex-wrap gap-2">
               <Button size="sm" disabled={busy === p.id || enriching === p.id} onClick={() => decide(p, "approve")}>
                 {t("approve")}
               </Button>
-              {/* Bundle proposals have no single edit form — approve/reject only */}
+              {/* Entity form editor for the typed proposals */}
               {p.entityType !== "Bundle" && (
                 <Button size="sm" variant="outline" onClick={() => setEditing(p.id)}>
                   {t("modifyApprove")}
                 </Button>
               )}
+              {/* Raw-JSON editor — available for EVERY proposal (only way for a Bundle) */}
+              <Button size="sm" variant="outline" onClick={() => openJson(p)}>
+                {t("editJson")}
+              </Button>
               {/* #1 — enrich a (thin) proposal into a complete LLM bundle */}
               {canEnrich(p) && (
                 <Button

@@ -39,6 +39,26 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
       return NextResponse.json({ ok: true });
     }
 
+    if (action === "update") {
+      // Save an edited payload WITHOUT approving (keeps the proposal PENDING).
+      // Used by the raw-JSON editor (the only way to edit a Bundle).
+      const payloadObj = body.payload ?? JSON.parse(proposal.payload);
+      const payloadParsed = validateProposalPayload(proposal.entityType, payloadObj);
+      if (!payloadParsed.success) return validationError(payloadParsed.error);
+      await prisma.proposal.update({
+        where: { id },
+        data: { payload: JSON.stringify(payloadParsed.data) },
+      });
+      await logAudit({
+        userId: session.user.id,
+        action: "UPDATE",
+        entityType: "Proposal",
+        entityId: id,
+        summary: `Proposition modifiée (${proposal.entityType})`,
+      });
+      return NextResponse.json({ ok: true });
+    }
+
     if (action === "approve") {
       // The admin may have edited the payload ("modify then approve").
       const payloadObj = body.payload ?? JSON.parse(proposal.payload);

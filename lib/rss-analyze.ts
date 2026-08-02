@@ -91,37 +91,60 @@ export interface AnalyzeReport {
 }
 
 // ---- Real article URL (Google News RSS links are opaque redirects) ----------
-// #2: turn "https://news.google.com/rss/articles/CBMi…?oc=5" into the publisher
-// URL. Best-effort: (1) decode the base64 payload — many links embed the target
-// URL as a plain string inside the protobuf; (2) otherwise follow redirects and
-// sniff the canonical/amp URL from the HTML. Falls back to the Google URL.
+// Modern Google News links (/articles/CBMi…) are NOT decodable offline: the id
+// is an opaque protobuf, not the URL. We resolve it via Google's internal
+// `batchexecute` endpoint — the same mechanism the news.google.com page uses:
+//   1. fetch the article page to read its signature + timestamp,
+//   2. POST them + the id to DotsSplashUi/data/batchexecute,
+//   3. read the publisher URL from the response.
+// Best-effort: on any failure we fall back to the base64 plaintext trick (older
+// links) and ultimately to the Google URL itself.
+const RESOLVE_UA =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36";
+
 async function resolveArticleUrl(googleUrl: string): Promise<string> {
   if (!/news\.google\.com/.test(googleUrl)) return googleUrl;
+  const idMatch = googleUrl.match(/\/articles\/([^?/]+)/);
+  if (!idMatch) return googleUrl;
+  const articleId = idMatch[1];
+
   try {
-    const m = googleUrl.match(/\/articles\/([A-Za-z0-9_-]+)/);
-    if (m) {
-      const b64 = m[1].replace(/-/g, "+").replace(/_/g, "/");
-      const decoded = Buffer.from(b64, "base64").toString("latin1");
-      // URLs in the payload end at the next control byte (protobuf field tag).
-      const um = decoded.match(/https?:\/\/[^\x00-\x20"'<>\\]+/);
-      if (um && !um[0].includes("news.google.com")) return um[0];
+    const page = await fetch(`https://news.google.com/rss/articles/${articleId}`, {
+      headers: { "User-Agent": RESOLVE_UA },
+      signal: AbortSignal.timeout(10_000),
+    });
+    const html = await page.text();
+    const sg = html.match(/data-n-a-sg="([^"]+)"/)?.[1];
+    const ts = html.match(/data-n-a-ts="([^"]+)"/)?.[1];
+    if (sg && ts) {
+      const inner =
+        `["garturlreq",[["X","X",["X","X"],null,null,1,1,"US:en",null,1,null,null,null,null,null,0,1],` +
+        `"X","X",1,[1,1,1],1,1,null,0,0,null,0],"${articleId}",${ts},"${sg}"]`;
+      const fReq = JSON.stringify([[["Fbv4je", inner, null, "generic"]]]);
+      const be = await fetch("https://news.google.com/_/DotsSplashUi/data/batchexecute", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8", "User-Agent": RESOLVE_UA },
+        body: "f.req=" + encodeURIComponent(fReq),
+        signal: AbortSignal.timeout(10_000),
+      });
+      const parts = (await be.text()).split("\n\n");
+      if (parts.length > 1) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const arr = JSON.parse(parts[1]) as any[];
+        const real = JSON.parse(arr[0][2])[1];
+        if (typeof real === "string" && /^https?:\/\//.test(real) && !real.includes("news.google.com"))
+          return real;
+      }
     }
   } catch {
-    /* fall through to network resolution */
+    /* fall through to the legacy base64 trick */
   }
+
   try {
-    const res = await fetch(googleUrl, {
-      redirect: "follow",
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; CyberMarketTrack/1.0)" },
-      next: { revalidate: 86400 },
-    });
-    if (res.url && !res.url.includes("news.google.com")) return res.url;
-    const html = await res.text();
-    const mm =
-      html.match(/rel="canonical"\s+href="([^"]+)"/i) ||
-      html.match(/data-n-au="([^"]+)"/i) ||
-      html.match(/<meta[^>]+property="og:url"[^>]+content="([^"]+)"/i);
-    if (mm && !mm[1].includes("news.google.com")) return mm[1];
+    const b64 = articleId.replace(/-/g, "+").replace(/_/g, "/");
+    const decoded = Buffer.from(b64, "base64").toString("latin1");
+    const um = decoded.match(/https?:\/\/[^\x00-\x20"'<>\\]+/);
+    if (um && !um[0].includes("news.google.com")) return um[0];
   } catch {
     /* keep the Google URL */
   }
