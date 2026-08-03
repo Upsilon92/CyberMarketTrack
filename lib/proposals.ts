@@ -115,7 +115,7 @@ export async function applyProposal(p: {
   }
 
   if (p.entityType === "Bundle") {
-    return applyBundle(d);
+    return (await applyBundle(d)).companyId;
   }
 
   throw new Error("unknown-entityType");
@@ -124,19 +124,51 @@ export async function applyProposal(p: {
 const norm = (s: string) =>
   s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
 
+export interface ApplyStats {
+  companyCreated: number;
+  companyUpdated: number;
+  counterpartiesCreated: number;
+  solutionsCreated: number;
+  solutionsUpdated: number;
+  eventsCreated: number;
+  eventsUpdated: number;
+}
+
+interface ExistingSol {
+  id: string;
+  descriptionFr: string | null;
+  descriptionEn: string | null;
+  launchYear: number | null;
+  website: string | null;
+}
+interface ExistingEvent {
+  id: string;
+  month: number | null;
+  importance: string;
+  descriptionFr: string | null;
+  descriptionEn: string | null;
+  url1: string | null;
+  url2: string | null;
+}
+
 /**
  * Apply a research bundle atomically: create/update the company, then its
  * solutions, then its M&A events (referencing companies by name, resolved to
- * existing ids or the just-created company; unknown targets become free text).
+ * existing ids or the just-created company; unknown targets are created too).
+ * Returns the company id + a breakdown of what changed.
  *
  * With `{ dedup: true }` (used by direct-apply batch enrichment) it is
- * conservative on an EXISTING company: scalar fields are filled only when
- * currently empty (never overwriting curated data), solutions with an existing
- * same-name entry are skipped, and events matching an existing (type, year) on
- * the company are skipped — so re-running is idempotent and adds no duplicates.
+ * conservative on an EXISTING company: company/solution/event scalar fields are
+ * filled ONLY when currently empty (never overwriting curated data). A solution
+ * with the same name, or an event matching an existing (type, year), is UPDATED
+ * (empty fields filled — e.g. a missing source URL or month) instead of
+ * duplicated — so re-running is idempotent.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function applyBundle(b: any, opts: { dedup?: boolean } = {}): Promise<string> {
+export async function applyBundle(
+  b: any,
+  opts: { dedup?: boolean } = {}
+): Promise<{ companyId: string; stats: ApplyStats }> {
   const companies = await prisma.company.findMany({ select: { id: true, initialName: true } });
   const byName = new Map(companies.map((c) => [norm(c.initialName), c.id]));
   const resolve = (name?: string | null) => (name ? byName.get(norm(name)) ?? null : null);
@@ -144,19 +176,25 @@ export async function applyBundle(b: any, opts: { dedup?: boolean } = {}): Promi
   const tagBySlug = new Map(tagRows.map((t) => [t.slug.toLowerCase(), t.id]));
   const validCountry = (c?: string | null) => (c && /^[A-Z]{2}$/.test(c) ? c : undefined);
 
-  return prisma.$transaction(async (tx) => {
+  const stats: ApplyStats = {
+    companyCreated: 0, companyUpdated: 0, counterpartiesCreated: 0,
+    solutionsCreated: 0, solutionsUpdated: 0, eventsCreated: 0, eventsUpdated: 0,
+  };
+
+  const companyId = await prisma.$transaction(async (tx) => {
     const co = b.company;
     const country = co.country && /^[A-Z]{2}$/.test(co.country) ? co.country : "XX";
 
-    // Existing solution names / event keys on the company — populated only in
-    // dedup mode, to skip duplicates.
-    const existingSolNames = new Set<string>();
-    const existingEventKeys = new Set<string>();
+    // Existing solutions / events on the company (dedup mode) — keyed for
+    // update-fill instead of duplicating.
+    const existingSolByName = new Map<string, ExistingSol>();
+    const existingEventByKey = new Map<string, ExistingEvent>();
 
     // 1) company (update existing, else create)
     let companyId: string;
     if (co.existingId) {
       companyId = co.existingId;
+      stats.companyUpdated = 1;
       if (opts.dedup) {
         const cur = await tx.company.findUnique({
           where: { id: companyId },
@@ -179,11 +217,19 @@ export async function applyBundle(b: any, opts: { dedup?: boolean } = {}): Promi
           },
         });
         const [sols, evs] = await Promise.all([
-          tx.solution.findMany({ where: { initialCompanyId: companyId }, select: { initialName: true } }),
-          tx.event.findMany({ where: { subjectCompanyId: companyId }, select: { type: true, year: true } }),
+          tx.solution.findMany({
+            where: { initialCompanyId: companyId },
+            select: { id: true, initialName: true, descriptionFr: true, descriptionEn: true, launchYear: true, website: true },
+          }),
+          tx.event.findMany({
+            where: { subjectCompanyId: companyId },
+            select: { id: true, type: true, year: true, month: true, importance: true, descriptionFr: true, descriptionEn: true, url1: true, url2: true },
+          }),
         ]);
-        for (const s of sols) existingSolNames.add(norm(s.initialName));
-        for (const e of evs) existingEventKeys.add(`${e.type}|${e.year}`);
+        for (const s of sols)
+          existingSolByName.set(norm(s.initialName), { id: s.id, descriptionFr: s.descriptionFr, descriptionEn: s.descriptionEn, launchYear: s.launchYear, website: s.website });
+        for (const e of evs)
+          existingEventByKey.set(`${e.type}|${e.year}`, { id: e.id, month: e.month, importance: e.importance, descriptionFr: e.descriptionFr, descriptionEn: e.descriptionEn, url1: e.url1, url2: e.url2 });
       } else {
         await tx.company.update({
           where: { id: companyId },
@@ -213,17 +259,32 @@ export async function applyBundle(b: any, opts: { dedup?: boolean } = {}): Promi
         },
       });
       companyId = created.id;
+      stats.companyCreated = 1;
       byName.set(norm(co.initialName), companyId);
     }
 
-    // 2) solutions
+    // 2) solutions — create new, or fill empty fields of an existing same-name one
     for (const s of b.solutions ?? []) {
-      if (opts.dedup && s.initialName && existingSolNames.has(norm(s.initialName))) continue;
-      if (s.initialName) existingSolNames.add(norm(s.initialName));
+      if (!s.initialName) continue;
+      const key = norm(s.initialName);
+      const existing = opts.dedup ? existingSolByName.get(key) : undefined;
+      if (existing) {
+        await tx.solution.update({
+          where: { id: existing.id },
+          data: {
+            descriptionFr: existing.descriptionFr ? undefined : s.descriptionFr ?? undefined,
+            descriptionEn: existing.descriptionEn ? undefined : s.descriptionEn ?? undefined,
+            launchYear: existing.launchYear != null ? undefined : s.launchYear ?? undefined,
+            website: existing.website ? undefined : s.website ?? undefined,
+          },
+        });
+        stats.solutionsUpdated++;
+        continue;
+      }
       const tagIds = (s.tags ?? [])
         .map((sl: string) => tagBySlug.get(sl.toLowerCase()))
         .filter(Boolean) as string[];
-      await tx.solution.create({
+      const created = await tx.solution.create({
         data: {
           initialName: s.initialName,
           initialCompanyId: companyId,
@@ -234,6 +295,9 @@ export async function applyBundle(b: any, opts: { dedup?: boolean } = {}): Promi
           tags: { connect: tagIds.map((id) => ({ id })) },
         },
       });
+      stats.solutionsCreated++;
+      // Track so a later same-name solution in this bundle updates instead of dups.
+      existingSolByName.set(key, { id: created.id, descriptionFr: s.descriptionFr ?? null, descriptionEn: s.descriptionEn ?? null, launchYear: s.launchYear ?? null, website: s.website ?? null });
     }
 
     // Resolve a counterparty name to an existing company id, or CREATE a minimal
@@ -247,6 +311,7 @@ export async function applyBundle(b: any, opts: { dedup?: boolean } = {}): Promi
         data: { initialName: name.trim(), types: { create: [{ type: "VENDOR" }] }, country: "XX" },
       });
       byName.set(norm(name), created.id);
+      stats.counterpartiesCreated++;
       return created.id;
     };
 
@@ -318,15 +383,44 @@ export async function applyBundle(b: any, opts: { dedup?: boolean } = {}): Promi
         }
       }
 
-      // Dedup: skip an event already recorded on the bundle company (same
-      // type + year). Only applies when the subject IS the bundle company.
+      // Guard: an event without a valid integer year can't be inserted.
+      if (typeof data.year !== "number" || !Number.isFinite(data.year)) continue;
+
+      // Dedup: an event already recorded on the bundle company (same type +
+      // year) is UPDATED (empty fields filled — month, source URL, descriptions)
+      // rather than duplicated. Only when the subject IS the bundle company.
       if (opts.dedup && data.subjectCompanyId === companyId) {
         const k = `${data.type}|${data.year}`;
-        if (existingEventKeys.has(k)) continue;
-        existingEventKeys.add(k);
+        const existing = existingEventByKey.get(k);
+        if (existing) {
+          await tx.event.update({
+            where: { id: existing.id },
+            data: {
+              month: existing.month != null ? undefined : data.month ?? undefined,
+              descriptionFr: existing.descriptionFr ? undefined : data.descriptionFr ?? undefined,
+              descriptionEn: existing.descriptionEn ? undefined : data.descriptionEn ?? undefined,
+              url1: existing.url1 ? undefined : data.url1 ?? undefined,
+              url2: existing.url2 ? undefined : data.url2 ?? undefined,
+              importance:
+                existing.importance === "MINOR" && data.importance && data.importance !== "MINOR"
+                  ? data.importance
+                  : undefined,
+            },
+          });
+          stats.eventsUpdated++;
+          continue;
+        }
       }
 
-      await tx.event.create({ data });
+      const createdEvent = await tx.event.create({ data });
+      stats.eventsCreated++;
+      if (opts.dedup && data.subjectCompanyId === companyId) {
+        existingEventByKey.set(`${data.type}|${data.year}`, {
+          id: createdEvent.id, month: data.month ?? null, importance: data.importance,
+          descriptionFr: data.descriptionFr ?? null, descriptionEn: data.descriptionEn ?? null,
+          url1: data.url1 ?? null, url2: data.url2 ?? null,
+        });
+      }
       if (data.type === "HQ_RELOCATION" && data.newCountry) {
         await tx.company.update({ where: { id: companyId }, data: { country: data.newCountry } });
       }
@@ -334,4 +428,6 @@ export async function applyBundle(b: any, opts: { dedup?: boolean } = {}): Promi
 
     return companyId;
   });
+
+  return { companyId, stats };
 }

@@ -67,6 +67,34 @@ export const INFORMATIONAL_EVENT_TYPES: EventType[] = [
 export const EVENT_IMPORTANCES = ["MAJOR", "MEDIUM", "MINOR"] as const;
 export type EventImportance = (typeof EVENT_IMPORTANCES)[number];
 
+// A funding round is MEDIUM only above this size (USD millions), else MINOR.
+export const FUNDING_MEDIUM_THRESHOLD_MUSD = 300;
+
+/**
+ * Normalize an LLM-suggested importance to the editorial rules (a deterministic
+ * safety net applied to every LLM-produced event):
+ *   - FUNDING is never MAJOR: MEDIUM only for very large rounds (≥ threshold),
+ *     otherwise MINOR.
+ *   - IPO / DELISTING are never MAJOR (capped at MEDIUM, MINOR by default).
+ *   - MAJOR is reserved for structural M&A (ACQUISITION / MERGER) of prominent
+ *     cyber companies — the model judges prominence; here we just forbid MAJOR
+ *     on any other event type.
+ */
+export function clampEventImportance(
+  type: string,
+  importance: string | null | undefined,
+  amountMusd?: number | null
+): EventImportance {
+  const imp = (EVENT_IMPORTANCES as readonly string[]).includes(importance ?? "")
+    ? (importance as EventImportance)
+    : "MINOR";
+  if (type === "FUNDING")
+    return amountMusd != null && amountMusd >= FUNDING_MEDIUM_THRESHOLD_MUSD ? "MEDIUM" : "MINOR";
+  if (type === "IPO" || type === "DELISTING") return imp === "MAJOR" ? "MEDIUM" : imp;
+  if (imp === "MAJOR" && type !== "ACQUISITION" && type !== "MERGER") return "MEDIUM";
+  return imp;
+}
+
 // --- Acquisition outcomes ------------------------------------------------------
 export const ACQUISITION_OUTCOMES = [
   "INVESTOR_OWNED", // bought by a fund: org stays fully independent, only shareholding changes

@@ -10,6 +10,7 @@ import { unauthorized } from "@/lib/api-utils";
 const bodySchema = z.object({
   limit: z.coerce.number().int().min(1).max(1000).default(15),
   onlyMissing: z.boolean().optional(),
+  skipAnalyzed: z.boolean().optional(),
 });
 
 export async function POST(req: NextRequest) {

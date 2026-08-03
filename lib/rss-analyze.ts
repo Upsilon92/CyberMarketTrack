@@ -16,6 +16,7 @@ import { prisma } from "@/lib/prisma";
 import { getMarketNews } from "@/lib/rss";
 import { loadLlmConfig, llmHealthCheck, llmExtractJsonWithUsage, addLlmUsage, type LlmConfig } from "@/lib/llm";
 import { writeSetting } from "@/lib/settings";
+import { clampEventImportance } from "@/lib/constants";
 
 const MAX_PER_RUN = Number(process.env.RSS_MAX_PER_RUN) || 12;
 const MIN_CONFIDENCE = 0.55;
@@ -61,7 +62,7 @@ Réponds UNIQUEMENT par un objet JSON:
 - acquired = la société de cybersécurité CONCERNÉE (la cible rachetée, la société financée, renommée ou qui fusionne).
 - acquirer = l'AUTRE partie : l'acheteur, l'investisseur, le partenaire de fusion, ou le NOUVEAU nom pour un renommage.
 - amount en millions USD si mentionné, sinon null. confidence entre 0 et 1.
-- importance : MAJOR pour un rachat/fusion structurant, MINOR par défaut.
+- importance : "MAJOR" UNIQUEMENT pour le RACHAT (ou fusion) d'une société de cybersécurité TRÈS CONNUE et majeure du marché. Un FUNDING ou une IPO ne sont JAMAIS "MAJOR" (mets "MINOR", au plus "MEDIUM" pour un funding de plusieurs centaines de M$). Dans le doute, "MINOR".
 - summaryFr = une phrase en français ; summaryEn = la même phrase en anglais.`;
 
 const norm = (s: string) =>
@@ -290,8 +291,7 @@ export async function analyzeFeed(
         continue;
       }
 
-      const importance: ExImportance =
-        ex.importance && ["MAJOR", "MEDIUM", "MINOR"].includes(ex.importance) ? ex.importance : "MINOR";
+      const importance = clampEventImportance(eventType, ex.importance, ex.amount);
       const articleUrl = await resolveArticleUrl(item.url);
       const subjectId = resolve(subjectName);
 

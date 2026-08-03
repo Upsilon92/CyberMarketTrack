@@ -26,6 +26,14 @@ interface Report {
   enriched: number;
   errors: number;
   usage: { prompt: number; completion: number; total: number };
+  counts?: {
+    companiesUpdated: number;
+    companiesCreated: number;
+    solutionsCreated: number;
+    solutionsUpdated: number;
+    eventsCreated: number;
+    eventsUpdated: number;
+  };
 }
 interface LogItem {
   company: string;
@@ -40,6 +48,7 @@ export function BatchEnrich({ initialUsage }: { initialUsage: Usage }) {
 
   const [limit, setLimit] = useState("15");
   const [onlyMissing, setOnlyMissing] = useState(true);
+  const [skipAnalyzed, setSkipAnalyzed] = useState(true);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [liveTokens, setLiveTokens] = useState<number | null>(null);
@@ -64,7 +73,7 @@ export function BatchEnrich({ initialUsage }: { initialUsage: Usage }) {
       const res = await fetch("/api/admin/enrich/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ limit: Number(limit) || 15, onlyMissing }),
+        body: JSON.stringify({ limit: Number(limit) || 15, onlyMissing, skipAnalyzed }),
       });
       if (!res.ok || !res.body) throw new Error("stream");
       const reader = res.body.getReader();
@@ -137,10 +146,16 @@ export function BatchEnrich({ initialUsage }: { initialUsage: Usage }) {
             <Label>{t("batchLimit")}</Label>
             <Input type="number" min={1} max={1000} value={limit} onChange={(e) => setLimit(e.target.value)} />
           </div>
-          <label className="flex items-center gap-2 text-sm pb-2">
-            <input type="checkbox" checked={onlyMissing} onChange={(e) => setOnlyMissing(e.target.checked)} />
-            {t("batchOnlyMissing")}
-          </label>
+          <div className="flex flex-col gap-1.5 pb-1">
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={onlyMissing} onChange={(e) => setOnlyMissing(e.target.checked)} />
+              {t("batchOnlyMissing")}
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={skipAnalyzed} onChange={(e) => setSkipAnalyzed(e.target.checked)} />
+              {t("batchSkipAnalyzed")}
+            </label>
+          </div>
           <Button onClick={run} disabled={busy} className="mb-0.5">
             {busy ? t("batchRunning") : t("batchRun")}
           </Button>
@@ -185,13 +200,25 @@ export function BatchEnrich({ initialUsage }: { initialUsage: Usage }) {
 
         {report?.skipped && <p className="text-xs text-amber-600 dark:text-amber-400">{report.skipped}</p>}
         {report && !report.skipped && (
-          <p className="text-xs text-muted-foreground">
-            {t("batchDone", {
-              enriched: report.enriched,
-              errors: report.errors,
-              tokens: fmt(report.usage.total),
-            })}
-          </p>
+          <div className="space-y-2 text-xs">
+            <p className="text-muted-foreground">
+              {t("batchDone", {
+                enriched: report.enriched,
+                errors: report.errors,
+                tokens: fmt(report.usage.total),
+              })}
+            </p>
+            {report.counts && (
+              <div className="flex flex-wrap gap-1.5">
+                <Badge variant="outline">{t("countCompaniesUpdated", { n: report.counts.companiesUpdated })}</Badge>
+                <Badge variant="outline">{t("countCompaniesCreated", { n: report.counts.companiesCreated })}</Badge>
+                <Badge variant="outline">{t("countSolutionsUpdated", { n: report.counts.solutionsUpdated })}</Badge>
+                <Badge variant="outline">{t("countSolutionsCreated", { n: report.counts.solutionsCreated })}</Badge>
+                <Badge variant="outline">{t("countEventsUpdated", { n: report.counts.eventsUpdated })}</Badge>
+                <Badge variant="outline">{t("countEventsCreated", { n: report.counts.eventsCreated })}</Badge>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>

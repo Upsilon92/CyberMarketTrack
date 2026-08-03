@@ -19,6 +19,15 @@ const MAX_RETRIES_429 = 3;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const isRateLimited = (e: unknown) => /\b429\b/.test((e as Error)?.message ?? "");
 
+export interface EnrichCounts {
+  companiesUpdated: number;
+  companiesCreated: number; // counterparties (acquirers/targets) created on the fly
+  solutionsCreated: number;
+  solutionsUpdated: number;
+  eventsCreated: number;
+  eventsUpdated: number;
+}
+
 export interface EnrichReport {
   ok: boolean;
   skipped?: string;
@@ -28,6 +37,7 @@ export interface EnrichReport {
   enriched: number;
   errors: number;
   usage: TokenUsage;
+  counts: EnrichCounts;
 }
 
 export type EnrichProgress =
@@ -47,6 +57,7 @@ export type EnrichProgress =
 export interface EnrichOptions {
   limit: number;
   onlyMissing?: boolean;
+  skipAnalyzed?: boolean; // exclude companies already analyzed (default true)
 }
 
 export async function enrichBatch(
@@ -66,6 +77,11 @@ export async function enrichBatch(
   const health = await llmHealthCheck(cfg);
 
   const usage: TokenUsage = { prompt: 0, completion: 0, total: 0 };
+  const counts: EnrichCounts = {
+    companiesUpdated: 0, companiesCreated: 0,
+    solutionsCreated: 0, solutionsUpdated: 0,
+    eventsCreated: 0, eventsUpdated: 0,
+  };
   const report: EnrichReport = {
     ok: health.ok,
     llm: health.detail,
@@ -74,6 +90,7 @@ export async function enrichBatch(
     enriched: 0,
     errors: 0,
     usage,
+    counts,
   };
 
   if (!health.ok) {
@@ -82,18 +99,18 @@ export async function enrichBatch(
     return report;
   }
 
-  // Select companies: never-analyzed first (NULL sorts first in SQLite ASC),
-  // then oldest analysis. Optionally only those missing key data.
-  const where = opts.onlyMissing
-    ? {
-        OR: [
-          { descriptionFr: null },
-          { descriptionEn: null },
-          { country: "XX" },
-          { foundedYear: null },
-        ],
-      }
-    : {};
+  // Select companies. `skipAnalyzed` (default true) excludes already-analyzed
+  // ones so successive runs move forward through the base without repeating
+  // (a company is only stamped after a SUCCESSFUL enrichment, so failures are
+  // retried next run). Optionally only those missing key data.
+  const skipAnalyzed = opts.skipAnalyzed !== false;
+  const filters: Record<string, unknown>[] = [];
+  if (skipAnalyzed) filters.push({ lastAnalyzedAt: null });
+  if (opts.onlyMissing)
+    filters.push({
+      OR: [{ descriptionFr: null }, { descriptionEn: null }, { country: "XX" }, { foundedYear: null }],
+    });
+  const where = filters.length ? { AND: filters } : {};
   const companies = await prisma.company.findMany({
     where,
     select: { id: true, initialName: true },
@@ -118,7 +135,14 @@ export async function enrichBatch(
           usage.completion += res.usage.completion;
           usage.total += res.usage.total;
 
-          await applyBundle(res.bundle, { dedup: true });
+          const { stats } = await applyBundle(res.bundle, { dedup: true });
+          counts.companiesUpdated += stats.companyUpdated;
+          counts.companiesCreated += stats.companyCreated + stats.counterpartiesCreated;
+          counts.solutionsCreated += stats.solutionsCreated;
+          counts.solutionsUpdated += stats.solutionsUpdated;
+          counts.eventsCreated += stats.eventsCreated;
+          counts.eventsUpdated += stats.eventsUpdated;
+
           await prisma.company.update({
             where: { id: company.id },
             data: { lastAnalyzedAt: new Date() },

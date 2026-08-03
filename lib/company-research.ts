@@ -6,7 +6,11 @@
 // fetched text; the model is told NOT to invent precise facts.
 // =============================================================================
 import { loadLlmConfig, llmExtractJsonWithUsage, type LlmConfig, type TokenUsage } from "@/lib/llm";
-import { bundleSchema } from "@/lib/validation";
+import { bundleCompanySchema, bundleSolutionSchema, bundleEventSchema } from "@/lib/validation";
+import { clampEventImportance } from "@/lib/constants";
+
+const wikiPageUrl = (name: string, lang: "en" | "fr") =>
+  `https://${lang}.wikipedia.org/wiki/${encodeURIComponent(name.replace(/ /g, "_"))}`;
 
 async function fetchWikiIntro(name: string, lang: "en" | "fr"): Promise<string> {
   try {
@@ -37,8 +41,12 @@ async function fetchWikiIntro(name: string, lang: "en" | "fr"): Promise<string> 
 const SYSTEM = `Tu es analyste du marché de la cybersécurité. On te donne le nom d'une entreprise (éditeur / société de cybersécurité) et des extraits Wikipedia. Produis un objet JSON structuré décrivant l'entreprise, ses principales solutions et ses opérations de M&A.
 
 RÈGLES IMPORTANTES :
-- Ne fabrique JAMAIS de fait précis (année, pays, montant, rachat). Utilise les sources fournies et tes connaissances SÛRES ; si tu ne sais pas, mets null.
-- Descriptions : rédige 1 à 3 phrases claires, en FR ET en EN.
+- Ne fabrique JAMAIS de chiffre précis incertain (montant exact, année si tu hésites) : mets null plutôt qu'une valeur inventée.
+- EN REVANCHE, le PAYS du siège (code ISO) et les DESCRIPTIONS FR+EN sont presque toujours connus pour une société de cybersécurité : FOURNIS-LES SYSTÉMATIQUEMENT (au minimum une description succincte). Ne mets null pour le pays/description QUE si la société t'est totalement inconnue.
+- Descriptions : 1 à 3 phrases claires, en FR ET en EN.
+- Dates d'événements : indique le MOIS (1-12) dès que tu le connais, pas seulement l'année.
+- Pour une ACQUISITION, indique TOUJOURS "outcome" : INVESTOR_OWNED si le racheteur est un FONDS d'investissement ; ABSORBED si la marque disparaît / intégration totale ; AUTONOMOUS si elle devient une filiale gardant sa marque ; UNKNOWN seulement en dernier recours.
+- IMPORTANCE : "MAJOR" est réservé aux RACHATS (ou fusions) de sociétés de cybersécurité TRÈS CONNUES et majeures du marché. Un FUNDING ou une IPO ne sont JAMAIS "MAJOR" (mets "MINOR", au plus "MEDIUM" pour un funding de plusieurs centaines de M$). Dans le doute, mets "MINOR".
 - Concentre-toi sur la cybersécurité. Limite-toi à ~5 solutions et ~8 événements max, les plus notables.
 
 Format JSON EXACT :
@@ -47,10 +55,10 @@ Format JSON EXACT :
     "initialName": string,                 // nom de l'entreprise
     "types": ["VENDOR"|"SERVICE_PROVIDER"|"DISTRIBUTOR"|"INVESTMENT_FUND"],
     "foundedYear": number|null,
-    "country": string|null,                // code ISO 3166-1 alpha-2 (ex "US","FR","IL")
+    "country": string,                     // code ISO 3166-1 alpha-2 (ex "US","FR","IL") — à fournir
     "originCountry": string|null,          // pays d'origine si différent
-    "descriptionFr": string|null,
-    "descriptionEn": string|null,
+    "descriptionFr": string,               // à fournir
+    "descriptionEn": string,               // à fournir
     "website": string|null
   },
   "solutions": [
@@ -60,6 +68,7 @@ Format JSON EXACT :
     {
       "type": "ACQUISITION"|"MERGER"|"FUNDING"|"IPO"|"DELISTING"|"SPINOFF"|"HQ_RELOCATION"|"COMPANY_RENAME"|"OTHER",
       "year": number,
+      "month": number|null,                // 1-12 si connu (précise-le pour les rachats/levées)
       "importance": "MAJOR"|"MEDIUM"|"MINOR",  // MAJOR = rachat/fusion structurant ; MINOR par défaut
       "role": "subject"|"acquirer",        // "subject" = l'événement concerne l'entreprise (elle est rachetée/levée/renommée) ; "acquirer" = l'entreprise a RACHETÉ quelqu'un
       "counterpartyName": string|null,     // l'autre société (acheteur si role=subject, cible si role=acquirer, partenaire pour MERGER, parent pour SPINOFF)
@@ -106,8 +115,38 @@ export async function researchCompany(
   if (!raw.company.initialName) raw.company.initialName = name;
   if (existingId) raw.company.existingId = existingId;
 
-  // Validate/clean via the bundle schema (drops bad fields, keeps the rest lenient)
-  const parsed = bundleSchema.safeParse(raw);
-  const bundle = parsed.success ? parsed.data : raw;
+  // Validate EACH part on its own and DROP the invalid ones — so a single
+  // malformed event can't void the whole bundle (which used to fall back to
+  // raw, un-coerced data and crash on insert). year/month/etc. are coerced here.
+  const companyParsed = bundleCompanySchema.safeParse(raw.company);
+  const company = companyParsed.success
+    ? companyParsed.data
+    : { initialName: name, ...(existingId ? { existingId } : {}) };
+
+  const keepValid = (
+    arr: unknown,
+    schema: { safeParse: (v: unknown) => { success: boolean; data?: unknown } }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ): any[] =>
+    (Array.isArray(arr) ? arr : [])
+      .map((x) => schema.safeParse(x))
+      .filter((r) => r.success)
+      .map((r) => r.data);
+
+  const solutions = keepValid(raw.solutions, bundleSolutionSchema);
+  const events = keepValid(raw.events, bundleEventSchema);
+
+  // Normalize each event: enforce the importance rules deterministically, default
+  // an acquisition's outcome, and stamp the company's Wikipedia page as url1 when
+  // the event has no source (research facts are grounded on Wikipedia — the model
+  // isn't asked for article URLs it can't know).
+  const wikiUrl = en ? wikiPageUrl(name, "en") : fr ? wikiPageUrl(name, "fr") : null;
+  for (const ev of events) {
+    ev.importance = clampEventImportance(ev.type, ev.importance, ev.amount);
+    if ((ev.type === "ACQUISITION" || ev.role === "acquirer") && !ev.outcome) ev.outcome = "UNKNOWN";
+    if (wikiUrl && !ev.url1) ev.url1 = wikiUrl;
+  }
+
+  const bundle = { company, solutions, events };
   return { bundle, sources: { en: !!en, fr: !!fr }, usage };
 }

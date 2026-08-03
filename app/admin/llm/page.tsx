@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { loadLlmConfig, readLlmSettings, readLlmUsage } from "@/lib/llm";
 import { LlmSettingsForm } from "@/components/admin/llm-settings-form";
 import { BatchEnrich } from "@/components/admin/batch-enrich";
+import { RecalibrateImportance } from "@/components/admin/recalibrate-importance";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,9 @@ export default async function AdminLlmPage() {
       </div>
       <div className="border-t pt-6">
         <BatchEnrich initialUsage={usage} />
+      </div>
+      <div className="border-t pt-6">
+        <RecalibrateImportance />
       </div>
     </div>
   );

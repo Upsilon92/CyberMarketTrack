@@ -224,53 +224,55 @@ export type RevenueInput = z.infer<typeof revenueSchema>;
 const upper2 = z.string().trim().toUpperCase().nullable().optional().or(z.literal("").transform(() => null));
 const looseUrl = z.string().trim().max(500).nullable().optional().or(z.literal("").transform(() => null));
 
+// Exported per-part so callers (company-research) can validate each item on its
+// own and DROP the bad ones, instead of letting one malformed event void the
+// whole bundle (which used to fall back to raw, un-coerced data and crash on
+// insert).
+export const bundleCompanySchema = z.object({
+  initialName: trimmed(200),
+  existingId: z.string().nullable().optional(),
+  types: z.array(z.enum(COMPANY_TYPES)).optional(),
+  foundedYear: yearSchema.nullable().optional().or(z.literal("").transform(() => null)),
+  foundedMonth: monthSchema,
+  country: upper2,
+  originCountry: upper2,
+  descriptionFr: optionalTrimmed(10_000),
+  descriptionEn: optionalTrimmed(10_000),
+  website: looseUrl,
+});
+
+export const bundleSolutionSchema = z.object({
+  initialName: trimmed(200),
+  descriptionFr: optionalTrimmed(10_000),
+  descriptionEn: optionalTrimmed(10_000),
+  launchYear: yearSchema.nullable().optional().or(z.literal("").transform(() => null)),
+  website: looseUrl,
+  tags: z.array(z.string()).optional(),
+});
+
+export const bundleEventSchema = z.object({
+  type: z.enum(EVENT_TYPES),
+  year: yearSchema,
+  month: monthSchema,
+  importance: z.enum(EVENT_IMPORTANCES).nullable().optional().or(z.literal("").transform(() => null)),
+  role: z.enum(["subject", "acquirer"]).optional(), // bundle company = subject or acquirer?
+  counterpartyName: optionalTrimmed(200), // the other company involved
+  outcome: z.enum(ACQUISITION_OUTCOMES).nullable().optional().or(z.literal("").transform(() => null)),
+  amount: z.coerce.number().positive().nullable().optional(),
+  round: optionalTrimmed(80),
+  newName: optionalTrimmed(200),
+  newCountry: upper2,
+  note: optionalTrimmed(500),
+  descriptionFr: optionalTrimmed(10_000),
+  descriptionEn: optionalTrimmed(10_000),
+  url1: looseUrl,
+  url2: looseUrl,
+});
+
 export const bundleSchema = z.object({
-  company: z.object({
-    initialName: trimmed(200),
-    existingId: z.string().nullable().optional(),
-    types: z.array(z.enum(COMPANY_TYPES)).optional(),
-    foundedYear: yearSchema.nullable().optional().or(z.literal("").transform(() => null)),
-    foundedMonth: monthSchema,
-    country: upper2,
-    originCountry: upper2,
-    descriptionFr: optionalTrimmed(10_000),
-    descriptionEn: optionalTrimmed(10_000),
-    website: looseUrl,
-  }),
-  solutions: z
-    .array(
-      z.object({
-        initialName: trimmed(200),
-        descriptionFr: optionalTrimmed(10_000),
-        descriptionEn: optionalTrimmed(10_000),
-        launchYear: yearSchema.nullable().optional().or(z.literal("").transform(() => null)),
-        website: looseUrl,
-        tags: z.array(z.string()).optional(),
-      })
-    )
-    .optional(),
-  events: z
-    .array(
-      z.object({
-        type: z.enum(EVENT_TYPES),
-        year: yearSchema,
-        month: monthSchema,
-        importance: z.enum(EVENT_IMPORTANCES).nullable().optional().or(z.literal("").transform(() => null)),
-        role: z.enum(["subject", "acquirer"]).optional(), // bundle company = subject or acquirer?
-        counterpartyName: optionalTrimmed(200), // the other company involved
-        outcome: z.enum(ACQUISITION_OUTCOMES).nullable().optional().or(z.literal("").transform(() => null)),
-        amount: z.coerce.number().positive().nullable().optional(),
-        round: optionalTrimmed(80),
-        newName: optionalTrimmed(200),
-        newCountry: upper2,
-        note: optionalTrimmed(500),
-        descriptionFr: optionalTrimmed(10_000),
-        descriptionEn: optionalTrimmed(10_000),
-        url1: looseUrl,
-        url2: looseUrl,
-      })
-    )
-    .optional(),
+  company: bundleCompanySchema,
+  solutions: z.array(bundleSolutionSchema).optional(),
+  events: z.array(bundleEventSchema).optional(),
 });
 export type BundleInput = z.infer<typeof bundleSchema>;
 
