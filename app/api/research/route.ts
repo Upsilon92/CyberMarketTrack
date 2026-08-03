@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { researchCompany } from "@/lib/company-research";
-import { loadLlmConfig, llmHealthCheck } from "@/lib/llm";
+import { loadLlmConfig, llmHealthCheck, addLlmUsage } from "@/lib/llm";
 import { requireAdmin, unauthorized, validationError, serverError } from "@/lib/api-utils";
 
 const bodySchema = z.object({
@@ -44,7 +44,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "LLM offline", code: "llmOffline", detail: health.detail }, { status: 503 });
     }
 
-    const { bundle, sources } = await researchCompany(companyName, existingId, cfg);
+    const { bundle, sources, usage } = await researchCompany(companyName, existingId, cfg);
+    await addLlmUsage(usage);
 
     const note = `[Analyse LLM] ${companyName} — ${cfg.provider}:${cfg.model}${
       sources.en || sources.fr ? ` · sources Wikipedia ${[sources.en && "EN", sources.fr && "FR"].filter(Boolean).join("+")}` : " · sans source Wikipedia"

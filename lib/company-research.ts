@@ -5,7 +5,7 @@
 // becomes a single AUTO proposal for admin review. Facts are grounded on the
 // fetched text; the model is told NOT to invent precise facts.
 // =============================================================================
-import { loadLlmConfig, llmExtractJson, type LlmConfig } from "@/lib/llm";
+import { loadLlmConfig, llmExtractJsonWithUsage, type LlmConfig, type TokenUsage } from "@/lib/llm";
 import { bundleSchema } from "@/lib/validation";
 
 async function fetchWikiIntro(name: string, lang: "en" | "fr"): Promise<string> {
@@ -80,6 +80,7 @@ export interface ResearchResult {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   bundle: any;
   sources: { en: boolean; fr: boolean };
+  usage: TokenUsage;
 }
 
 export async function researchCompany(
@@ -94,7 +95,11 @@ export async function researchCompany(
     "(aucune source Wikipedia trouvée — utilise tes connaissances sûres, laisse null si incertain)";
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const raw = await llmExtractJson<any>(SYSTEM, `Entreprise : "${name}"\n\nSources :\n${grounding}`, cfg);
+  const { data: raw, usage } = await llmExtractJsonWithUsage<any>(
+    SYSTEM,
+    `Entreprise : "${name}"\n\nSources :\n${grounding}`,
+    cfg
+  );
 
   // Normalize + guardrails
   raw.company = raw.company ?? {};
@@ -104,5 +109,5 @@ export async function researchCompany(
   // Validate/clean via the bundle schema (drops bad fields, keeps the rest lenient)
   const parsed = bundleSchema.safeParse(raw);
   const bundle = parsed.success ? parsed.data : raw;
-  return { bundle, sources: { en: !!en, fr: !!fr } };
+  return { bundle, sources: { en: !!en, fr: !!fr }, usage };
 }

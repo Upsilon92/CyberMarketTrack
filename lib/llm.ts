@@ -155,16 +155,28 @@ function stripJson(text: string): string {
   return start >= 0 && end > start ? body.slice(start, end + 1) : body;
 }
 
+/** Token counts reported by the provider for one request. */
+export interface TokenUsage {
+  prompt: number;
+  completion: number;
+  total: number;
+}
+
+const ZERO_USAGE: TokenUsage = { prompt: 0, completion: 0, total: 0 };
+
 /**
- * Ask the LLM to return a JSON object and parse it. `system` frames the task,
- * `user` is the content to analyze. Throws on transport/parse failure (callers
- * should have run llmHealthCheck first to avoid hammering an offline host).
+ * Ask the LLM to return a JSON object and parse it, ALSO reporting the token
+ * usage the provider billed for the call (for the admin token counter). `system`
+ * frames the task, `user` is the content to analyze. Throws on transport/parse
+ * failure (callers should run llmHealthCheck first to avoid hammering an offline
+ * host). A 429 (rate limit) surfaces as an Error whose message starts with the
+ * provider name and contains "429", so batch callers can back off.
  */
-export async function llmExtractJson<T = unknown>(
+export async function llmExtractJsonWithUsage<T = unknown>(
   system: string,
   user: string,
   cfg: LlmConfig = getLlmConfig()
-): Promise<T> {
+): Promise<{ data: T; usage: TokenUsage }> {
   const { signal, done } = withTimeout(cfg.timeoutMs);
   try {
     if (cfg.provider === "ollama") {
@@ -186,12 +198,17 @@ export async function llmExtractJson<T = unknown>(
       });
       if (!r.ok) throw new Error(`Ollama HTTP ${r.status}: ${(await r.text()).slice(0, 200)}`);
       const j = await r.json();
-      return JSON.parse(j.message?.content ?? "{}") as T;
+      const prompt = j.prompt_eval_count ?? 0;
+      const completion = j.eval_count ?? 0;
+      return {
+        data: JSON.parse(j.message?.content ?? "{}") as T,
+        usage: { prompt, completion, total: prompt + completion },
+      };
     }
 
     if (cfg.provider === "mistral") {
       // Mistral La Plateforme — OpenAI-style chat completions + native JSON mode.
-      if (!cfg.apiKey) throw new Error("LLM_API_KEY manquante");
+      if (!cfg.apiKey) throw new Error("Mistral: clé API manquante");
       const r = await fetch(`${cfg.baseUrl}/v1/chat/completions`, {
         method: "POST",
         headers: {
@@ -211,11 +228,19 @@ export async function llmExtractJson<T = unknown>(
       });
       if (!r.ok) throw new Error(`Mistral HTTP ${r.status}: ${(await r.text()).slice(0, 200)}`);
       const j = await r.json();
-      return JSON.parse(stripJson(j.choices?.[0]?.message?.content ?? "{}")) as T;
+      const u = j.usage ?? {};
+      return {
+        data: JSON.parse(stripJson(j.choices?.[0]?.message?.content ?? "{}")) as T,
+        usage: {
+          prompt: u.prompt_tokens ?? 0,
+          completion: u.completion_tokens ?? 0,
+          total: u.total_tokens ?? (u.prompt_tokens ?? 0) + (u.completion_tokens ?? 0),
+        },
+      };
     }
 
     // anthropic
-    if (!cfg.apiKey) throw new Error("LLM_API_KEY manquante");
+    if (!cfg.apiKey) throw new Error("Anthropic: clé API manquante");
     const r = await fetch(`${cfg.baseUrl}/v1/messages`, {
       method: "POST",
       headers: {
@@ -235,8 +260,59 @@ export async function llmExtractJson<T = unknown>(
     if (!r.ok) throw new Error(`Anthropic HTTP ${r.status}: ${(await r.text()).slice(0, 200)}`);
     const j = await r.json();
     const text = (j.content ?? []).map((c: { text?: string }) => c.text ?? "").join("");
-    return JSON.parse(stripJson(text)) as T;
+    const u = j.usage ?? {};
+    return {
+      data: JSON.parse(stripJson(text)) as T,
+      usage: {
+        prompt: u.input_tokens ?? 0,
+        completion: u.output_tokens ?? 0,
+        total: (u.input_tokens ?? 0) + (u.output_tokens ?? 0),
+      },
+    };
   } finally {
     done();
   }
+}
+
+/** Same as above but returns only the parsed object (usage discarded). */
+export async function llmExtractJson<T = unknown>(
+  system: string,
+  user: string,
+  cfg: LlmConfig = getLlmConfig()
+): Promise<T> {
+  return (await llmExtractJsonWithUsage<T>(system, user, cfg)).data;
+}
+
+// --- Cumulative token usage (admin counter) ---------------------------------
+// Persisted in the Setting table (key "llm.usage"). Best-effort, never throws.
+
+const LLM_USAGE_KEY = "llm.usage";
+
+export interface LlmUsageTotals extends TokenUsage {
+  requests: number;
+  since: string; // ISO of first count since last reset
+}
+
+export async function readLlmUsage(): Promise<LlmUsageTotals> {
+  const u = await readSetting<LlmUsageTotals>(LLM_USAGE_KEY);
+  return u ?? { ...ZERO_USAGE, requests: 0, since: new Date().toISOString() };
+}
+
+export async function addLlmUsage(usage: TokenUsage): Promise<void> {
+  try {
+    const cur = await readLlmUsage();
+    await writeSetting(LLM_USAGE_KEY, {
+      prompt: cur.prompt + usage.prompt,
+      completion: cur.completion + usage.completion,
+      total: cur.total + usage.total,
+      requests: cur.requests + 1,
+      since: cur.since,
+    });
+  } catch {
+    /* usage accounting must never break a request */
+  }
+}
+
+export async function resetLlmUsage(): Promise<void> {
+  await writeSetting(LLM_USAGE_KEY, { ...ZERO_USAGE, requests: 0, since: new Date().toISOString() });
 }

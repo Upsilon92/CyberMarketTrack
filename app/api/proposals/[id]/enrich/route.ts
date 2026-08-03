@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { researchCompany } from "@/lib/company-research";
-import { loadLlmConfig, llmHealthCheck } from "@/lib/llm";
+import { loadLlmConfig, llmHealthCheck, addLlmUsage } from "@/lib/llm";
 import { logAudit } from "@/lib/audit";
 import { requireAdmin, unauthorized, notFound, serverError } from "@/lib/api-utils";
 
@@ -62,7 +62,8 @@ export async function POST(_req: NextRequest, ctx: { params: Promise<{ id: strin
       );
     }
 
-    const { bundle, sources } = await researchCompany(companyName, existingId, cfg);
+    const { bundle, sources, usage } = await researchCompany(companyName, existingId, cfg);
+    await addLlmUsage(usage);
 
     const note =
       `[Enrichi LLM] ${companyName} — ${cfg.provider}:${cfg.model}` +

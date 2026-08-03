@@ -14,7 +14,7 @@
 // =============================================================================
 import { prisma } from "@/lib/prisma";
 import { getMarketNews } from "@/lib/rss";
-import { loadLlmConfig, llmHealthCheck, llmExtractJson, type LlmConfig } from "@/lib/llm";
+import { loadLlmConfig, llmHealthCheck, llmExtractJsonWithUsage, addLlmUsage, type LlmConfig } from "@/lib/llm";
 import { writeSetting } from "@/lib/settings";
 
 const MAX_PER_RUN = Number(process.env.RSS_MAX_PER_RUN) || 12;
@@ -252,7 +252,8 @@ export async function analyzeFeed(
   for (const item of pending) {
     index++;
     try {
-      const ex = await llmExtractJson<Extraction>(SYSTEM, item.title, cfg);
+      const { data: ex, usage } = await llmExtractJsonWithUsage<Extraction>(SYSTEM, item.title, cfg);
+      await addLlmUsage(usage);
       report.processed++;
 
       const relevant =

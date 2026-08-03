@@ -128,35 +128,76 @@ const norm = (s: string) =>
  * Apply a research bundle atomically: create/update the company, then its
  * solutions, then its M&A events (referencing companies by name, resolved to
  * existing ids or the just-created company; unknown targets become free text).
+ *
+ * With `{ dedup: true }` (used by direct-apply batch enrichment) it is
+ * conservative on an EXISTING company: scalar fields are filled only when
+ * currently empty (never overwriting curated data), solutions with an existing
+ * same-name entry are skipped, and events matching an existing (type, year) on
+ * the company are skipped — so re-running is idempotent and adds no duplicates.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function applyBundle(b: any): Promise<string> {
+export async function applyBundle(b: any, opts: { dedup?: boolean } = {}): Promise<string> {
   const companies = await prisma.company.findMany({ select: { id: true, initialName: true } });
   const byName = new Map(companies.map((c) => [norm(c.initialName), c.id]));
   const resolve = (name?: string | null) => (name ? byName.get(norm(name)) ?? null : null);
   const tagRows = await prisma.tag.findMany({ select: { id: true, slug: true } });
   const tagBySlug = new Map(tagRows.map((t) => [t.slug.toLowerCase(), t.id]));
+  const validCountry = (c?: string | null) => (c && /^[A-Z]{2}$/.test(c) ? c : undefined);
 
   return prisma.$transaction(async (tx) => {
     const co = b.company;
     const country = co.country && /^[A-Z]{2}$/.test(co.country) ? co.country : "XX";
 
+    // Existing solution names / event keys on the company — populated only in
+    // dedup mode, to skip duplicates.
+    const existingSolNames = new Set<string>();
+    const existingEventKeys = new Set<string>();
+
     // 1) company (update existing, else create)
     let companyId: string;
     if (co.existingId) {
       companyId = co.existingId;
-      await tx.company.update({
-        where: { id: companyId },
-        data: {
-          descriptionFr: co.descriptionFr ?? undefined,
-          descriptionEn: co.descriptionEn ?? undefined,
-          foundedYear: co.foundedYear ?? undefined,
-          foundedMonth: co.foundedMonth ?? undefined,
-          country: co.country && /^[A-Z]{2}$/.test(co.country) ? co.country : undefined,
-          originCountry: co.originCountry ?? undefined,
-          website: co.website ?? undefined,
-        },
-      });
+      if (opts.dedup) {
+        const cur = await tx.company.findUnique({
+          where: { id: companyId },
+          select: {
+            descriptionFr: true, descriptionEn: true, foundedYear: true,
+            foundedMonth: true, originCountry: true, website: true, country: true,
+          },
+        });
+        // Fill ONLY empty fields — never overwrite existing curated values.
+        await tx.company.update({
+          where: { id: companyId },
+          data: {
+            descriptionFr: cur?.descriptionFr ? undefined : co.descriptionFr ?? undefined,
+            descriptionEn: cur?.descriptionEn ? undefined : co.descriptionEn ?? undefined,
+            foundedYear: cur?.foundedYear != null ? undefined : co.foundedYear ?? undefined,
+            foundedMonth: cur?.foundedMonth != null ? undefined : co.foundedMonth ?? undefined,
+            originCountry: cur?.originCountry ? undefined : co.originCountry ?? undefined,
+            website: cur?.website ? undefined : co.website ?? undefined,
+            country: cur?.country && cur.country !== "XX" ? undefined : validCountry(co.country),
+          },
+        });
+        const [sols, evs] = await Promise.all([
+          tx.solution.findMany({ where: { initialCompanyId: companyId }, select: { initialName: true } }),
+          tx.event.findMany({ where: { subjectCompanyId: companyId }, select: { type: true, year: true } }),
+        ]);
+        for (const s of sols) existingSolNames.add(norm(s.initialName));
+        for (const e of evs) existingEventKeys.add(`${e.type}|${e.year}`);
+      } else {
+        await tx.company.update({
+          where: { id: companyId },
+          data: {
+            descriptionFr: co.descriptionFr ?? undefined,
+            descriptionEn: co.descriptionEn ?? undefined,
+            foundedYear: co.foundedYear ?? undefined,
+            foundedMonth: co.foundedMonth ?? undefined,
+            country: validCountry(co.country),
+            originCountry: co.originCountry ?? undefined,
+            website: co.website ?? undefined,
+          },
+        });
+      }
     } else {
       const created = await tx.company.create({
         data: {
@@ -177,6 +218,8 @@ async function applyBundle(b: any): Promise<string> {
 
     // 2) solutions
     for (const s of b.solutions ?? []) {
+      if (opts.dedup && s.initialName && existingSolNames.has(norm(s.initialName))) continue;
+      if (s.initialName) existingSolNames.add(norm(s.initialName));
       const tagIds = (s.tags ?? [])
         .map((sl: string) => tagBySlug.get(sl.toLowerCase()))
         .filter(Boolean) as string[];
@@ -273,6 +316,14 @@ async function applyBundle(b: any): Promise<string> {
           default:
             break;
         }
+      }
+
+      // Dedup: skip an event already recorded on the bundle company (same
+      // type + year). Only applies when the subject IS the bundle company.
+      if (opts.dedup && data.subjectCompanyId === companyId) {
+        const k = `${data.type}|${data.year}`;
+        if (existingEventKeys.has(k)) continue;
+        existingEventKeys.add(k);
       }
 
       await tx.event.create({ data });
