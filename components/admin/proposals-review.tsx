@@ -14,6 +14,8 @@ import { CompanyForm } from "@/components/admin/company-form";
 import { SolutionForm, type TagOption } from "@/components/admin/solution-form";
 import { TagForm } from "@/components/admin/tag-form";
 import { EventForm, type EntityOption } from "@/components/admin/event-form";
+import { ProposalDiffReview } from "@/components/admin/proposal-diff-review";
+import type { ProposalDiff } from "@/lib/proposal-diff";
 
 export interface ReviewProposal {
   id: string;
@@ -26,6 +28,7 @@ export interface ReviewProposal {
   origin: string;
   sourceIp: string | null;
   createdAt: string;
+  diff?: ProposalDiff | null;
 }
 
 export function ProposalsReview({
@@ -50,6 +53,7 @@ export function ProposalsReview({
   const [jsonEditing, setJsonEditing] = useState<string | null>(null);
   const [jsonText, setJsonText] = useState("");
   const [jsonError, setJsonError] = useState<string | null>(null);
+  const [comparing, setComparing] = useState<string | null>(null);
 
   // #4 — resolve entity IDs to human names for a readable preview.
   const companyLabel = useMemo(() => new Map(companies.map((c) => [c.id, c.label])), [companies]);
@@ -246,7 +250,16 @@ export function ProposalsReview({
             {JSON.stringify(displayPayload(p), null, 2)}
           </pre>
 
-          {editing === p.id ? (
+          {comparing === p.id && p.diff ? (
+            <ProposalDiffReview
+              proposalId={p.id}
+              diff={p.diff}
+              onDone={() => {
+                setComparing(null);
+                router.refresh();
+              }}
+            />
+          ) : editing === p.id ? (
             <div className="border-t pt-3 mt-1">{editForm(p)}</div>
           ) : jsonEditing === p.id ? (
             <div className="border-t pt-3 mt-1 space-y-2">
@@ -274,6 +287,12 @@ export function ProposalsReview({
               <Button size="sm" disabled={busy === p.id || enriching === p.id} onClick={() => decide(p, "approve")}>
                 {t("approve")}
               </Button>
+              {/* #4 — field-by-field comparison against the existing entity */}
+              {p.diff && (
+                <Button size="sm" variant="secondary" onClick={() => setComparing(p.id)}>
+                  {t("diffCompare")}
+                </Button>
+              )}
               {/* Entity form editor for the typed proposals */}
               {p.entityType !== "Bundle" && (
                 <Button size="sm" variant="outline" onClick={() => setEditing(p.id)}>

@@ -1,16 +1,17 @@
-// Direct-apply batch enrichment of existing companies, streamed as NDJSON so the
-// admin sees a live progress bar, a per-company log, and a running token counter.
+// Centralized on-demand LLM analysis (companies / solutions / events), streamed
+// as NDJSON so the admin sees a live progress bar, per-entity log and running
+// token counter. Each analyzed entity yields a proposal to review.
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
-import { enrichBatch, type EnrichProgress } from "@/lib/batch-enrich";
+import { analyzeEntities, type AnalyzeProgress } from "@/lib/llm-analyze";
 import { loadLlmConfig } from "@/lib/llm";
 import { unauthorized } from "@/lib/api-utils";
 
 const bodySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(1000).default(15),
-  onlyMissing: z.boolean().optional(),
-  skipAnalyzed: z.boolean().optional(),
+  type: z.enum(["company", "solution", "event"]),
+  ids: z.array(z.string().min(1)).max(500).default([]),
+  newNames: z.array(z.string().trim().min(1).max(200)).max(100).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -18,12 +19,13 @@ export async function POST(req: NextRequest) {
   if (session?.user?.role !== "ADMIN") return unauthorized();
 
   const parsed = bodySchema.safeParse(await req.json().catch(() => ({})));
-  const opts = parsed.success ? parsed.data : { limit: 15 };
+  if (!parsed.success) return new Response("bad request", { status: 400 });
+  const input = parsed.data;
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      const send = (e: EnrichProgress) => {
+      const send = (e: AnalyzeProgress) => {
         try {
           controller.enqueue(encoder.encode(JSON.stringify(e) + "\n"));
         } catch {
@@ -32,7 +34,7 @@ export async function POST(req: NextRequest) {
       };
       try {
         const cfg = await loadLlmConfig();
-        await enrichBatch(opts, send, cfg);
+        await analyzeEntities(input, send, cfg);
       } catch (e) {
         send({ type: "skipped", detail: (e as Error).message });
       } finally {

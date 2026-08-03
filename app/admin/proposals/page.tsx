@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { loadMarket } from "@/lib/queries";
 import { ProposalsReview, type ReviewProposal } from "@/components/admin/proposals-review";
 import { RssAnalyze } from "@/components/admin/rss-analyze";
-import { LlmResearch } from "@/components/admin/llm-research";
+import { buildProposalDiff } from "@/lib/proposal-diff";
 
 export const dynamic = "force-dynamic";
 
@@ -24,17 +24,24 @@ export default async function AdminProposals() {
     .map((s) => ({ id: s.id, label: s.timeline.currentName }))
     .sort((a, b) => a.label.localeCompare(b.label));
 
-  const proposals: ReviewProposal[] = pending.map((p) => ({
-    id: p.id,
-    kind: p.kind,
-    entityType: p.entityType,
-    targetId: p.targetId,
-    payload: safeParse(p.payload),
-    note: p.note,
-    origin: p.origin,
-    sourceIp: p.sourceIp,
-    createdAt: p.createdAt.toISOString(),
-  }));
+  const proposals: ReviewProposal[] = await Promise.all(
+    pending.map(async (p) => {
+      const payload = safeParse(p.payload);
+      const diff = await buildProposalDiff({ entityType: p.entityType, kind: p.kind, targetId: p.targetId, payload }).catch(() => null);
+      return {
+        id: p.id,
+        kind: p.kind,
+        entityType: p.entityType,
+        targetId: p.targetId,
+        payload,
+        note: p.note,
+        origin: p.origin,
+        sourceIp: p.sourceIp,
+        createdAt: p.createdAt.toISOString(),
+        diff,
+      };
+    })
+  );
 
   return (
     <div className="space-y-4">
@@ -43,10 +50,6 @@ export default async function AdminProposals() {
         <span className="text-sm text-muted-foreground">({proposals.length})</span>
       </div>
       <RssAnalyze />
-      <div className="border rounded-md p-3 bg-muted/20 space-y-2">
-        <p className="text-sm font-medium">{t("companyAnalysisTitle")}</p>
-        <LlmResearch />
-      </div>
       <ProposalsReview
         proposals={proposals}
         companies={companies}

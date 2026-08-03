@@ -15,10 +15,12 @@ export default async function HomePage() {
   const [stats, events] = await Promise.all([getStats(), loadAllEvents()]);
 
   // Latest events split into 3 columns by importance (most recent first).
+  // Solution transfers are internal plumbing — kept out of the home feed.
+  const homeEvents = events.filter((e) => e.type !== "SOLUTION_TRANSFER");
   const columns = [
-    { key: "MAJOR", title: t("colMajor"), items: events.filter((e) => e.importance === "MAJOR").slice(0, 8) },
-    { key: "MEDIUM", title: t("colMedium"), items: events.filter((e) => e.importance === "MEDIUM").slice(0, 8) },
-    { key: "MINOR", title: t("colMinor"), items: events.filter((e) => e.importance === "MINOR").slice(0, 8) },
+    { key: "MAJOR", title: t("colMajor"), items: homeEvents.filter((e) => e.importance === "MAJOR").slice(0, 8) },
+    { key: "MEDIUM", title: t("colMedium"), items: homeEvents.filter((e) => e.importance === "MEDIUM").slice(0, 8) },
+    { key: "MINOR", title: t("colMinor"), items: homeEvents.filter((e) => e.importance === "MINOR").slice(0, 8) },
   ];
 
   const statCards = [
@@ -104,7 +106,24 @@ export default async function HomePage() {
                   <p className="text-sm text-muted-foreground py-4">{t("colEmpty")}</p>
                 )}
                 {col.items.map((e) => (
-                  <EventLine key={e.id} event={e} compact logoSide="right" />
+                  <div key={e.id}>
+                    <EventLine event={e} compact logoSide="right" />
+                    {(e.url1 || e.url2) && (
+                      <p className="mt-0.5 flex flex-wrap gap-x-2 text-[10px]">
+                        {[e.url1, e.url2].filter(Boolean).map((u, i) => (
+                          <a
+                            key={i}
+                            href={u!}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary underline underline-offset-2"
+                          >
+                            src{i + 1}
+                          </a>
+                        ))}
+                      </p>
+                    )}
+                  </div>
                 ))}
               </CardContent>
             </Card>

@@ -40,14 +40,26 @@ const countryCode = z
   .toUpperCase()
   .regex(/^[A-Z]{2}$/, "invalidCountry");
 
+// Website URL — tolerant: a bare domain ("acme.com") is accepted and normalized
+// to https://acme.com; empty → null. (An LLM-proposed or hand-typed bare domain
+// must not make a company un-saveable.)
 const optionalUrl = z
-  .string()
-  .trim()
-  .url()
-  .max(500)
-  .or(z.literal(""))
-  .transform((v) => (v === "" ? null : v))
-  .nullable()
+  .preprocess((v) => {
+    if (typeof v !== "string") return v;
+    const t = v.trim();
+    if (!t) return null;
+    return /^https?:\/\//i.test(t) ? t : `https://${t}`;
+  }, z.string().url().max(500).nullable())
+  .optional();
+
+// Logo — a URL OR a base64 data: URI (uploaded logos). Must allow large values,
+// otherwise a company with an uploaded logo (data URI) can't be re-saved.
+const optionalLogo = z
+  .preprocess((v) => {
+    if (typeof v !== "string") return v;
+    const t = v.trim();
+    return t === "" ? null : t;
+  }, z.string().max(2_000_000).refine((v) => /^(https?:|data:)/i.test(v), "invalidLogo").nullable())
   .optional();
 
 // --- Company -------------------------------------------------------------------
@@ -62,7 +74,7 @@ export const companySchema = z.object({
   descriptionFr: optionalTrimmed(10_000),
   descriptionEn: optionalTrimmed(10_000),
   website: optionalUrl,
-  logoUrl: optionalUrl,
+  logoUrl: optionalLogo,
 });
 export type CompanyInput = z.infer<typeof companySchema>;
 
@@ -221,8 +233,23 @@ export type RevenueInput = z.infer<typeof revenueSchema>;
 // name and applied atomically — so a not-yet-existing company AND events about
 // it can be proposed together. Lenient (tolerates messy LLM output); applyProposal
 // re-validates each entity with its real schema.
-const upper2 = z.string().trim().toUpperCase().nullable().optional().or(z.literal("").transform(() => null));
-const looseUrl = z.string().trim().max(500).nullable().optional().or(z.literal("").transform(() => null));
+// Strict-but-forgiving pieces for LLM bundles: a 2-letter ISO code or null
+// (drops "USA", "" …), and a valid URL or null (normalizes bare domains, drops
+// junk). This guarantees applied companies/events never carry values that would
+// later make them un-editable against the strict entity schemas.
+const upper2 = z
+  .preprocess((v) => (typeof v === "string" ? v.trim().toUpperCase() : v), z.string().regex(/^[A-Z]{2}$/).nullable())
+  .optional()
+  .catch(null);
+const looseUrl = z
+  .preprocess((v) => {
+    if (typeof v !== "string") return v;
+    const t = v.trim();
+    if (!t) return null;
+    return /^https?:\/\//i.test(t) ? t : `https://${t}`;
+  }, z.string().url().max(500).nullable())
+  .optional()
+  .catch(null);
 
 // Exported per-part so callers (company-research) can validate each item on its
 // own and DROP the bad ones, instead of letting one malformed event void the

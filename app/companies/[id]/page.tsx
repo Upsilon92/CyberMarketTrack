@@ -12,7 +12,6 @@ import { CompanyLogo } from "@/components/company-logo";
 import { Flag } from "@/components/flag";
 import { Button } from "@/components/ui/button";
 import { DeleteButton } from "@/components/admin/delete-button";
-import { LlmResearch } from "@/components/admin/llm-research";
 import { LogoDownloadButton } from "@/components/logo-download-button";
 import { auth } from "@/lib/auth";
 import { Markdown } from "@/components/markdown";
@@ -155,7 +154,6 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
               </Button>
             </Link>
             <DeleteButton path={`/api/companies/${company.id}`} redirectTo="/companies" />
-            <LlmResearch companyId={company.id} companyName={tl.currentName} />
           </div>
         )}
         {!isAdmin && (

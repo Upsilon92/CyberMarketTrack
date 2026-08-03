@@ -5,7 +5,6 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DeleteButton } from "@/components/admin/delete-button";
-import { LlmResearch } from "@/components/admin/llm-research";
 import { EventLine } from "@/components/event-line";
 import { FilterBar, type FilterDef } from "@/components/filter-bar";
 import { auth } from "@/lib/auth";
@@ -130,13 +129,6 @@ export default async function NewsPage({
               </div>
               {isAdmin && (
                 <div className="shrink-0 flex items-center gap-2">
-                  {e.subjectCompanyId && e.subjectCompany && (
-                    <LlmResearch
-                      companyId={e.subjectCompanyId}
-                      companyName={e.subjectCompany.initialName}
-                      eventId={e.id}
-                    />
-                  )}
                   {(e.subjectCompanyId || e.subjectSolutionId) && (
                     <Link
                       href={
