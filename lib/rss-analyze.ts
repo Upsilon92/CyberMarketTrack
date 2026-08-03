@@ -103,7 +103,7 @@ export interface AnalyzeReport {
 const RESOLVE_UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36";
 
-async function resolveArticleUrl(googleUrl: string): Promise<string> {
+export async function resolveArticleUrl(googleUrl: string): Promise<string> {
   if (!/news\.google\.com/.test(googleUrl)) return googleUrl;
   const idMatch = googleUrl.match(/\/articles\/([^?/]+)/);
   if (!idMatch) return googleUrl;
@@ -272,6 +272,19 @@ export async function analyzeFeed(
       const eventType = EVENT_TYPE_MAP[ex.eventType!];
       const year = ex.year ?? (item.createdAt ? item.createdAt.getFullYear() : new Date().getFullYear());
       const subjectName = ex.acquired!.trim();
+
+      // Guardrail: the subject must actually appear in the headline — the title
+      // is our only source here, so a name absent from it is likely invented.
+      const subjNorm = norm(subjectName);
+      if (subjNorm.length >= 3 && !norm(item.title).includes(subjNorm)) {
+        await prisma.feedItem.update({
+          where: { id: item.id },
+          data: { status: "PROCESSED", relevant: false, processedAt: new Date() },
+        });
+        report.notRelevant++;
+        emit({ type: "item", index, total: pending.length, title: item.title, outcome: "notRelevant" });
+        continue;
+      }
 
       // #8 — already recorded or already queued? skip without creating noise.
       if (DEDUP_TYPES.has(eventType) && existingKeys.has(key(subjectName, eventType, year))) {

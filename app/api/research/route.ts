@@ -44,12 +44,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "LLM offline", code: "llmOffline", detail: health.detail }, { status: 503 });
     }
 
-    const { bundle, sources, usage } = await researchCompany(companyName, existingId, cfg);
+    const { bundle, sources, usage, droppedEvents } = await researchCompany(companyName, existingId, cfg);
     await addLlmUsage(usage);
 
+    const srcBits = [
+      sources.en && "Wikipedia EN",
+      sources.fr && "Wikipedia FR",
+      sources.news > 0 && `${sources.news} titres presse`,
+    ].filter(Boolean);
     const note = `[Analyse LLM] ${companyName} — ${cfg.provider}:${cfg.model}${
-      sources.en || sources.fr ? ` · sources Wikipedia ${[sources.en && "EN", sources.fr && "FR"].filter(Boolean).join("+")}` : " · sans source Wikipedia"
-    }`;
+      srcBits.length ? ` · sources : ${srcBits.join(", ")}` : " · aucune source"
+    }${droppedEvents > 0 ? ` · ${droppedEvents} évén. non sourcé(s) écarté(s)` : ""}`;
 
     const proposal = await prisma.proposal.create({
       data: {

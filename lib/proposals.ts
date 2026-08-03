@@ -115,7 +115,9 @@ export async function applyProposal(p: {
   }
 
   if (p.entityType === "Bundle") {
-    return (await applyBundle(d)).companyId;
+    // dedup: fill only empty fields on an existing company, and never create a
+    // duplicate solution/event (fills the missing month/URL/description instead).
+    return (await applyBundle(d, { dedup: true })).companyId;
   }
 
   throw new Error("unknown-entityType");

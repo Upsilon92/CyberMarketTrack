@@ -1,16 +1,16 @@
 // =============================================================================
-// Batch enrichment of EXISTING companies via the LLM (direct apply).
+// Batch enrichment of EXISTING companies via the LLM — creates PROPOSALS to
+// review (never touches the base directly).
 //
-// For each selected company: research it (Wikipedia-grounded LLM bundle), then
-// apply it CONSERVATIVELY (applyBundle dedup mode — fills only empty scalar
-// fields, never duplicates solutions/events), stamp lastAnalyzedAt, and count
-// the tokens the provider billed. Throttled to respect free-tier rate limits,
-// with automatic back-off + retry on HTTP 429. Emits progress events so the
-// admin UI can show a live bar + per-company log + a running token counter.
+// For each selected company: research it (Wikipedia + press grounded, with the
+// anti-hallucination guardrail), then create ONE AUTO "Bundle" proposal for
+// admin review, stamp lastAnalyzedAt (so re-runs skip it and don't pile up
+// duplicate proposals), and count the tokens billed. Throttled for free-tier
+// rate limits, with back-off + retry on HTTP 429. Emits progress events so the
+// admin UI shows a live bar + per-company log + a running token counter.
 // =============================================================================
 import { prisma } from "@/lib/prisma";
 import { researchCompany } from "@/lib/company-research";
-import { applyBundle } from "@/lib/proposals";
 import { loadLlmConfig, llmHealthCheck, addLlmUsage, type LlmConfig, type TokenUsage } from "@/lib/llm";
 
 const DEFAULT_DELAY_MS = Number(process.env.LLM_BATCH_DELAY_MS) || 1500;
@@ -20,12 +20,9 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const isRateLimited = (e: unknown) => /\b429\b/.test((e as Error)?.message ?? "");
 
 export interface EnrichCounts {
-  companiesUpdated: number;
-  companiesCreated: number; // counterparties (acquirers/targets) created on the fly
-  solutionsCreated: number;
-  solutionsUpdated: number;
-  eventsCreated: number;
-  eventsUpdated: number;
+  proposals: number;
+  eventsProposed: number;
+  solutionsProposed: number;
 }
 
 export interface EnrichReport {
@@ -34,11 +31,13 @@ export interface EnrichReport {
   llm: string;
   total: number;
   processed: number;
-  enriched: number;
+  proposalsCreated: number;
   errors: number;
   usage: TokenUsage;
   counts: EnrichCounts;
 }
+
+type ItemOutcome = "proposed" | "empty" | "error";
 
 export type EnrichProgress =
   | { type: "start"; total: number; online: boolean; detail: string }
@@ -48,7 +47,7 @@ export type EnrichProgress =
       index: number;
       total: number;
       company: string;
-      outcome: "enriched" | "error";
+      outcome: ItemOutcome;
       detail?: string;
       usage: TokenUsage; // running total so far
     }
@@ -77,17 +76,13 @@ export async function enrichBatch(
   const health = await llmHealthCheck(cfg);
 
   const usage: TokenUsage = { prompt: 0, completion: 0, total: 0 };
-  const counts: EnrichCounts = {
-    companiesUpdated: 0, companiesCreated: 0,
-    solutionsCreated: 0, solutionsUpdated: 0,
-    eventsCreated: 0, eventsUpdated: 0,
-  };
+  const counts: EnrichCounts = { proposals: 0, eventsProposed: 0, solutionsProposed: 0 };
   const report: EnrichReport = {
     ok: health.ok,
     llm: health.detail,
     total: 0,
     processed: 0,
-    enriched: 0,
+    proposalsCreated: 0,
     errors: 0,
     usage,
     counts,
@@ -100,9 +95,10 @@ export async function enrichBatch(
   }
 
   // Select companies. `skipAnalyzed` (default true) excludes already-analyzed
-  // ones so successive runs move forward through the base without repeating
-  // (a company is only stamped after a SUCCESSFUL enrichment, so failures are
-  // retried next run). Optionally only those missing key data.
+  // ones so successive runs move forward without repeating (a company is stamped
+  // as soon as its proposal is created, so no duplicate proposals; failures keep
+  // lastAnalyzedAt null and are retried next run). Optionally only those missing
+  // key data.
   const skipAnalyzed = opts.skipAnalyzed !== false;
   const filters: Record<string, unknown>[] = [];
   if (skipAnalyzed) filters.push({ lastAnalyzedAt: null });
@@ -123,8 +119,9 @@ export async function enrichBatch(
   let index = 0;
   for (const company of companies) {
     index++;
+    let outcome: ItemOutcome = "error";
+    let detail: string | undefined;
     try {
-      // Research with retry/back-off on rate limiting (free-tier friendly).
       let attempt = 0;
       // eslint-disable-next-line no-constant-condition
       while (true) {
@@ -135,18 +132,46 @@ export async function enrichBatch(
           usage.completion += res.usage.completion;
           usage.total += res.usage.total;
 
-          const { stats } = await applyBundle(res.bundle, { dedup: true });
-          counts.companiesUpdated += stats.companyUpdated;
-          counts.companiesCreated += stats.companyCreated + stats.counterpartiesCreated;
-          counts.solutionsCreated += stats.solutionsCreated;
-          counts.solutionsUpdated += stats.solutionsUpdated;
-          counts.eventsCreated += stats.eventsCreated;
-          counts.eventsUpdated += stats.eventsUpdated;
+          const b = res.bundle;
+          const events = Array.isArray(b.events) ? b.events : [];
+          const solutions = Array.isArray(b.solutions) ? b.solutions : [];
+          const co = b.company ?? {};
+          const hasCompanyData = !!(
+            co.descriptionFr || co.descriptionEn || co.country || co.foundedYear || co.website || co.originCountry
+          );
 
-          await prisma.company.update({
-            where: { id: company.id },
-            data: { lastAnalyzedAt: new Date() },
-          });
+          if (!events.length && !solutions.length && !hasCompanyData) {
+            outcome = "empty"; // nothing worth proposing
+          } else {
+            const srcBits = [
+              res.sources.en && "Wikipedia EN",
+              res.sources.fr && "Wikipedia FR",
+              res.sources.news > 0 && `${res.sources.news} titres presse`,
+            ].filter(Boolean);
+            const note =
+              `[Enrichissement LLM] ${company.initialName}` +
+              (srcBits.length ? ` · sources : ${srcBits.join(", ")}` : "") +
+              (res.droppedEvents > 0 ? ` · ${res.droppedEvents} évén. non sourcé(s) écarté(s)` : "");
+            await prisma.proposal.create({
+              data: {
+                kind: "UPDATE",
+                entityType: "Bundle",
+                targetId: company.id,
+                payload: JSON.stringify(b),
+                note,
+                origin: "AUTO",
+                status: "PENDING",
+              },
+            });
+            counts.proposals++;
+            counts.eventsProposed += events.length;
+            counts.solutionsProposed += solutions.length;
+            outcome = "proposed";
+            detail = `${events.length} évén. · ${solutions.length} sol.`;
+          }
+
+          // Stamp so re-runs skip this company (no duplicate proposals).
+          await prisma.company.update({ where: { id: company.id }, data: { lastAnalyzedAt: new Date() } });
           break;
         } catch (e) {
           if (isRateLimited(e) && attempt < MAX_RETRIES_429) {
@@ -157,30 +182,24 @@ export async function enrichBatch(
           throw e;
         }
       }
-
       report.processed++;
-      report.enriched++;
-      emit({
-        type: "item",
-        index,
-        total: companies.length,
-        company: company.initialName,
-        outcome: "enriched",
-        usage: { ...usage },
-      });
+      if (outcome === "proposed") report.proposalsCreated++;
     } catch (e) {
       report.processed++;
       report.errors++;
-      emit({
-        type: "item",
-        index,
-        total: companies.length,
-        company: company.initialName,
-        outcome: "error",
-        detail: (e as Error).message.slice(0, 160),
-        usage: { ...usage },
-      });
+      outcome = "error";
+      detail = (e as Error).message.slice(0, 160);
     }
+
+    emit({
+      type: "item",
+      index,
+      total: companies.length,
+      company: company.initialName,
+      outcome,
+      detail,
+      usage: { ...usage },
+    });
 
     // Throttle between companies to stay under the provider's rate limit.
     if (index < companies.length) await sleep(DEFAULT_DELAY_MS);

@@ -1,9 +1,11 @@
 "use client";
 
-// Admin: token usage counter + direct-apply batch enrichment of existing
-// companies. The enrichment streams live progress (bar + per-company log +
-// running token count); the cumulative counter is refreshed on completion.
+// Admin: token usage counter + batch enrichment of existing companies. Each
+// company produces an AUTO "Bundle" PROPOSAL to review (nothing is applied to
+// the base here). Streams live progress (bar + per-company log + running token
+// count); the cumulative counter is refreshed on completion.
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
@@ -19,27 +21,27 @@ interface Usage {
   requests: number;
   since: string;
 }
+type Outcome = "proposed" | "empty" | "error";
 interface Report {
   skipped?: string;
   total: number;
   processed: number;
-  enriched: number;
+  proposalsCreated: number;
   errors: number;
   usage: { prompt: number; completion: number; total: number };
-  counts?: {
-    companiesUpdated: number;
-    companiesCreated: number;
-    solutionsCreated: number;
-    solutionsUpdated: number;
-    eventsCreated: number;
-    eventsUpdated: number;
-  };
+  counts?: { proposals: number; eventsProposed: number; solutionsProposed: number };
 }
 interface LogItem {
   company: string;
-  outcome: "enriched" | "error";
+  outcome: Outcome;
   detail?: string;
 }
+
+const OUTCOME_STYLE: Record<Outcome, string> = {
+  proposed: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
+  empty: "bg-muted text-muted-foreground border-border",
+  error: "bg-destructive/15 text-destructive border-destructive/30",
+};
 
 export function BatchEnrich({ initialUsage }: { initialUsage: Usage }) {
   const t = useTranslations("admin.llmPage");
@@ -100,7 +102,7 @@ export function BatchEnrich({ initialUsage }: { initialUsage: Usage }) {
             if (u) setLiveTokens(u.total);
             setLog((l) => [
               ...l,
-              { company: e.company as string, outcome: e.outcome as "enriched" | "error", detail: e.detail as string | undefined },
+              { company: e.company as string, outcome: e.outcome as Outcome, detail: e.detail as string | undefined },
             ]);
           } else if (e.type === "skipped") setReport({ skipped: e.detail as string } as Report);
           else if (e.type === "done") setReport(e.report as Report);
@@ -179,15 +181,8 @@ export function BatchEnrich({ initialUsage }: { initialUsage: Usage }) {
           <ul className="max-h-56 overflow-y-auto space-y-1 text-xs">
             {log.map((it, i) => (
               <li key={i} className="flex items-start gap-2">
-                <Badge
-                  variant="outline"
-                  className={`text-[9px] shrink-0 ${
-                    it.outcome === "enriched"
-                      ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
-                      : "bg-destructive/15 text-destructive border-destructive/30"
-                  }`}
-                >
-                  {t(`outcome_${it.outcome}` as "outcome_enriched")}
+                <Badge variant="outline" className={`text-[9px] shrink-0 ${OUTCOME_STYLE[it.outcome]}`}>
+                  {t(`outcome_${it.outcome}` as "outcome_proposed")}
                 </Badge>
                 <span className="min-w-0">
                   <span className="font-medium">{it.company}</span>
@@ -203,20 +198,17 @@ export function BatchEnrich({ initialUsage }: { initialUsage: Usage }) {
           <div className="space-y-2 text-xs">
             <p className="text-muted-foreground">
               {t("batchDone", {
-                enriched: report.enriched,
+                proposals: report.proposalsCreated,
+                events: report.counts?.eventsProposed ?? 0,
+                solutions: report.counts?.solutionsProposed ?? 0,
                 errors: report.errors,
                 tokens: fmt(report.usage.total),
               })}
             </p>
-            {report.counts && (
-              <div className="flex flex-wrap gap-1.5">
-                <Badge variant="outline">{t("countCompaniesUpdated", { n: report.counts.companiesUpdated })}</Badge>
-                <Badge variant="outline">{t("countCompaniesCreated", { n: report.counts.companiesCreated })}</Badge>
-                <Badge variant="outline">{t("countSolutionsUpdated", { n: report.counts.solutionsUpdated })}</Badge>
-                <Badge variant="outline">{t("countSolutionsCreated", { n: report.counts.solutionsCreated })}</Badge>
-                <Badge variant="outline">{t("countEventsUpdated", { n: report.counts.eventsUpdated })}</Badge>
-                <Badge variant="outline">{t("countEventsCreated", { n: report.counts.eventsCreated })}</Badge>
-              </div>
+            {report.proposalsCreated > 0 && (
+              <Link href="/admin/proposals" className="text-primary underline underline-offset-2">
+                {t("batchReviewLink")}
+              </Link>
             )}
           </div>
         )}

@@ -62,14 +62,18 @@ export async function POST(_req: NextRequest, ctx: { params: Promise<{ id: strin
       );
     }
 
-    const { bundle, sources, usage } = await researchCompany(companyName, existingId, cfg);
+    const { bundle, sources, usage, droppedEvents } = await researchCompany(companyName, existingId, cfg);
     await addLlmUsage(usage);
 
+    const srcBits = [
+      sources.en && "Wikipedia EN",
+      sources.fr && "Wikipedia FR",
+      sources.news > 0 && `${sources.news} titres presse`,
+    ].filter(Boolean);
     const note =
       `[Enrichi LLM] ${companyName} — ${cfg.provider}:${cfg.model}` +
-      (sources.en || sources.fr
-        ? ` · Wikipedia ${[sources.en && "EN", sources.fr && "FR"].filter(Boolean).join("+")}`
-        : " · sans source Wikipedia") +
+      (srcBits.length ? ` · sources : ${srcBits.join(", ")}` : " · aucune source") +
+      (droppedEvents > 0 ? ` · ${droppedEvents} évén. non sourcé(s) écarté(s)` : "") +
       (proposal.note ? `\n${proposal.note}` : "");
 
     await prisma.proposal.update({
