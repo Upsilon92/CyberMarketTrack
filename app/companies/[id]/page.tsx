@@ -29,7 +29,6 @@ import {
 } from "@/lib/queries";
 import { formerNamePeriods, type OwnershipPeriod } from "@/lib/timeline";
 import { formatDate, formatRange, type Locale } from "@/lib/date";
-import { countryFlag } from "@/lib/flags";
 import type { CompanyStatus } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
@@ -190,11 +189,11 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
                 </span>
               )}
               <span>
-                {tCommon("country")} : {countryFlag(company.country)} {company.country}
+                {tCommon("country")} : <Flag iso={company.country} size="1.1em" /> {company.country}
               </span>
               {company.originCountry && (
                 <span>
-                  {tCommon("originCountry")} : {countryFlag(company.originCountry)}{" "}
+                  {tCommon("originCountry")} : <Flag iso={company.originCountry} size="1.1em" />{" "}
                   {company.originCountry}
                 </span>
               )}

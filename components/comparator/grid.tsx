@@ -24,7 +24,7 @@ import {
   type ComparatorItem,
 } from "@/lib/comparator";
 import type { CatalogItem } from "@/lib/comparator-data";
-import { countryFlag } from "@/lib/flags";
+import { Flag } from "@/components/flag";
 
 // Stable color per solution label (coverage bars)
 const BAR_COLORS = [
@@ -240,9 +240,9 @@ function AttrCell({ attr, item }: { attr: string; item: CatalogItem | undefined 
     ) : null;
   }
   if (attr === "country")
-    return item.country ? <span>{countryFlag(item.country)} {item.country}</span> : null;
+    return item.country ? <span className="inline-flex items-center gap-1"><Flag iso={item.country} size="1.1em" /> {item.country}</span> : null;
   if (attr === "originCountry")
-    return item.originCountry ? <span>{countryFlag(item.originCountry)} {item.originCountry}</span> : null;
+    return item.originCountry ? <span className="inline-flex items-center gap-1"><Flag iso={item.originCountry} size="1.1em" /> {item.originCountry}</span> : null;
   return <span>{item.attributes[attr] ?? ""}</span>;
 }
 

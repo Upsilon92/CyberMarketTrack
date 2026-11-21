@@ -13,7 +13,7 @@ import { auth } from "@/lib/auth";
 import { loadMarket, ownerDisplayName, isStale } from "@/lib/queries";
 import { formerNamePeriods } from "@/lib/timeline";
 import { formatRange, formatDate, type Locale } from "@/lib/date";
-import { countryFlag } from "@/lib/flags";
+import { countryName } from "@/lib/countries";
 import { CONTINENTS, continentOf } from "@/lib/continents";
 import { COMPANY_TYPES, type CompanyStatus } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
@@ -82,7 +82,7 @@ export default async function CompaniesPage({
   // continent(s) — so the user picks a continent first, then refines by country.
   const countryOptions = countries
     .filter((c) => !selContinent.length || selContinent.includes(continentOf(c) ?? ""))
-    .map((c) => ({ value: c, label: `${countryFlag(c)} ${c}` }));
+    .map((c) => ({ value: c, label: `${countryName(c, locale)} (${c})` }));
 
   const groups: MultiFilterGroup[] = [
     {

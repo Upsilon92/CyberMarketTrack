@@ -46,7 +46,19 @@ const nextConfig: NextConfig = {
     ? { turbopack: { root: path.join(__dirname, "..") } }
     : { output: "standalone" }),
   async headers() {
-    return [{ source: "/(.*)", headers: securityHeaders }];
+    return [
+      // Everything except the logo images route gets the app-wide CSP.
+      { source: "/((?!api/logos/).*)", headers: securityHeaders },
+      // Logo images (may be uploaded SVG): no script, no subresource, sandboxed,
+      // even when opened directly — a stricter CSP than the app's.
+      {
+        source: "/api/logos/:id",
+        headers: [
+          ...securityHeaders.filter((h) => h.key !== "Content-Security-Policy"),
+          { key: "Content-Security-Policy", value: "default-src 'none'; style-src 'unsafe-inline'; sandbox" },
+        ],
+      },
+    ];
   },
 };
 

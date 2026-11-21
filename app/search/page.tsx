@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { searchAll, ownerDisplayName, loadMarket } from "@/lib/queries";
 import { formerNamePeriods } from "@/lib/timeline";
 import { formatRange, type Locale } from "@/lib/date";
-import { countryFlag } from "@/lib/flags";
+import { Flag } from "@/components/flag";
 import type { CompanyStatus } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
@@ -46,7 +46,7 @@ export default async function SearchPage({
                     <CardContent className="py-3 flex flex-wrap items-center gap-2">
                       <CompanyLogo name={c.timeline.currentName} logoUrl={c.logoUrl} width={56} height={32} />
                       <span className="font-medium">
-                        {countryFlag(c.country)} {c.timeline.currentName}
+                        <Flag iso={c.country} size="1.1em" /> {c.timeline.currentName}
                       </span>
                       <StatusBadge status={c.timeline.currentStatus as CompanyStatus} />
                       {formers.length > 0 && (
