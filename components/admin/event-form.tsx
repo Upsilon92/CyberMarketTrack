@@ -242,6 +242,19 @@ export function EventForm({
       )}
 
       {f.type === "MERGER" && companySelect(f.withCompanyId, (v) => set("withCompanyId", v), tf("withCompany"))}
+      {(f.type === "ACQUISITION" || f.type === "CO_INVESTMENT" || f.type === "MERGER") && (
+        <div className="space-y-1.5">
+          <Label>{tf("dealValue")}</Label>
+          <Input type="number" min="0" step="any" inputMode="decimal" value={f.amount} onChange={(e) => set("amount", e.target.value)} placeholder="ex. 1250" />
+          <p className="text-xs text-muted-foreground">{tf("dealValueHint")}</p>
+        </div>
+      )}
+      {f.type === "FUNDING" && (
+        <div className="space-y-1.5">
+          <Label>{tf("amount")}</Label>
+          <Input type="number" min="0" step="any" inputMode="decimal" value={f.amount} onChange={(e) => set("amount", e.target.value)} />
+        </div>
+      )}
       {f.type === "SOLUTION_TRANSFER" && companySelect(f.newOwnerCompanyId, (v) => set("newOwnerCompanyId", v), tf("newOwner"))}
 
       <div className="grid gap-4 sm:grid-cols-2">

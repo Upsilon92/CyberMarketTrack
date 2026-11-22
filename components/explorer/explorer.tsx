@@ -10,16 +10,16 @@ import { useLocale, useTranslations } from "next-intl";
 import { CalendarRange, LayoutGrid, RotateCcw, Layers, Building2, Tag } from "lucide-react";
 import { Combobox } from "@/components/ui/combobox";
 import { Badge } from "@/components/ui/badge";
-import { Swimlane, type Lane } from "@/components/explorer/swimlane";
+import { Swimlane } from "@/components/explorer/swimlane";
 import { TreeCards } from "@/components/explorer/tree-cards";
 import { EntityChip } from "@/components/explorer/entity";
+import { MarketStatsPanel } from "@/components/explorer/stats";
 import { countryName } from "@/lib/countries";
 import {
   acquisitionTree,
   buildIndex,
   countDescendants,
   editorsOfType,
-  flatten,
   type ExplorerData,
   type TreeNode,
 } from "@/lib/explorer-model";
@@ -35,23 +35,6 @@ export interface ExplorerState {
 }
 
 const MAX_EDITORS = 40;
-
-function toLanes(roots: TreeNode[]): Lane[] {
-  const lanes: Lane[] = [];
-  for (const root of roots) {
-    const rows = flatten(root);
-    const base = lanes.length;
-    const rowOf = new Map<TreeNode, number>();
-    rows.forEach((n, i) => rowOf.set(n, base + i));
-    const parentOf = new Map<TreeNode, TreeNode>();
-    const walk = (n: TreeNode) => n.children.forEach((c) => { parentOf.set(c, n); walk(c); });
-    walk(root);
-    rows.forEach((n, i) =>
-      lanes.push({ node: n, parentRow: parentOf.has(n) ? rowOf.get(parentOf.get(n)!)! : null, groupStart: i === 0 })
-    );
-  }
-  return lanes;
-}
 
 export function Explorer({ data, initial }: { data: ExplorerData; initial: ExplorerState }) {
   const t = useTranslations("explorer");
@@ -206,7 +189,7 @@ export function Explorer({ data, initial }: { data: ExplorerData; initial: Explo
 
       {/* ---------------- Landing ---------------- */}
       {!company && !type && (
-        <div className="grid gap-5 lg:grid-cols-2 animate-in fade-in duration-300">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 animate-in fade-in duration-300 [&>*]:min-w-0">
           <section className="rounded-xl border bg-card p-4 shadow-sm space-y-3">
             <h2 className="font-semibold">{t("topAcquirers")}</h2>
             <div className="flex flex-wrap gap-2">
@@ -241,6 +224,12 @@ export function Explorer({ data, initial }: { data: ExplorerData; initial: Explo
             </div>
           </section>
           <p className="lg:col-span-2 text-sm text-muted-foreground">{t("landingHint")}</p>
+          <MarketStatsPanel
+            data={data}
+            ix={ix}
+            onPickCompany={(id) => update({ company: id })}
+            onPickType={(slug) => update({ type: slug })}
+          />
         </div>
       )}
 
@@ -269,7 +258,7 @@ export function Explorer({ data, initial }: { data: ExplorerData; initial: Explo
 
           {s.view === "timeline" ? (
             companyTree.children.length || s.other ? (
-              <Swimlane lanes={toLanes([companyTree])} ix={ix} nowYear={data.nowYear} showOther={s.other} />
+              <Swimlane roots={[companyTree]} ix={ix} types={data.types} typeSlug={type?.slug ?? null} nowYear={data.nowYear} showOther={s.other} />
             ) : (
               <p className="text-sm text-muted-foreground">{t("noAcquisitions")}</p>
             )
@@ -308,7 +297,7 @@ export function Explorer({ data, initial }: { data: ExplorerData; initial: Explo
           {typeTrees.shown.length === 0 ? (
             <p className="text-sm text-muted-foreground">{t("noEditors")}</p>
           ) : s.view === "timeline" ? (
-            <Swimlane lanes={toLanes(typeTrees.shown)} ix={ix} nowYear={data.nowYear} showOther={false} />
+            <Swimlane roots={typeTrees.shown} ix={ix} types={data.types} typeSlug={type.slug} nowYear={data.nowYear} showOther={false} />
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
               {typeTrees.shown.map((tree) => {

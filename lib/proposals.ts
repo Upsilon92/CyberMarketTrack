@@ -5,6 +5,7 @@ import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { companySchema, solutionSchema, tagSchema, eventSchema, bundleSchema } from "@/lib/validation";
 import { checkEventCoherence } from "@/lib/event-checks";
+import { clientIpFromHeaders } from "@/lib/client-ip";
 
 export const PROPOSAL_ENTITY_TYPES = ["Company", "Solution", "Event", "Tag", "Bundle"] as const;
 export type ProposalEntityType = (typeof PROPOSAL_ENTITY_TYPES)[number];
@@ -14,9 +15,8 @@ export const PROPOSAL_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 /** Client IP behind the reverse proxy (X-Forwarded-For), best-effort. */
 export function clientIp(req: NextRequest): string {
-  const xff = req.headers.get("x-forwarded-for");
-  if (xff) return xff.split(",")[0].trim();
-  return req.headers.get("x-real-ip") ?? "unknown";
+  // Last X-Forwarded-For entry = written by our proxy (the first is forgeable).
+  return clientIpFromHeaders(req.headers);
 }
 
 /** Validate a proposal payload against its entity's Zod schema. */

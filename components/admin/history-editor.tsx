@@ -400,8 +400,8 @@ export function HistoryEditor({
         return `→ ${e.newName}`;
       case "ACQUISITION":
         // Acquirer-centric record: the subject acquired a free-text target.
-        if (e.acquiredNameRaw) return `↳ ${e.acquiredNameRaw}`;
-        return `→ ${e.acquirerCompanyId ? companyLabel(e.acquirerCompanyId) : e.acquirerNameRaw} (${e.outcome})`;
+        if (e.acquiredNameRaw) return `↳ ${e.acquiredNameRaw}${e.amount ? ` · ${e.amount} M$` : ""}`;
+        return `→ ${e.acquirerCompanyId ? companyLabel(e.acquirerCompanyId) : e.acquirerNameRaw} (${e.outcome})${e.amount ? ` · ${e.amount} M$` : ""}`;
       case "SPINOFF":
         return `⑂ ${companyLabel(e.parentCompanyId)}`;
       case "IPO":
@@ -620,7 +620,7 @@ export function HistoryEditor({
                     onChange={(e) => set("acquirerNameRaw", e.target.value)}
                   />
                 </div>
-                <div className="space-y-1.5 sm:col-span-2">
+                <div className="space-y-1.5">
                   <Label>{t("fields.outcome")} *</Label>
                   <select
                     className="border rounded-md bg-background text-foreground px-2 py-2 text-sm w-full"
@@ -635,6 +635,7 @@ export function HistoryEditor({
                     ))}
                   </select>
                 </div>
+                <DealValueInput value={form.amount} onChange={(v) => set("amount", v)} label={t("fields.dealValue")} hint={t("fields.dealValueHint")} />
                 <div className="space-y-1.5 sm:col-span-2 border-t pt-3">
                   <Label>{t("fields.acquiredNameRaw")}</Label>
                   <Input
@@ -687,6 +688,7 @@ export function HistoryEditor({
                     onChange={(e) => set("acquirerNameRaw", e.target.value)}
                   />
                 </div>
+                <DealValueInput value={form.amount} onChange={(v) => set("amount", v)} label={t("fields.dealValue")} hint={t("fields.dealValueHint")} />
               </div>
             )}
 
@@ -695,15 +697,18 @@ export function HistoryEditor({
                 it from an ACQUISITION with an "absorbed" outcome. */}
 
             {form.type === "MERGER" && (
-              <div className="space-y-1.5">
-                <Label>{t("fields.withCompany")} *</Label>
-                <Combobox
-                  value={form.withCompanyId}
-                  onValueChange={(v) => set("withCompanyId", v)}
-                  options={otherCompanyOptions}
-                  placeholder={t("fields.companyPlaceholder")}
-                  emptyText={t("noResults")}
-                />
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label>{t("fields.withCompany")} *</Label>
+                  <Combobox
+                    value={form.withCompanyId}
+                    onValueChange={(v) => set("withCompanyId", v)}
+                    options={otherCompanyOptions}
+                    placeholder={t("fields.companyPlaceholder")}
+                    emptyText={t("noResults")}
+                  />
+                </div>
+                <DealValueInput value={form.amount} onChange={(v) => set("amount", v)} label={t("fields.dealValue")} hint={t("fields.dealValueHint")} />
               </div>
             )}
 
@@ -910,5 +915,16 @@ function DeleteEventButton({ eventId }: { eventId: string }) {
     >
       {t("delete")}
     </Button>
+  );
+}
+
+/** Deal value of an M&A event, in millions of US dollars (optional). */
+function DealValueInput({ value, onChange, label, hint }: { value: string; onChange: (v: string) => void; label: string; hint: string }) {
+  return (
+    <div className="space-y-1.5">
+      <Label>{label}</Label>
+      <Input type="number" min="0" step="any" inputMode="decimal" value={value} onChange={(e) => onChange(e.target.value)} placeholder="ex. 1250" />
+      <p className="text-xs text-muted-foreground">{hint}</p>
+    </div>
   );
 }

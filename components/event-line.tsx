@@ -10,6 +10,7 @@ import { compareDates, formatDate, type DatePoint, type Locale } from "@/lib/dat
 import { periodAt, type NamePeriod } from "@/lib/timeline";
 import { loadMarket, type EventWithRelations } from "@/lib/queries";
 import { countryName } from "@/lib/countries";
+import { DEAL_TYPES, formatDealValue } from "@/lib/money";
 
 /**
  * Name of the entity AS OF the event date, i.e. just BEFORE the event applies:
@@ -193,6 +194,14 @@ export async function EventLine({
     exchange: event.note ?? "",
   });
 
+  // M&A deal value (millions USD), shown as a discreet chip after the sentence.
+  const deal = DEAL_TYPES.has(event.type) ? formatDealValue(event.amount, locale === "en" ? "en" : "fr") : null;
+  const dealChip = deal ? (
+    <span className="ml-1.5 inline-flex items-center rounded-full bg-emerald-500/10 px-1.5 py-px text-[0.8em] font-semibold tabular-nums text-emerald-800 dark:text-emerald-300 whitespace-nowrap align-baseline">
+      {deal}
+    </span>
+  ) : null;
+
   // Company logos involved in the event (subject + actor), de-duplicated,
   // excluding the page's own company and any without a logo.
   const involved: InvolvedLogo[] = [];
@@ -217,7 +226,7 @@ export async function EventLine({
           </Badge>
         )}
       </div>
-      <div className="leading-snug">{text}</div>
+      <div className="leading-snug">{text}{dealChip}</div>
     </div>
   ) : (
     <div className="min-w-0 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm">
@@ -229,7 +238,7 @@ export async function EventLine({
           {tTypes(event.type)}
         </Badge>
       )}
-      <span>{text}</span>
+      <span>{text}{dealChip}</span>
     </div>
   );
 

@@ -11,6 +11,8 @@ export interface XCompany {
   founded: number | null;
   status: string; // derived status (INDEPENDENT, SUBSIDIARY, ABSORBED, …)
   ownerId: string | null; // current owner (derived)
+  /** market domain inferred from the description (used only when the company has no typed solution) */
+  domainGuess: string | null;
 }
 
 export interface XEvent {

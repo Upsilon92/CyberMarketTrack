@@ -4,6 +4,7 @@
 import { prisma } from "@/lib/prisma";
 import { loadMarket } from "@/lib/queries";
 import type { ExplorerData, XEvent } from "@/lib/explorer-model";
+import { domainFromText } from "@/lib/domains";
 
 export async function buildExplorerData(locale: "fr" | "en"): Promise<ExplorerData> {
   const [market, events, tags] = await Promise.all([
@@ -36,6 +37,7 @@ export async function buildExplorerData(locale: "fr" | "en"): Promise<ExplorerDa
       founded: c.foundedYear ?? null,
       status: c.timeline.currentStatus,
       ownerId: c.timeline.currentOwner?.ownerCompanyId ?? null,
+      domainGuess: domainFromText(`${c.descriptionFr ?? ""} ${c.descriptionEn ?? ""}`),
     };
   });
 
